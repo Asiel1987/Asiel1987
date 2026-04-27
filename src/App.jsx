@@ -95,10 +95,22 @@ const PHONE_RULES = [
 ];
 
 
+function luhnCheck(num) {
+  let sum = 0, alt = false;
+  for (let i = num.length - 1; i >= 0; i--) {
+    let d = parseInt(num[i], 10);
+    if (alt) { d *= 2; if (d > 9) d -= 9; }
+    sum += d;
+    alt = !alt;
+  }
+  return sum % 10 === 0;
+}
 function validateCardFields(num, name, expiry, cvv) {
   const cleaned = num.replace(/\s/g, "");
   if (!/^\d{13,19}$/.test(cleaned))
     return "Invalid card number";
+  if (!luhnCheck(cleaned))
+    return "Card number is invalid";
   if (name.trim().length < 2)
     return "Enter the name as it appears on the card";
   const [mm, yy] = (expiry || "").split("/");
@@ -614,7 +626,7 @@ function saveState(slice) {
 try {
 stateCache = { ...(stateCache ?? {}), ...slice, _savedAt: Date.now() };
 localStorage.setItem(STORAGE_KEY, JSON.stringify(stateCache));
-} catch { /* quota exceeded — fail silently */ }
+} catch (e) { log.warn("[saveState] localStorage write failed:", e.message); }
 }
 
 // hydrateFromBackend — called once after successful OTP login.
@@ -841,7 +853,7 @@ return apiFetch(`/api/agripass/${submissionId}/inspect`, { method: "PATCH", body
 },
 
 async createSubmission(data) {
-if (!API_BASE) return { id: `AP-${Date.now().toString().slice(-6)}`, ...data, status: "pending" };
+if (!API_BASE) return { id: secureId("AP"), ...data, status: "pending" };
 return apiFetch("/api/agripass", { method: "POST", body: JSON.stringify(data) });
 },
 
@@ -850,7 +862,7 @@ async initiatePayment({ method, phone, amount, currency, orderId, country }) {
 if (!API_BASE) {
 // Mock: simulate a 2.4 s processing delay then success
 await new Promise(r => setTimeout(r, PAYMENT_DEMO_DELAY_MS));
-return { status: "success", ref: `SF-${Math.random().toString(36).slice(2,8).toUpperCase()}` };
+return { status: "success", ref: secureId("SF") };
 }
 return apiFetch("/api/payments/initiate", {
 method: "POST",
@@ -878,7 +890,7 @@ if (country !== "TZ") return null;
 if (!API_BASE) {
   // Realistic mock — matches TRA VFMS receipt format
   await new Promise(r => setTimeout(r, 900)); // simulate API roundtrip
-  const fiscalNumber = `TRA-${Date.now().toString().slice(-8)}-VFD`;
+  const fiscalNumber = `TRA-${secureId()}-VFD`;
   return {
     fiscalNumber,
     receiptNumber:  `RCT-${ref}`,
@@ -1011,7 +1023,7 @@ if (code === "123456") {
 // LoginScreen show the role selector as the final step.
 return { success: true, token: "demo-jwt-token", role: null, demo: true };
 }
-return { success: false, error: "Incorrect code. Hint: use 123456" };
+return { success: false, error: "Incorrect code. Please try again." };
 }
 return apiFetch("/api/auth/otp/verify", {
 method: "POST",
@@ -1079,27 +1091,46 @@ return () => { clearInterval(timer); handlers.onDisconnected?.(); };
 }
 
 // ── Production: real EventSource ──
-const token = tokenStore.get();
-const url   = `${API_BASE}/api/events?country=${country}${token ? `&token=${token}` : ""}`;
-const es    = new EventSource(url);
+// NOTE: EventSource cannot set Authorization headers.
+// Production: use session cookie (credentials auto-sent) or a short-lived
+// one-time SSE token issued by GET /api/sse-token (expires in 30s).
+// NEVER append long-lived auth tokens to the URL — they appear in server logs.
+const url = `${API_BASE}/api/events?country=${country}`;
+// EventSource sends cookies automatically — backend validates session there.
+// If bearer-only auth is used, call GET /api/sse-token first:
+// const { sseToken } = await apiFetch("/api/sse-token"); then append &t=${sseToken}
+const es  = new EventSource(url, { withCredentials: true });
 
 es.onopen = () => handlers.onConnected?.();
 es.onerror = () => {
   handlers.onDisconnected?.();
   // EventSource auto-reconnects — no manual retry needed
 };
+const SSE_ALLOWED_TYPES = new Set(["order_update","rider_update","shipment_update","ping"]);
 es.onmessage = e => {
   try {
-    const { type, payload } = JSON.parse(e.data);
-    if (type === "order_update")    handlers.onOrderUpdate?.(payload);
-    if (type === "rider_update")    handlers.onRiderUpdate?.(payload);
-    if (type === "shipment_update") handlers.onShipmentUpdate?.(payload);
-    // "ping" is silently ignored
-  } catch { /* ignore malformed events */ }
+    const data = JSON.parse(e.data);
+    if (!data || typeof data !== "object") return;
+    if (!SSE_ALLOWED_TYPES.has(data.type)) {
+      console.warn("[SSE] Unknown event type ignored:", data.type); return;
+    }
+    // Only pass through expected scalar/object fields — no raw payload spread
+    if (data.type === "order_update" && data.payload?.id)
+      handlers.onOrderUpdate?.({ id: data.payload.id, status: data.payload.status, riderId: data.payload.riderId ?? null });
+    if (data.type === "rider_update" && data.payload?.id)
+      handlers.onRiderUpdate?.({ id: data.payload.id, lat: Number(data.payload.lat), lng: Number(data.payload.lng), status: data.payload.status });
+    if (data.type === "shipment_update" && data.payload?.id)
+      handlers.onShipmentUpdate?.({ id: data.payload.id, status: data.payload.status });
+  } catch (err) { console.error("[SSE] Parse error:", err.message); }
 };
 
 // Return unsubscribe function
-return () => { es.close(); handlers.onDisconnected?.(); };
+return () => {
+  // Null out handlers before close to prevent late-firing callbacks
+  es.onopen = null; es.onerror = null; es.onmessage = null;
+  es.close();
+  handlers.onDisconnected?.();
+};
 
 },
 };
@@ -1488,14 +1519,13 @@ appleTags.forEach(([name, content]) => {
 });
 
 // ── 2. Register Service Worker ──
+let onVisChange;
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/sw.js", { scope: "/" })
     .then(reg => {
       setSwReady(true);
-      // Check for updates every time the app regains focus
-      document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible") reg.update();
-      });
+      onVisChange = () => { if (document.visibilityState === "visible") reg.update(); };
+      document.addEventListener("visibilitychange", onVisChange);
     })
     .catch(() => {
       // Expected in the artifact preview environment — /sw.js is not deployed
@@ -1514,6 +1544,7 @@ window.addEventListener("appinstalled", onInstalled);
 return () => {
   window.removeEventListener("beforeinstallprompt", onPrompt);
   window.removeEventListener("appinstalled", onInstalled);
+  if (onVisChange) document.removeEventListener("visibilitychange", onVisChange);
 };
 
 }, []);
@@ -1623,6 +1654,15 @@ const LOYALTY_TZS_PER_100_PTS   = 2000;  // TZS value per 100 redeemed points
 const LOYALTY_PTS_PER_TZS       = 100;   // spend TZS 100 → earn 1 pt
 const DEFAULT_LOYALTY_PTS       = 240;   // new user starting balance
 const TOAST_DISMISS_MS          = 2500;  // toast auto-dismiss delay
+// Cryptographically secure random ID — replaces Math.random() for all
+// security-sensitive identifiers (payment refs, fiscal numbers, submission IDs).
+function secureId(prefix = "", bytes = 5) {
+  const buf = new Uint8Array(bytes);
+  crypto.getRandomValues(buf);
+  const hex = Array.from(buf, b => b.toString(16).padStart(2, "0")).join("").toUpperCase();
+  return prefix ? `${prefix}-${hex}` : hex;
+}
+
 const UNDO_WINDOW_MS            = 4000;  // cart undo window in ms
 const PAYMENT_DEMO_DELAY_MS     = 2400;  // simulated payment processing delay
 const DEMO_EVENT_INTERVAL_MS    = 12000; // SSE demo event replay interval
@@ -4153,7 +4193,7 @@ let bestDist = Infinity;
 routable.forEach((o, idx) => {
 if (visited.has(idx)) return;
 const d = parseFloat(calcDistKm(curLat, curLng, o.coords.lat, o.coords.lng));
-if (d < bestDist) { bestDist = d; bestIdx = idx; }
+if (!isNaN(d) && d < bestDist) { bestDist = d; bestIdx = idx; }
 });
 if (bestIdx === -1) break;
 const next = routable[bestIdx];
@@ -4341,6 +4381,9 @@ const [rating,  setRating]  = useState(0);
 const [comment, setComment] = useState("");
 const [loading, setLoading] = useState(false);
 const [done,    setDone]    = useState(false);
+const closeTimerRef = useRef(null);
+
+useEffect(() => () => clearTimeout(closeTimerRef.current), []);
 
 const MAX_CHARS = 200;
 
@@ -4377,7 +4420,7 @@ createdAt:  new Date().toLocaleString("en-TZ"),
 onSubmit(review);
 setLoading(false);
 setDone(true);
-setTimeout(onClose, 1800);
+closeTimerRef.current = setTimeout(onClose, 1800);
 }
 
 if (done) return (
@@ -4720,7 +4763,7 @@ const timeStr    = now.toLocaleTimeString("en-GB", { hour:"2-digit", minute:"2-d
 const subtotal   = cart.reduce((s,p) => s + p.tzsPrice * (qty[p.id] || 1), 0);
 const discount   = couponResult?.valid ? couponResult.discount : 0;
 const delivery   = cfg.deliveryFee;
-const commission = Math.round(subtotal * cfg.commission.pct / 100);
+const commission = calcCommission(subtotal, country).commissionAmt;
 const total      = subtotal - discount + delivery;
 
 // ── 2. Draw on canvas ──────────────────────────────────────────────────────
@@ -4956,11 +4999,17 @@ const [vfd, setVfd]               = useState(null);   // null | object | "loadin
 const cardType   = detectCard(cardNum);
 const displayAmt = fmt(totalTZS, cur);
 const tzsAmt     = `TZS ${totalTZS.toLocaleString()}`;
-const refNum     = useRef("SF-" + Math.random().toString(36).slice(2,8).toUpperCase()).current;
+const refNum     = useRef(secureId("SF")).current;
 const pollRef    = useRef(null); // tracks active payment polling interval
 const cardBrandName = { visa:"VISA", mastercard:"Mastercard", amex:"Amex", discover:"Discover" };
 
 useEffect(() => { return () => clearInterval(pollRef.current); }, []);
+
+useEffect(() => {
+if (stage === "success") {
+  setCardNum(""); setCardName(""); setCardExpiry(""); setCardCvv("");
+}
+}, [stage]);
 
 useEffect(() => {
 const h = e => { if (e.key === "Escape") onClose(); };
@@ -5024,6 +5073,7 @@ alert("Payment error: " + err.message);
 
 const handlePay = async () => {
 if (!method) return;
+if (API_BASE && !_csrfToken) { alert("Session expired — please refresh and try again."); return; }
 // Require delivery address before payment
 if (!deliveryAddress?.text) {
 document.querySelector(".addr-wrap")?.scrollIntoView({ behavior:"smooth", block:"center" });
@@ -5640,8 +5690,11 @@ const [darkMode, setDarkMode] = React.useState(() => {
   return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
 });
 const [favorites, setFavorites] = React.useState(() => {
-  try { return new Set(JSON.parse(localStorage.getItem('asf_favorites') || '[]')); }
-  catch { return new Set(); }
+  try {
+    const raw = localStorage.getItem('asf_favorites');
+    const parsed = raw ? JSON.parse(raw) : null;
+    return new Set(Array.isArray(parsed) ? parsed : []);
+  } catch { return new Set(); }
 });
 const toggleFavorite = useCallback(id => {
   setFavorites(prev => {
@@ -5846,8 +5899,8 @@ const q = search.toLowerCase();
 if (q && !p.name.toLowerCase().includes(q) && !p.farmer.toLowerCase().includes(q)) return false;
 if (filter === "Organic"  && !p.organic)              return false;
 if (filter === "Verified" && !p.verified)             return false;
-if (filter === "< 30 km"  && parseInt(p.dist) >= 30) return false;
-if (filter === "< 60 km"  && parseInt(p.dist) >= 60) return false;
+if (filter === "< 30 km"  && parseInt(p.dist, 10) >= 30) return false;
+if (filter === "< 60 km"  && parseInt(p.dist, 10) >= 60) return false;
 if (filter === "❤️ Saved" && !favorites.has(p.id)) return false;
 return true;
 }), [allProducts, search, filter, favorites]);
@@ -5897,11 +5950,14 @@ setQty(q => ({ ...q, [id]: Math.max(1, (q[id]||1) + delta) }));
 const cartTZS       = cart.reduce((s,p) => s + p.tzsPrice * getQty(p.id), 0);
 const totalTZS      = cartTZS + DELIV_TZS;
 const handleApplyCoupon = useCallback(() => {
+if (couponResult?.valid && couponResult.code === couponCode.toUpperCase().trim()) {
+  showToast("⚠️ Coupon already applied"); return;
+}
 const result = applyCoupon(couponCode, cartTZS);
 setCouponResult(result);
 if (result.valid) showToast(`${t("toast.coupon_applied")} ${fmt(result.discount,"TZS")}`);
 else showToast("❌ " + result.error);
-}, [couponCode, cartTZS, showToast]);
+}, [couponCode, couponResult, cartTZS, showToast]);
 const awardLoyaltyPts = useCallback((tzsSpent) => {
 const pts = earnPoints(tzsSpent);
 setLoyaltyPts(p => p + pts);
@@ -5909,6 +5965,7 @@ showToast(`+${pts} ${t("toast.loyalty_earned")}`);
 }, [showToast]);
 const handleGeoCheckIn = useCallback(() => {
 if (!navigator.geolocation) { showToast(t("toast.geo_unsupported")); return; }
+if (geoLoading) return;
 setGeoLoading(true);
 navigator.geolocation.getCurrentPosition(
 pos => {
@@ -5928,7 +5985,7 @@ showToast(t("toast.geo_blocked"));
 },
 { timeout:8000 }
 );
-}, [country, showToast]);
+}, [country, geoLoading, showToast]);
 const handlePost = useCallback(() => {
 const errs = {};
 if (!form.crop)    errs.crop = "Crop name is required";
@@ -5954,6 +6011,7 @@ country,
 analytics.capture("farmer.listing_submitted", { crop: form.crop, country, organic: toggles.organic });
 setPosted(true);
 setForm({ crop:"", price:"", unit:"KG", harvest:"", qty:"" });
+setFormErr({});
 setHarvestPhotos([]);
 setTimeout(() => setPosted(false), 5000);
 showToast(t("toast.listing_sub"));
@@ -6040,7 +6098,7 @@ return (
           {darkMode ? "☀️" : "🌙"}
         </button>
         {userRole && (
-          <button className="role-badge" title="Sign out" onClick={() => { apiService.logout(); setUserRole(null); setConsentGiven(false); }}>
+          <button className="role-badge" title="Sign out" onClick={() => { apiService.logout(); setUserRole(null); setConsentGiven(false); _resetEB(); }}>
             {ROLES[userRole]?.icon} {ROLES[userRole]?.label}
           </button>
         )}
@@ -6732,7 +6790,8 @@ return (
             {(() => {
               const tier     = getLoyaltyTier(loyaltyPts);
               const nextTier = LOYALTY_TIERS[LOYALTY_TIERS.indexOf(tier)+1];
-              const pct      = nextTier ? Math.min(100,((loyaltyPts-tier.min)/(nextTier.min-tier.min))*100) : 100;
+              const range    = nextTier ? nextTier.min - tier.min : 1;
+              const pct      = nextTier ? Math.min(100, ((loyaltyPts - tier.min) / range) * 100) : 100;
               const redeemTZS = redeemValue(loyaltyPts);
               const canRedeem = loyaltyPts >= 100;
               return (
@@ -6905,9 +6964,15 @@ return (
 //   <meta name="description" content="Asiel Farm Shop — Farm-to-Fork marketplace Tanzania & Kenya">
 //   <link rel="manifest" href="/manifest.json">
 //   <link rel="apple-touch-icon" href="/icons/icon-192.png">
+// Module-level reset hook — AppInner calls _resetEB() on logout to
+// remount the ErrorBoundary and clear any stale error state.
+let _resetEB = () => {};
+
 export default function App() {
+const [ebKey, setEbKey] = React.useState(0);
+_resetEB = () => setEbKey(k => k + 1);
 return (
-<ErrorBoundary>
+<ErrorBoundary key={ebKey}>
 <TranslationProvider>
 <AppInner />
 </TranslationProvider>
