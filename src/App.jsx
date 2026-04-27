@@ -304,7 +304,6 @@ this._push("error.captured", entry);
 log.error("[Analytics] exception:", entry.message, context);
 // Wire: if (this._Sentry) this._Sentry.withScope(s => { s.setUser({ id: this._userId }); s.setExtras(context); this._Sentry.captureException(error); });
 
-```
 // POST to backend /api/errors when API_BASE is set (no external dep — pure fetch)
 if (API_BASE) {
   fetch(`${API_BASE}/api/errors`, {
@@ -313,7 +312,6 @@ if (API_BASE) {
     body:    JSON.stringify(entry),
   }).catch(() => {});
 }
-```
 
 },
 
@@ -611,7 +609,6 @@ try {
 const profile = await apiService.getProfile();
 if (!profile) return;
 
-```
 // Merge server state — server wins for loyalty and preferences,
 // but we merge carts (union of local + server items)
 const localCart  = loadState()?.cart || [];
@@ -641,7 +638,6 @@ if (setters) {
   setters.setCur?.(s.cur           ?? "TZS");
   setters.setConsentGiven?.(s.consentGiven ?? false);
 }
-```
 
 } catch (err) {
 log.warn("[hydrateFromBackend] Using local state:", err.message);
@@ -843,7 +839,6 @@ async generateVFD({ orderId, amount, ref, country, paymentMethod }) {
 // VFD is only legally required in Tanzania; other countries return null
 if (country !== "TZ") return null;
 
-```
 if (!API_BASE) {
   // Realistic mock — matches TRA VFMS receipt format
   await new Promise(r => setTimeout(r, 900)); // simulate API roundtrip
@@ -872,7 +867,6 @@ try {
   log.error("[apiService] generateVFD failed:", err.message);
   return { status: "error", message: err.message };
 }
-```
 
 },
 
@@ -1038,7 +1032,6 @@ idx++;
 return () => { clearInterval(timer); handlers.onDisconnected?.(); };
 }
 
-```
 // ── Production: real EventSource ──
 const token = localStorage.getItem("asf_token");
 const url   = `${API_BASE}/api/events?country=${country}${token ? `&token=${token}` : ""}`;
@@ -1061,7 +1054,6 @@ es.onmessage = e => {
 
 // Return unsubscribe function
 return () => { es.close(); handlers.onDisconnected?.(); };
-```
 
 },
 };
@@ -1192,7 +1184,6 @@ const [fxMeta,     setFxMeta]     = useState({ source:"seed", updatedAt: null })
 useEffect(() => {
 let timer;
 
-```
 async function refresh() {
   if (!API_BASE) {
     // Demo mode — seed rates are already in FX, nothing to do
@@ -1215,7 +1206,6 @@ async function refresh() {
 refresh(); // immediate on mount
 timer = setInterval(refresh, FX_REFRESH_INTERVAL_MS); // every 6 hours
 return () => clearInterval(timer);
-```
 
 }, []);
 
@@ -1426,7 +1416,6 @@ useEffect(() => {
 // ── Analytics init (Sentry + PostHog) ──
 analytics.init();
 
-```
 const manifestBlob = new Blob([JSON.stringify(APP_MANIFEST)], { type: "application/manifest+json" });
 const manifestUrl  = URL.createObjectURL(manifestBlob);
 let link = document.querySelector("link[rel='manifest']");
@@ -1485,7 +1474,6 @@ return () => {
   window.removeEventListener("beforeinstallprompt", onPrompt);
   window.removeEventListener("appinstalled", onInstalled);
 };
-```
 
 }, []);
 
@@ -3009,7 +2997,6 @@ return (
 <div className="login-wrap">
 <div className="login-card">
 
-```
     <div className="login-logo">
       <img src={LOGO_NAV} alt="Asiel Farms" style={{width:64,height:64,borderRadius:14,objectFit:"cover"}}/>
       <div className="login-title">Asiel Farm Shop</div>
@@ -3101,7 +3088,6 @@ return (
     </div>
   </div>
 </div>
-```
 
 );
 }
@@ -3171,7 +3157,6 @@ style={{background:"rgba(255,255,255,.15)",color:"white",border:"1px solid rgba(
 </div>
 </div>
 
-```
   {/* KPI cards */}
   <div className="an-kpi-row">
     {[
@@ -3274,7 +3259,6 @@ style={{background:"rgba(255,255,255,.15)",color:"white",border:"1px solid rgba(
     ))}
   </div>
 </div>
-```
 
 );
 }
@@ -3503,7 +3487,6 @@ return (
 </div>
 </div>
 
-```
   {/* ── STATS BAR (inspector only) ── */}
   {apTab === "inspector" && (
     <div className="ap-stats">
@@ -3845,7 +3828,6 @@ return (
     </div>
   )}
 </div>
-```
 
 );
 }
@@ -3945,7 +3927,6 @@ const remaining = maxPhotos - photos.length;
 if (remaining <= 0) { setStatus("error"); setStatusMsg(`Max ${maxPhotos} photos allowed.`); return; }
 const toProcess = Array.from(files).slice(0, remaining);
 
-```
 // Validate types and sizes
 const invalid = toProcess.find(f => !f.type.startsWith("image/") || f.size > MAX_FILE_MB * 1024 * 1024);
 if (invalid) { setStatus("error"); setStatusMsg(`Images only, max ${MAX_FILE_MB} MB each.`); return; }
@@ -3974,7 +3955,6 @@ if (results.length) {
   setStatus("ok");
   setStatusMsg(`${results.length} photo${results.length > 1 ? "s" : ""} uploaded!`);
 }
-```
 
 }
 
@@ -4009,7 +3989,6 @@ JPG / PNG · max {MAX_FILE_MB} MB each · up to {maxPhotos} photos · compressed
 </div>
 )}
 
-```
   {/* Upload progress */}
   {uploading && (
     <div className="pu-progress-wrap">
@@ -4047,7 +4026,6 @@ JPG / PNG · max {MAX_FILE_MB} MB each · up to {maxPhotos} photos · compressed
     </div>
   )}
 </div>
-```
 
 );
 }
@@ -4149,7 +4127,6 @@ return (
 <div className="route-badge">{sortedOrders.length} Stop{sortedOrders.length > 1 ? "s" : ""}</div>
 </div>
 
-```
   <div className="route-stops">
     {sortedOrders.map((o, i) => {
       const coords = o.coords;
@@ -4189,7 +4166,6 @@ return (
     </div>
   </div>
 </div>
-```
 
 );
 }
@@ -4348,7 +4324,6 @@ onClick={e => e.target === e.currentTarget && onClose()}>
 Order {order.id} · {order.products?.map(p => `${p.name} ${p.qty}`).join(", ")}
 </div>
 
-```
     <div style={{fontWeight:700,fontSize:12,color:"var(--bark)",marginBottom:10}}>
       How would you rate this farmer's produce?
     </div>
@@ -4376,7 +4351,6 @@ Order {order.id} · {order.products?.map(p => `${p.name} ${p.qty}`).join(", ")}
     <button className="review-skip" onClick={onClose}>Skip for now</button>
   </div>
 </div>
-```
 
 );
 }
@@ -4427,7 +4401,6 @@ return (
 </div>
 </div>
 
-```
   {/* Payout rows */}
   {myEntries.map(e => {
     const st   = PAYOUT_STATUS[e.status] || PAYOUT_STATUS.pending;
@@ -4480,7 +4453,6 @@ return (
     );
   })}
 </>
-```
 
 );
 }
@@ -4562,7 +4534,6 @@ return (
 📍 Delivery Address
 </div>
 
-```
   <div className="addr-input-row">
     <input
       className={`addr-input${error ? " error" : ""}`}
@@ -4646,7 +4617,6 @@ return (
     </div>
   )}
 </div>
-```
 
 );
 }
@@ -5054,7 +5024,6 @@ Your order has been placed and farmers have been notified.
 {cur !== "TZS" && <div style={{fontSize:12,color:"#aaa"}}>≈ {tzsAmt}</div>}
 <div className="success-ref">Ref: {refNum}</div>
 
-```
       {/* Confirmed delivery address */}
       {deliveryAddress?.text && (
         <div style={{margin:"10px 22px 0",background:"var(--mist)",borderRadius:12,
@@ -5149,7 +5118,6 @@ Your order has been placed and farmers have been notified.
     </div>
   </div>
 </div>
-```
 
 );
 
@@ -5179,7 +5147,6 @@ return (
 </div>
 </div>
 
-```
     {/* ── Delivery address picker ── */}
     <AddressPicker
       country={country}
@@ -5392,7 +5359,6 @@ return (
     </div>
   </div>
 </div>
-```
 
 );
 }
@@ -5437,7 +5403,6 @@ window.location.reload();
 render() {
 if (!this.state.hasError) return this.props.children;
 
-```
 const { error, errorId } = this.state;
 const isDev = !API_BASE; // show stack trace only in demo / dev mode
 
@@ -5468,7 +5433,6 @@ return (
     </div>
   </div>
 );
-```
 
 }
 }
@@ -5845,7 +5809,6 @@ return (
 <>
 <style>{css}</style>
 
-```
   {!userRole && (
     <LoginScreen onLogin={role => {
       setUserRole(role);
@@ -6765,7 +6728,6 @@ return (
 
   </div>
 </>
-```
 
 );
 }
