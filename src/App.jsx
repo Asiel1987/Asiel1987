@@ -813,7 +813,7 @@ return apiFetch("/api/agripass", { method: "POST", body: JSON.stringify(data) })
 async initiatePayment({ method, phone, amount, currency, orderId, country }) {
 if (!API_BASE) {
 // Mock: simulate a 2.4 s processing delay then success
-await new Promise(r => setTimeout(r, 2400));
+await new Promise(r => setTimeout(r, PAYMENT_DEMO_DELAY_MS));
 return { status: "success", ref: `SF-${Math.random().toString(36).slice(2,8).toUpperCase()}` };
 }
 return apiFetch("/api/payments/initiate", {
@@ -1027,7 +1027,7 @@ if (evt.type === "order_update")    handlers.onOrderUpdate?.(evt.payload);
 if (evt.type === "rider_update")    handlers.onRiderUpdate?.(evt.payload);
 if (evt.type === "shipment_update") handlers.onShipmentUpdate?.(evt.payload);
 idx++;
-}, 12000); // one event every 12 seconds
+}, DEMO_EVENT_INTERVAL_MS); // one event every 12 seconds
 // Return unsubscribe function
 return () => { clearInterval(timer); handlers.onDisconnected?.(); };
 }
@@ -1578,6 +1578,8 @@ const LOYALTY_PTS_PER_TZS       = 100;   // spend TZS 100 → earn 1 pt
 const DEFAULT_LOYALTY_PTS       = 240;   // new user starting balance
 const TOAST_DISMISS_MS          = 2500;  // toast auto-dismiss delay
 const UNDO_WINDOW_MS            = 4000;  // cart undo window in ms
+const PAYMENT_DEMO_DELAY_MS     = 2400;  // simulated payment processing delay
+const DEMO_EVENT_INTERVAL_MS    = 12000; // SSE demo event replay interval
 const BACKEND_SYNC_DELAY_MS     = 3000;  // debounced backend sync delay
 const FX_REFRESH_INTERVAL_MS    = 6 * 60 * 60 * 1000; // 6 hours
 
@@ -3928,7 +3930,8 @@ body:   JSON.stringify({ filename: file.name, contentType: "image/jpeg" }),
 });
 const form = new FormData();
 form.append("file", file);
-await fetch(uploadUrl, { method: "POST", body: form });
+const uploadResp = await fetch(uploadUrl, { method: "POST", body: form });
+if (!uploadResp.ok) throw new Error(`Upload failed: HTTP ${uploadResp.status}`);
 return { url: publicUrl, name: file.name, size: file.size };
 }
 
@@ -4242,13 +4245,22 @@ const [hover, setHover] = useState(0);
 const labels = ["","Terrible","Poor","Okay","Good","Excellent"];
 return (
 <>
-<div className="review-stars">
+<div className="review-stars" role="radiogroup" aria-label="Product rating">
 {[1,2,3,4,5].map(n => (
 <span key={n}
+role="radio"
+aria-checked={n === value}
+aria-label={`${n} star${n !== 1 ? "s" : ""}`}
+tabIndex={n === (value || 1) ? 0 : -1}
 className={`review-star${n <= (hover || value) ? " active" : ""}`}
 onMouseEnter={() => setHover(n)}
 onMouseLeave={() => setHover(0)}
 onClick={() => onChange(n)}
+onKeyDown={e => {
+  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onChange(n); }
+  if (e.key === "ArrowRight" && n < 5) onChange(Math.min(5, n + 1));
+  if (e.key === "ArrowLeft"  && n > 1) onChange(Math.max(1, n - 1));
+}}
 >
 {n <= (hover || value) ? "⭐" : "☆"}
 </span>
@@ -4866,6 +4878,17 @@ setTimeout(() => { URL.revokeObjectURL(url); document.body.removeChild(a); }, 10
 analytics.capture("invoice.downloaded", { ref: refNum, totalTZS: total, country });
 }
 
+const ALL_PAY_METHODS = {
+tigopesa: { icon:"📲", cls:"tigopesa", name:"Tigo Pesa / Vodacom", sub:"USSD push to your mobile number" },
+mpesa:    { icon:"📱", cls:"mpesa",    name:"M-Pesa",              sub:"USSD push to your mobile number" },
+selcom:   { icon:"💚", cls:"selcom",   name:"Selcom Pay",          sub:"Selcom Wireless · Tanzania"      },
+airtel:   { icon:"🔴", cls:"airtel",   name:"Airtel Money",        sub:"Airtel mobile wallet"            },
+mtn_momo: { icon:"🟡", cls:"mtn",      name:"MTN MoMo",            sub:"MTN Mobile Money wallet"         },
+opay:     { icon:"🟠", cls:"opay",     name:"OPay",                sub:"OPay digital wallet"             },
+card:     { icon:"💳", cls:"card",     name:"Debit / Credit Card", sub:"Visa · Mastercard · Amex"        },
+bank:     { icon:"🏦", cls:"bank",     name:"Bank Transfer",       sub:`${getCfg(country).taxBody} · ${getCfg(country).regulator}` },
+};
+
 function PaymentGateway({ totalTZS, cur, country, onClose, onSuccess,
 cart = [], qty = {}, couponResult = null, loyaltyPts = 0 }) {
 const [method, setMethod]         = useState(null);
@@ -4887,7 +4910,10 @@ const cardType   = detectCard(cardNum);
 const displayAmt = fmt(totalTZS, cur);
 const tzsAmt     = `TZS ${totalTZS.toLocaleString()}`;
 const refNum     = useRef("SF-" + Math.random().toString(36).slice(2,8).toUpperCase()).current;
+const pollRef    = useRef(null); // tracks active payment polling interval
 const cardBrandName = { visa:"VISA", mastercard:"Mastercard", amex:"Amex", discover:"Discover" };
+
+useEffect(() => { return () => clearInterval(pollRef.current); }, []);
 
 useEffect(() => {
 const h = e => { if (e.key === "Escape") onClose(); };
@@ -4912,16 +4938,6 @@ setVfd(receipt?.status === "error" ? "error" : receipt);
 }, [stage, country, totalTZS, refNum, method, expressAnim]);
 
 // Payment methods are driven by the country registry — no more hardcoded ternaries
-const ALL_PAY_METHODS = {
-tigopesa: { icon:"📲", cls:"tigopesa", name:"Tigo Pesa / Vodacom", sub:"USSD push to your mobile number" },
-mpesa:    { icon:"📱", cls:"mpesa",    name:"M-Pesa",              sub:"USSD push to your mobile number" },
-selcom:   { icon:"💚", cls:"selcom",   name:"Selcom Pay",          sub:"Selcom Wireless · Tanzania"      },
-airtel:   { icon:"🔴", cls:"airtel",   name:"Airtel Money",        sub:"Airtel mobile wallet"            },
-mtn_momo: { icon:"🟡", cls:"mtn",      name:"MTN MoMo",            sub:"MTN Mobile Money wallet"         },
-opay:     { icon:"🟠", cls:"opay",     name:"OPay",                sub:"OPay digital wallet"             },
-card:     { icon:"💳", cls:"card",     name:"Debit / Credit Card", sub:"Visa · Mastercard · Amex"        },
-bank:     { icon:"🏦", cls:"bank",     name:"Bank Transfer",       sub:`${getCfg(country).taxBody} · ${getCfg(country).regulator}` },
-};
 const payMethods = (getCfg(country).payments || ["card","bank"])
 .map(id => ({ id, ...ALL_PAY_METHODS[id] }))
 .filter(Boolean);
@@ -4934,7 +4950,7 @@ setExpressAnim(type);
 setStage("processing");
 if (!API_BASE) {
 // Demo mode — simulate 2.4s processing delay
-setTimeout(() => setStage("success"), 2400);
+setTimeout(() => setStage("success"), PAYMENT_DEMO_DELAY_MS);
 return;
 }
 try {
@@ -4942,13 +4958,14 @@ const { ref } = await apiService.initiatePayment({
 method: type, amount: totalTZS, currency: "tzs", orderId: refNum, country,
 });
 // Poll every 3s until confirmed (max 2 minutes)
+clearInterval(pollRef.current); // cancel any previous poll before starting
 let attempts = 0;
-const poll = setInterval(async () => {
+pollRef.current = setInterval(async () => {
 attempts++;
 const status = await apiService.pollPaymentStatus(ref);
-if (status.status === "success") { clearInterval(poll); setStage("success"); }
+if (status.status === "success") { clearInterval(pollRef.current); setStage("success"); }
 if (status.status === "failed" || attempts > 40) {
-clearInterval(poll); setStage("choose");
+clearInterval(pollRef.current); setStage("choose");
 alert("Payment failed or timed out. Please try again.");
 }
 }, 3000);
@@ -4987,9 +5004,9 @@ let attempts = 0;
 const poll = setInterval(async () => {
 attempts++;
 const status = await apiService.pollPaymentStatus(ref);
-if (status.status === "success") { clearInterval(poll); setStage("success"); }
+if (status.status === "success") { clearInterval(pollRef.current); setStage("success"); }
 if (status.status === "failed" || attempts > 40) {
-clearInterval(poll); setStage("choose");
+clearInterval(pollRef.current); setStage("choose");
 alert("Payment failed or timed out. Please try again.");
 }
 }, 3000);
@@ -5758,6 +5775,7 @@ const savedQty = qty[id] || 1;
 setCart(prev => prev.filter(p => p.id !== id));
 setQty(q => { const n={...q}; delete n[id]; return n; });
 releaseQty(id); // return reservation to stock map
+if (undoItem?.timer) clearTimeout(undoItem.timer); // clear any previous undo timer
 const undoTimer = setTimeout(() => setUndoItem(null), UNDO_WINDOW_MS);
 setUndoItem({ item, savedQty, timer: undoTimer });
 }, [cart, qty, releaseQty]);
@@ -5830,7 +5848,7 @@ hubReady:  toggles.delivery,
 photos:    harvestPhotos.map(p => p.url), // CDN URLs sent to backend
 country,
 };
-void listing;
+// TODO: apiService.createListing(listing) — backend endpoint pending
 analytics.capture("farmer.listing_submitted", { crop: form.crop, country, organic: toggles.organic });
 setPosted(true);
 setForm({ crop:"", price:"", unit:"KG", harvest:"", qty:"" });
@@ -5889,7 +5907,7 @@ return (
     {/* ── TOP NAV ── */}
     <nav className="nav" aria-label="Main navigation">
       <div className="nav-logo">
-        <img src={LOGO_NAV} alt="Asiel Farms" style={{height:42,width:42,borderRadius:8,objectFit:"cover",marginRight:8,verticalAlign:"middle",boxShadow:"0 2px 8px rgba(0,0,0,.3)"}}/>
+        <img src={LOGO_NAV} alt="Asiel Farms" width="42" height="42" style={{height:42,width:42,borderRadius:8,objectFit:"cover",marginRight:8,verticalAlign:"middle",boxShadow:"0 2px 8px rgba(0,0,0,.3)"}}/>
         <span style={{verticalAlign:"middle",lineHeight:1}}>Asiel<span style={{color:"var(--mint)"}}> Farm Shop</span></span>
       </div>
       <div className="nav-right">

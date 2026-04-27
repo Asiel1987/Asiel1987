@@ -1,14 +1,16 @@
-// Asiel Farm Shop — Service Worker v1
+// Asiel Farm Shop — Service Worker v2
 // Deploy this file at /sw.js (web root, same origin as the app)
 
-const CACHE_NAME = 'asiel-farm-shop-v1';
-const API_CACHE  = 'asiel-api-v1';
+const CACHE_NAME = 'asiel-farm-shop-v2';
+const API_CACHE  = 'asiel-api-v2';
 const STATIC_ASSETS = ['/', '/index.html'];
 
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(c => c.addAll(STATIC_ASSETS).catch(() => {}))
+      .then(c => c.addAll(STATIC_ASSETS))
+      // Log rather than silently swallow — broken offline shell is worse than a failed install
+      .catch(err => console.warn('[SW] Failed to precache static assets:', err))
       .then(() => self.skipWaiting())
   );
 });
@@ -40,15 +42,39 @@ self.addEventListener('sync', event => {
   if (event.tag === 'order-queue') event.waitUntil(replayOrderQueue());
 });
 
+// Each order is replayed independently so one failure doesn't block others.
+// The IDB transaction is re-opened per item to avoid auto-close across async gaps.
 async function replayOrderQueue() {
   const db = await openOrderQueue();
-  const tx = db.transaction('queue', 'readwrite');
-  const all = await tx.objectStore('queue').getAll();
-  for (const item of all) {
+
+  // Read all queued items in a single read-only transaction
+  const items = await new Promise((res, rej) => {
+    const tx  = db.transaction('queue', 'readonly');
+    const req = tx.objectStore('queue').getAll();
+    req.onsuccess = () => res(req.result);
+    req.onerror   = () => rej(req.error);
+  });
+
+  for (const item of items) {
     try {
-      await fetch(item.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: item.body });
-      await tx.objectStore('queue').delete(item.id);
-    } catch {}
+      const resp = await fetch(item.url, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    item.body,
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+      // Delete in its own transaction after confirmed success
+      await new Promise((res, rej) => {
+        const tx  = db.transaction('queue', 'readwrite');
+        tx.oncomplete = res;
+        tx.onerror    = () => rej(tx.error);
+        tx.objectStore('queue').delete(item.id);
+      });
+    } catch (err) {
+      // Log and continue — remaining orders should still be attempted
+      console.error('[SW] Order replay failed for item', item.id, ':', err.message);
+    }
   }
 }
 
@@ -59,20 +85,27 @@ async function cacheFirst(req, cacheName) {
     const fresh = await fetch(req);
     if (fresh.ok) { const c = await caches.open(cacheName); c.put(req, fresh.clone()); }
     return fresh;
-  } catch { return new Response('Offline', { status: 503 }); }
+  } catch {
+    return new Response('Offline', { status: 503 });
+  }
 }
 
 async function networkFirst(req, cacheName, timeoutMs) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
     const fresh = await fetch(req, { signal: controller.signal });
-    clearTimeout(timer);
     if (fresh.ok) { const c = await caches.open(cacheName); c.put(req, fresh.clone()); }
     return fresh;
   } catch {
     const cached = await caches.match(req);
-    return cached || new Response('{"error":"offline"}', { status: 503, headers: { 'Content-Type': 'application/json' } });
+    return cached || new Response('{"error":"offline"}', {
+      status: 503,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } finally {
+    // Always clear regardless of outcome — prevents abort firing after response is handled
+    clearTimeout(timer);
   }
 }
 
@@ -81,7 +114,7 @@ async function staleWhileRevalidate(req, cacheName) {
   const fetchPromise = fetch(req).then(fresh => {
     if (fresh.ok) caches.open(cacheName).then(c => c.put(req, fresh.clone()));
     return fresh;
-  }).catch(() => {});
+  }).catch(() => cached); // Fall back to cached copy if revalidation fetch fails
   return cached || fetchPromise;
 }
 
@@ -89,7 +122,7 @@ function openOrderQueue() {
   return new Promise((res, rej) => {
     const r = indexedDB.open('asiel-order-queue', 1);
     r.onupgradeneeded = e => e.target.result.createObjectStore('queue', { keyPath: 'id', autoIncrement: true });
-    r.onsuccess = e => res(e.target.result);
-    r.onerror = e => rej(e);
+    r.onsuccess = () => res(r.result);
+    r.onerror   = () => rej(r.error);
   });
 }
