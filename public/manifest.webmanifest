@@ -36,6 +36,21 @@
       "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
     }
   ],
-  "screenshots": [],
+  "screenshots": [
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Asiel Farm Shop market browse on mobile"
+    },
+    {
+      "src": "/screenshot-tablet.png",
+      "sizes": "1024x768",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Asiel Farm Shop market browse on tablet"
+    }
+  ],
   "categories": ["food", "shopping", "lifestyle"]
 }

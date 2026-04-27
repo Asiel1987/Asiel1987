@@ -94,6 +94,23 @@ const PHONE_RULES = [
 { prefix:"+27",  min:9, max:9,  re:/^(6|7|8)\d{8}$/,  country:"ZA" },
 ];
 
+
+function validateCardFields(num, name, expiry, cvv) {
+  const cleaned = num.replace(/\s/g, "");
+  if (!/^\d{13,19}$/.test(cleaned))
+    return "Invalid card number";
+  if (name.trim().length < 2)
+    return "Enter the name as it appears on the card";
+  const [mm, yy] = (expiry || "").split("/");
+  const now = new Date();
+  const exp = new Date(2000 + parseInt(yy || "0", 10), parseInt(mm || "0", 10) - 1);
+  if (!mm || !yy || exp <= now)
+    return "Card has expired or expiry date is invalid";
+  if (!/^\d{3,4}$/.test(cvv))
+    return "CVV must be 3 or 4 digits";
+  return null; // valid
+}
+
 function validatePhone(rawInput) {
 if (!rawInput || rawInput.trim() === "") {
 return { valid: false, e164: "", error: "Please enter your mobile number." };
@@ -310,7 +327,7 @@ if (API_BASE) {
     method:  "POST",
     headers: { "Content-Type": "application/json" },
     body:    JSON.stringify(entry),
-  }).catch(() => {});
+  }).catch(err => log.warn("[analytics] error report failed:", err.message));
 }
 
 },
@@ -604,7 +621,7 @@ localStorage.setItem(STORAGE_KEY, JSON.stringify(stateCache));
 // Fetches the server-side profile and merges it into localStorage so
 // the app immediately reflects the user's state from any previous device.
 async function hydrateFromBackend(setters) {
-if (!localStorage.getItem("asf_token")) return;  // not logged in
+if (!tokenStore.get()) return;  // not logged in
 try {
 const profile = await apiService.getProfile();
 if (!profile) return;
@@ -650,12 +667,14 @@ let _syncTimer = null;
 function scheduledBackendSync(state) {
 clearTimeout(_syncTimer);
 _syncTimer = setTimeout(async () => {
-if (!localStorage.getItem("asf_token")) return;
+if (!tokenStore.get()) return;
+try {
 await Promise.all([
 apiService.syncCart(state.cart, state.qty),
 apiService.syncLoyalty(state.loyaltyPts),
 apiService.syncPreferences({ country: state.country, currency: state.cur, consentGiven: state.consentGiven }),
 ]);
+} catch (err) { console.warn("[sync] backend sync failed:", err.message); }
 }, BACKEND_SYNC_DELAY_MS);
 }
 
@@ -694,11 +713,28 @@ error: (...a) => console.error(...a) };          // errors always shown
 // Centralised request helper — auth header, CSRF token, JSON parse, error logging
 // csrfToken: generated server-side on login, stored in React state (never localStorage).
 // credentials:"include" sends the httpOnly session cookie automatically.
-async function apiFetch(path, options = {}, csrfToken = "") {
+// ── Token store ─────────────────────────────────────────────────────────────────────
+// SECURITY: In production with a real backend, DELETE this entire block and rely
+// exclusively on httpOnly session cookies (credentials:"include" below handles that).
+// localStorage tokens are readable by any JS on the page — XSS = full account takeover.
+// Demo mode uses localStorage only because there is no backend to issue cookies.
+const tokenStore = {
+  _mem: null,
+  get()         { return API_BASE ? this._mem : tokenStore.get(); },
+  set(tok)      { if (API_BASE) { this._mem = tok; } else { localStorage.setItem("asf_token", tok); } },
+  clear()       { this._mem = null; tokenStore.clear(); },
+  exists()      { return !!this.get(); },
+};
+// In-memory CSRF token — fetched once after login, never persisted.
+// Module-level so it survives re-renders without being in React state.
+let _csrfToken = "";
+
+
+async function apiFetch(path, options = {}) {
 // Auth strategy:
 //   Production (API_BASE set):  httpOnly cookie via credentials:"include" — no localStorage needed.
 //   Demo mode (API_BASE empty): localStorage JWT fallback so the demo runs without a backend.
-const token = !API_BASE ? localStorage.getItem("asf_token") : null;
+const token = !API_BASE ? tokenStore.get() : null; // demo-mode only
 const MUTATION_METHODS = ["POST","PUT","PATCH","DELETE"];
 const isMutation = MUTATION_METHODS.includes((options.method || "GET").toUpperCase());
 const res = await fetch(`${API_BASE}${path}`, {
@@ -707,7 +743,7 @@ headers: {
 "Content-Type": "application/json",
 ...(token ? { Authorization: `Bearer ${token}` } : {}),
 // CSRF token on all state-mutating requests — prevents CSRF attacks when using cookies
-...(isMutation && csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
+...(isMutation && _csrfToken ? { "X-CSRF-Token": _csrfToken } : {}),
 ...options.headers,
 },
 ...options,
@@ -947,7 +983,8 @@ return ORDERS_INIT.filter(o => o.country === country && o.status === "delivered"
 }
 try {
 return await apiFetch(`/api/users/me/orders?country=${country}`);
-} catch {
+} catch (err) {
+log.warn("[apiService] getUserOrders: using mock fallback:", err.message);
 return ORDERS_INIT.filter(o => o.country === country && o.status === "delivered");
 }
 },
@@ -982,12 +1019,21 @@ body: JSON.stringify({ phone, code }),
 });
 },
 
+async fetchCsrfToken() {
+if (!API_BASE) { _csrfToken = "demo-csrf-token"; return; }
+try {
+const { token } = await apiFetch("/api/csrf");
+_csrfToken = token || "";
+} catch { _csrfToken = ""; }
+},
+
 async logout() {
-// Remove demo-mode JWT from localStorage
-localStorage.removeItem("asf_token");
+// Remove demo-mode JWT and clear in-memory CSRF token
+_csrfToken = "";
+tokenStore.clear();
 if (!API_BASE) return;
 // In production: backend clears the httpOnly session cookie
-try { await apiFetch("/api/auth/logout", { method: "POST" }); } catch {}
+try { await apiFetch("/api/auth/logout", { method: "POST" }); } catch (err) { log.warn("[apiService] logout:", err.message); }
 },
 
 // ── Real-time events (Server-Sent Events) ─────────────────────────────────────────
@@ -1033,7 +1079,7 @@ return () => { clearInterval(timer); handlers.onDisconnected?.(); };
 }
 
 // ── Production: real EventSource ──
-const token = localStorage.getItem("asf_token");
+const token = tokenStore.get();
 const url   = `${API_BASE}/api/events?country=${country}${token ? `&token=${token}` : ""}`;
 const es    = new EventSource(url);
 
@@ -2982,9 +3028,10 @@ setLoading(true);
 try {
 const res = await apiService.verifyOTP(fullPhone, otpCode);
 if (res.success) {
-localStorage.setItem("asf_token", res.token);
+tokenStore.set(res.token);
 analytics.identify(res.userId || "demo-user", { phone: fullPhone });
 analytics.capture("auth.login_success", { method: "otp" });
+apiService.fetchCsrfToken(); // fetch + cache CSRF token for subsequent mutations
 if (res.role) { onLogin(res.role); }
 else          { setStage("role"); }
 } else {
@@ -4989,6 +5036,20 @@ if (!valid) { setPhoneError(error); return; }
 setPhoneError("");
 setPhone(e164);
 }
+// Card-specific validation before touching any network calls
+if (method === "card") {
+  const cardErr = validateCardFields(cardNum, cardName, cardExpiry, cardCvv);
+  if (cardErr) { setStage("choose"); alert(cardErr); return; }
+  // PRODUCTION GUARD: card PAN must NEVER be sent to your backend.
+  // Replace this entire block with Stripe.js tokenization:
+  //   const { paymentMethod, error } = await stripe.createPaymentMethod({ type:"card", card: cardElement });
+  //   then send paymentMethod.id (not the raw PAN) to your server.
+  if (API_BASE) {
+    console.error("[Payment] Raw card data must not reach the server. Integrate Stripe Elements.");
+    setStage("choose");
+    return;
+  }
+}
 setStage("processing");
 if (!API_BASE) {
 // Demo mode — simulate processing delay
@@ -5438,9 +5499,7 @@ return (
 // ─── ErrorBoundary ───────────────────────────────────────────────────────────────────
 // Catches any uncaught JavaScript error in the component tree and shows a
 // graceful fallback instead of a blank white screen.
-//
-// ─── ErrorBoundary ───────────────────────────────────────────────────────────────────
-// Catches any uncaught JavaScript error in the component tree and shows a
+//// Catches any uncaught JavaScript error in the component tree and shows a
 // graceful fallback. Errors are reported to Sentry and PostHog via analytics.
 //
 class ErrorBoundary extends React.Component {
@@ -5528,6 +5587,48 @@ ShimmerGrid.displayName = "ShimmerGrid";
 // ─── Main App ───────────────────────────────────────────────────────────────────────
 // AppInner holds all state and UI. Wrapped by the ErrorBoundary export below so any
 // uncaught render error shows the fallback screen rather than a blank page.
+// ─── ProductCard ────────────────────────────────────────────────────────────────────
+// Memoized so the market grid only re-renders cards whose props actually changed.
+// Handlers (onSelect, onFavorite, onAddToCart) must be stable refs (useCallback) to
+// prevent defeating the memo — they are defined with useCallback in AppInner.
+const ProductCard = React.memo(function ProductCard({
+  p, isFav, inCart: alreadyInCart, stock, cur, onSelect, onToggleFav, onAddToCart,
+}) {
+  return (
+    <div className="card" onClick={() => onSelect(p)}>
+      <div className="card-img">
+        {p.emoji}
+        {p.organic  && <span className="badge-org">Organic</span>}
+        {p.verified && <span className="badge-ver">★ Verified</span>}
+        <button
+          className={`fav-btn${isFav ? " fav-active" : ""}`}
+          aria-label={isFav ? "Remove from saved" : "Save product"}
+          aria-pressed={isFav}
+          onClick={e => { e.stopPropagation(); onToggleFav(p.id); }}
+        >{isFav ? "❤️" : "🤍"}</button>
+      </div>
+      <div className="card-body">
+        <div className="card-name">{p.name}</div>
+        <div className="card-farmer">🌱 {p.farmer}</div>
+        <div className="card-meta">
+          <div>
+            <div className="card-price">{fmt(p.tzsPrice, cur)} <span>/{p.unit}</span></div>
+            {cur !== "TZS" && <div className="card-tzs">TZS {p.tzsPrice.toLocaleString()}</div>}
+          </div>
+          <button
+            className={`card-add${alreadyInCart ? " in" : ""}`}
+            disabled={!alreadyInCart && stock <= 0}
+            onClick={e => { e.stopPropagation(); onAddToCart(p); }}>
+            {alreadyInCart ? "✓ In Cart" : stock <= 0 ? "Sold Out" : "+ Add"}
+          </button>
+          <StockBadge qty={stock}/>
+        </div>
+        <div className="card-dist">📍 {p.dist} · ⭐ {p.rating} ({p.reviews})</div>
+      </div>
+    </div>
+  );
+});
+
 function AppInner() {
 const [userRole, setUserRole]           = useState(() => loadState()?.userRole || null);
 const [consentGiven, setConsentGiven]   = useState(() => loadState()?.consentGiven || false);
@@ -5550,6 +5651,7 @@ const toggleFavorite = useCallback(id => {
     return next;
   });
 }, []);
+const handleSelect = useCallback(p => setSelected(p), []);
 // ── Sprint 3: Scroll position memory ── each tab remembers where you left off
 const scrollPositions = useRef({});          // { [tabId]: scrollTop }
 const switchTab = useCallback((newTab) => {
@@ -5892,7 +5994,7 @@ return (
       // into localStorage and then updates React state via setters
       hydrateFromBackend({
         setCart, setQty, setLoyaltyPts, setCountry, setCur, setConsentGiven,
-      });
+      }).catch(err => log.warn("[hydrate] backend sync failed:", err.message));
     }}/>
   )}
 
@@ -6089,36 +6191,17 @@ return (
         ) : (
           <div className="grid">
             {visible.map(p => (
-              <div key={p.id} className="card" onClick={() => setSelected(p)}>
-                <div className="card-img">
-                  {p.emoji}
-                  {p.organic  && <span className="badge-org">Organic</span>}
-                  {p.verified && <span className="badge-ver">★ Verified</span>}
-                  <button
-                    className={`fav-btn${favorites.has(p.id) ? " fav-active" : ""}`}
-                    aria-label={favorites.has(p.id) ? "Remove from saved" : "Save product"}
-                    aria-pressed={favorites.has(p.id)}
-                    onClick={e => { e.stopPropagation(); toggleFavorite(p.id); }}
-                  >{favorites.has(p.id) ? "❤️" : "🤍"}</button>
-                </div>
-                <div className="card-body">
-                  <div className="card-name">{p.name}</div>
-                  <div className="card-farmer">🌱 {p.farmer}</div>
-                  <div className="card-meta">
-                    <div>
-                      <div className="card-price">{fmt(p.tzsPrice,cur)} <span>/{p.unit}</span></div>
-                      {cur!=="TZS" && <div className="card-tzs">TZS {p.tzsPrice.toLocaleString()}</div>}
-                    </div>
-                    <div className="card-dist">📍 {p.dist}</div>
-                  </div>
-                  <button className={`card-add${inCart(p.id)?" in":""}`}
-                    disabled={!inCart(p.id) && (stockMap[p.id] ?? p.stockQty ?? 999) <= 0}
-                    onClick={e => { e.stopPropagation(); addToCart(p); }}>
-                    {inCart(p.id) ? "✓ In Cart" : (stockMap[p.id] ?? p.stockQty ?? 999) <= 0 ? "Sold Out" : "+ Add"}
-                  </button>
-                  <StockBadge qty={stockMap[p.id] ?? p.stockQty ?? 999}/>
-                </div>
-              </div>
+              <ProductCard
+                key={p.id}
+                p={p}
+                isFav={favorites.has(p.id)}
+                inCart={inCart(p.id)}
+                stock={stockMap[p.id] ?? p.stockQty ?? 999}
+                cur={cur}
+                onSelect={handleSelect}
+                onToggleFav={toggleFavorite}
+                onAddToCart={addToCart}
+              />
             ))}
           </div>
         )}
