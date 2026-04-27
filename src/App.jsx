@@ -1410,21 +1410,17 @@ const [canInstall,    setCanInstall]    = useState(false);
 const [swReady,       setSwReady]       = useState(false);
 const [dismissed,     setDismissed]     = useState(false);
 const deferredPrompt = useRef(null);
+const isIOS         = /iP(hone|ad|od)/.test(navigator.userAgent);
+const isStandalone  = window.matchMedia("(display-mode: standalone)").matches
+                   || window.navigator.standalone === true;
+const isIOSInstallable = isIOS && !isStandalone;
 
 useEffect(() => {
 // ── 1. Inject Web App Manifest ──
 // ── Analytics init (Sentry + PostHog) ──
 analytics.init();
 
-const manifestBlob = new Blob([JSON.stringify(APP_MANIFEST)], { type: "application/manifest+json" });
-const manifestUrl  = URL.createObjectURL(manifestBlob);
-let link = document.querySelector("link[rel='manifest']");
-if (!link) {
-  link = document.createElement("link");
-  link.rel = "manifest";
-  document.head.appendChild(link);
-}
-link.href = manifestUrl;
+// Manifest is served as /manifest.webmanifest (static file)
 
 // ── theme-color meta ──
 let meta = document.querySelector("meta[name='theme-color']");
@@ -1470,7 +1466,6 @@ const onInstalled = () => { setCanInstall(false); deferredPrompt.current = null;
 window.addEventListener("appinstalled", onInstalled);
 
 return () => {
-  URL.revokeObjectURL(manifestUrl);
   window.removeEventListener("beforeinstallprompt", onPrompt);
   window.removeEventListener("appinstalled", onInstalled);
 };
@@ -1486,7 +1481,7 @@ if (outcome === "accepted") { setCanInstall(false); deferredPrompt.current = nul
 
 const dismiss = () => setDismissed(true);
 
-return { canInstall: canInstall && !dismissed, swReady, promptInstall, dismiss };
+return { canInstall: (canInstall || isIOSInstallable) && !dismissed, isIOS: isIOSInstallable, isStandalone, swReady, promptInstall, dismiss };
 }
 
 // ─── Analytics data ─────────────────────────────────────────────────────────────────
@@ -1865,6 +1860,8 @@ const fonts = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Di
 const css = `
 ${fonts}
 *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+html { height:100%; -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+body { touch-action:pan-y; overscroll-behavior:none; -webkit-font-smoothing:antialiased; }
 :root {
 --forest:#1a3a2a; --leaf:#2d6a4f; --mint:#52b788; --gold:#e9a319; --amber:#f4c430;
 --terra:#c1440e; --sand:#f0e6c8; --bark:#5c3d1e; --charcoal:#1e1e1e; --mist:#f7f3ec;
@@ -1884,23 +1881,42 @@ ${fonts}
 }
 body[data-theme="dark"] { background:#111820; color:#dce0e8; }
 
-body { font-family:var(--font-body); background:var(--mist); color:var(--charcoal); -webkit-tap-highlight-color:transparent; }
+body { font-family:var(--font-body); background:var(--mist); color:var(--charcoal);
+  -webkit-tap-highlight-color:transparent; -webkit-font-smoothing:antialiased;
+  overscroll-behavior:none; }
+button, [role="button"], a { touch-action:manipulation; cursor:pointer; }
+button:focus-visible, [role="button"]:focus-visible, a:focus-visible {
+  outline:3px solid var(--mint); outline-offset:2px; }
+/* iOS auto-zoom prevention: inputs must be ≥16px */
+input, select, textarea {
+  font-size:max(16px, 1rem);
+  -webkit-appearance:none; appearance:none;
+}
+input[type="checkbox"], input[type="radio"] {
+  -webkit-appearance:auto; appearance:auto; font-size:inherit;
+  width:18px; height:18px; cursor:pointer;
+}
 
 /* ── APP LAYOUT ── */
-.app { min-height:100vh; display:flex; flex-direction:column; padding-bottom:68px; overflow-y:auto; height:100vh; }
+.app { min-height:100dvh; height:100dvh; display:flex; flex-direction:column;
+  padding-bottom:calc(68px + env(safe-area-inset-bottom,0px));
+  overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior-y:none; }
 
 /* ── BOTTOM NAV ── */
 .bottom-nav {
 position:fixed; bottom:0; left:0; right:0; z-index:200;
 background:white; border-top:1px solid var(--sand);
-display:flex; height:64px; box-shadow:0 -4px 20px rgba(26,58,42,.10);
+display:flex; height:calc(64px + env(safe-area-inset-bottom,0px));
+box-shadow:0 -4px 20px rgba(26,58,42,.10);
 padding-bottom:env(safe-area-inset-bottom,0px);
+padding-left:env(safe-area-inset-left,0px);
+padding-right:env(safe-area-inset-right,0px);
 }
 .bn-item {
 flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
 gap:3px; cursor:pointer; border:none; background:transparent;
 font-family:var(--font-body); transition:all .18s; position:relative; padding:0 4px;
-}
+ touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
 .bn-icon  { font-size:20px; transition:transform .22s var(--spring); display:block; }
 .bn-label { font-size:10px; font-weight:600; color:#bbb; transition:color .18s; white-space:nowrap; }
 .bn-item.active .bn-label { color:var(--forest); font-weight:700; }
@@ -1965,7 +1981,8 @@ cursor:pointer; box-shadow:var(--shadow-md); animation:popIn .25s var(--spring);
 /* ── NAV ── */
 .nav {
 background:var(--forest); display:flex; align-items:center; justify-content:space-between;
-padding:0 16px; height:60px; position:sticky; top:0; z-index:100;
+padding:env(safe-area-inset-top,0px) 16px 0; height:calc(60px + env(safe-area-inset-top,0px));
+position:sticky; top:0; z-index:100;
 box-shadow:0 2px 12px rgba(0,0,0,.28); gap:10px;
 }
 .nav-logo { font-family:var(--font-head); color:var(--amber); font-size:17px; letter-spacing:-.5px; white-space:nowrap; flex-shrink:0; line-height:1.1; display:flex; align-items:center; }
@@ -2030,7 +2047,7 @@ box-shadow:0 2px 12px rgba(0,0,0,.28); gap:10px;
 
 /* ── PRODUCT GRID / CARD ── */
 .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(165px,1fr)); gap:13px; padding:0 18px 24px; }
-.card { background:white; border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow-sm); cursor:pointer; position:relative; transition:transform .22s var(--spring),box-shadow .22s; }
+.card { background:white; border-radius:var(--radius); overflow:hidden; box-shadow:var(--shadow-sm); cursor:pointer; position:relative; transition:transform .22s var(--spring),box-shadow .22s;  touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
 .card:hover { transform:translateY(-4px); box-shadow:var(--shadow-md); }
 .card-img { width:100%; height:126px; background:linear-gradient(135deg,var(--sand),var(--mist)); display:flex; align-items:center; justify-content:center; font-size:50px; position:relative; }
 .badge-org { position:absolute; top:8px; left:8px; background:var(--leaf); color:white; font-size:9px; font-weight:700; padding:2px 7px; border-radius:20px; }
@@ -2226,7 +2243,7 @@ box-shadow:0 2px 12px rgba(0,0,0,.28); gap:10px;
 
 /* ── PAYMENT GATEWAY ── */
 .pay-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:500; display:flex; align-items:flex-end; justify-content:center; animation:fadeIn .2s; }
-.pay-sheet { background:white; border-radius:28px 28px 0 0; width:100%; max-width:480px; animation:slideUp .32s var(--spring); max-height:96vh; overflow-y:auto; padding-bottom:env(safe-area-inset-bottom,20px); }
+.pay-sheet { background:white; border-radius:28px 28px 0 0; width:100%; max-width:480px; animation:slideUp .32s var(--spring); max-height:96vh; overflow-y:auto; padding-bottom:env(safe-area-inset-bottom,20px);  -webkit-overflow-scrolling:touch; overscroll-behavior:contain; }
 .pay-handle { width:38px; height:4px; background:#e0e0e0; border-radius:2px; margin:13px auto 0; }
 .pay-header { padding:18px 22px 14px; border-bottom:1px solid #f0f0f0; display:flex; align-items:center; gap:12px; }
 .pay-header-icon { width:44px; height:44px; background:linear-gradient(135deg,var(--forest),var(--leaf)); border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
@@ -5076,7 +5093,45 @@ Your order has been placed and farmers have been notified.
               <div className="vfd-actions">
                 <button className="vfd-btn print" onClick={() => window.print()}>🖨️ Print</button>
                 <button className="vfd-btn share" onClick={() => {
-                  const text = `Asiel Farm Shop\nReceipt: ${vfd.receiptNumber}\nFiscal: ${vfd.fiscalNumber}\nAmount: TZS ${vfd.amount?.toLocaleString()}\nVerify: ${vfd.qrUrl}`;
+                  const text = `Asiel Farm Shop\nReceipt: ${vfd.receiptNumber}\nFiscal: ${vfd.fiscalNumber}\nAmount: TZS ${vfd.amount?.toLocaleString()}\nVerify: ${vfd.qrUrl}
+/* ── PWA Standalone mode adjustments ── */
+@media (display-mode: standalone) {
+  /* Extra breathing room below the status bar already handled by safe-area-inset-top on .nav */
+  .app { padding-top:0; }
+}
+
+/* ── iOS momentum scrolling for all scrollable sections ── */
+.oh-list, .ap-list, .market-grid-wrap, .cart-panel, .farmer-portal-wrap {
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
+}
+
+/* ── Minimum 44×44px touch targets for all interactive elements ── */
+.bn-item, .card-add, .fav-btn, .chip, .country-opt {
+  min-height:44px; min-width:44px;
+}
+.chip, .country-opt { min-height:36px; }
+
+/* ── Android ripple via CSS (works in Chrome/WebView) ── */
+@supports (background: oklch(0 0 0)) {
+  button, .card, .bn-item, .chip {
+    position:relative; overflow:hidden;
+  }
+}
+
+/* ── High-contrast / accessibility ── */
+@media (forced-colors: active) {
+  .badge-org, .badge-ver { border:1px solid ButtonText; }
+}
+
+/* ── Landscape phone — tighten spacing ── */
+@media (max-height: 500px) and (orientation: landscape) {
+  .nav { height:48px; }
+  .bottom-nav { height:52px; }
+  .hero { padding:16px; }
+  .card-img { height:80px; font-size:36px; }
+}
+`;
                   if (navigator.share) navigator.share({ title: "TRA Receipt", text });
                   else navigator.clipboard?.writeText(text).then(() => alert("Receipt copied!"));
                 }}>📤 Share</button>
@@ -5526,7 +5581,7 @@ const [reviewPrompt, setReviewPrompt]   = useState(null); // order to review, or
 const [riderLocation, setRiderLocation] = useState(null);
 const [geoLoading, setGeoLoading]       = useState(false);
 const [isOnline, setIsOnline]           = useState(navigator.onLine);
-const { canInstall, swReady, promptInstall, dismiss: dismissPWA } = usePWA();
+const { canInstall, isIOS: isIOSBanner, swReady, promptInstall, dismiss: dismissPWA } = usePWA();
 const { fxRevision, fxMeta } = useFXRates();
 const { t, lang, setLang } = useTranslation(); // Swahili / English toggle
 
@@ -5928,15 +5983,19 @@ return (
 
     {/* ── PWA install prompt ── */}
     {canInstall && (
-      <div className="pwa-banner">
+      <div className="pwa-banner" role="complementary" aria-label="Install app">
         <span style={{fontSize:28}}>📲</span>
         <div className="pwa-banner-text">
           <strong>Install Asiel Farm Shop</strong>
-          Works offline · No app store needed · Instant access
+          {isIOSBanner
+            ? <span>Tap <strong>Share</strong> then <strong>"Add to Home Screen"</strong></span>
+            : <span>Works offline · No app store needed · Instant access</span>}
           {swReady && <span className="pwa-sw-badge"><span className="pwa-sw-dot"/>  Offline ready</span>}
         </div>
-        <button className="pwa-banner-install" onClick={promptInstall}>Install</button>
-        <button className="pwa-banner-dismiss" onClick={dismissPWA} title="Dismiss">×</button>
+        {!isIOSBanner && (
+          <button className="pwa-banner-install" onClick={promptInstall}>Install</button>
+        )}
+        <button className="pwa-banner-dismiss" onClick={dismissPWA} aria-label="Dismiss install prompt">×</button>
       </div>
     )}
 

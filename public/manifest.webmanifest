@@ -1,18 +1,41 @@
 {
+  "id": "/",
   "name": "Asiel Farm Shop",
   "short_name": "Asiel Farm",
   "description": "Farm-to-fork marketplace for Tanzania & Kenya — fresh produce direct from certified farmers.",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "background_color": "#1a3a2a",
-  "theme_color": "#1a3a2a",
+  "theme_color": "#2d6a4f",
   "orientation": "portrait-primary",
-  "icons": [
-    { "src": "/favicon.svg",   "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" },
-    { "src": "/logo-nav.svg",  "sizes": "any", "type": "image/svg+xml" },
-    { "src": "/logo-hero.svg", "sizes": "any", "type": "image/svg+xml" }
-  ],
-  "categories": ["food", "shopping", "lifestyle"],
   "lang": "sw",
-  "dir": "ltr"
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "icons": [
+    { "src": "/favicon.svg",   "sizes": "any",     "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/favicon.svg",   "sizes": "any",     "type": "image/svg+xml", "purpose": "maskable" },
+    { "src": "/icon-192.png",  "sizes": "192x192", "type": "image/png",     "purpose": "any" },
+    { "src": "/icon-512.png",  "sizes": "512x512", "type": "image/png",     "purpose": "any" },
+    { "src": "/icon-512.png",  "sizes": "512x512", "type": "image/png",     "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Browse Market",
+      "short_name": "Market",
+      "description": "Browse fresh produce",
+      "url": "/?tab=market&source=shortcut",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "My Orders",
+      "short_name": "Orders",
+      "description": "View your recent orders",
+      "url": "/?tab=orders&source=shortcut",
+      "icons": [{ "src": "/favicon.svg", "sizes": "any" }]
+    }
+  ],
+  "screenshots": [],
+  "categories": ["food", "shopping", "lifestyle"]
 }

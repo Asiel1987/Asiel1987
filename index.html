@@ -2,12 +2,61 @@
 <html lang="sw">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- viewport-fit=cover lets content extend under iOS notch/Dynamic Island -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="Asiel Farm Shop — Farm-to-Fork marketplace Tanzania &amp; Kenya" />
-    <meta name="theme-color" content="#2d6a4f" />
+
+    <!-- ── iOS PWA ── -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Asiel Farm" />
+    <!-- Prevent iOS from auto-linking phone numbers / addresses -->
+    <meta name="format-detection" content="telephone=no, address=no, email=no" />
+
+    <!-- ── Android / Chrome PWA ── -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <!-- theme-color for Android Chrome address bar; separate dark entry respected by Chrome 93+ -->
+    <meta name="theme-color" content="#2d6a4f" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1a3a2a" media="(prefers-color-scheme: dark)" />
+
+    <!-- ── Icons ── -->
+    <!-- Apple touch icon: iOS uses this for the home-screen bookmark -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/icon-192.png" />
+
+    <!-- ── Splash screens — iOS shows these during launch in standalone mode ── -->
+    <!-- iPhone SE / 6 / 7 / 8 -->
+    <link rel="apple-touch-startup-image"
+          media="(device-width:375px) and (device-height:667px) and (-webkit-device-pixel-ratio:2)"
+          href="/splash/splash-750x1334.png" />
+    <!-- iPhone X / XS / 11 Pro -->
+    <link rel="apple-touch-startup-image"
+          media="(device-width:375px) and (device-height:812px) and (-webkit-device-pixel-ratio:3)"
+          href="/splash/splash-1125x2436.png" />
+    <!-- iPhone 12 / 13 / 14 -->
+    <link rel="apple-touch-startup-image"
+          media="(device-width:390px) and (device-height:844px) and (-webkit-device-pixel-ratio:3)"
+          href="/splash/splash-1170x2532.png" />
+    <!-- iPhone 14 Pro / 15 -->
+    <link rel="apple-touch-startup-image"
+          media="(device-width:393px) and (device-height:852px) and (-webkit-device-pixel-ratio:3)"
+          href="/splash/splash-1179x2556.png" />
+    <!-- iPhone Plus / Max -->
+    <link rel="apple-touch-startup-image"
+          media="(device-width:414px) and (device-height:896px) and (-webkit-device-pixel-ratio:3)"
+          href="/splash/splash-1242x2688.png" />
+    <!-- iPad 9.7" -->
+    <link rel="apple-touch-startup-image"
+          media="(device-width:768px) and (device-height:1024px) and (-webkit-device-pixel-ratio:2)"
+          href="/splash/splash-1536x2048.png" />
+
+    <!-- ── Manifest ── -->
     <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- ── Performance: preconnect to Google Fonts CDN ── -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
     <title>Asiel Farm Shop</title>
   </head>
   <body>
