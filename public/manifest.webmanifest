@@ -1,0 +1,18 @@
+{
+  "name": "Asiel Farm Shop",
+  "short_name": "Asiel Farm",
+  "description": "Farm-to-fork marketplace for Tanzania & Kenya — fresh produce direct from certified farmers.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a3a2a",
+  "theme_color": "#1a3a2a",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "/favicon.svg",   "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" },
+    { "src": "/logo-nav.svg",  "sizes": "any", "type": "image/svg+xml" },
+    { "src": "/logo-hero.svg", "sizes": "any", "type": "image/svg+xml" }
+  ],
+  "categories": ["food", "shopping", "lifestyle"],
+  "lang": "sw",
+  "dir": "ltr"
+}
