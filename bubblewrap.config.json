@@ -1,0 +1,25 @@
+{
+  "packageId": "tz.asiel.farm.twa",
+  "host": "asiel.farm",
+  "name": "Asiel Farm Shop",
+  "launcherName": "Asiel Farm",
+  "display": "standalone",
+  "themeColor": "#2d6a4f",
+  "backgroundColor": "#1a3a2a",
+  "startUrl": "/?source=twa",
+  "iconUrl": "https://asiel.farm/icon-512.png",
+  "maskableIconUrl": "https://asiel.farm/icon-512.png",
+  "appVersion": "2",
+  "appVersionName": "2.0.0",
+  "orientation": "portrait",
+  "enableNotifications": true,
+  "features": {
+    "locationDelegation": { "enabled": true },
+    "playBilling": { "enabled": false }
+  },
+  "alphaDependencies": { "enabled": false },
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://asiel.farm/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "enableSiteSettingsShortcut": true
+}

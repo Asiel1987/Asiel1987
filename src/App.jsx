@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
 // ─── Brand logos (static file refs — no base64 in JS bundle) ─────────────────────────
 // In production: place logo-nav.png and logo-hero.png in your /public folder.
@@ -708,12 +710,14 @@ apiService.syncPreferences({ country: state.country, currency: state.cur, consen
 //   ☐ Verify TRA VFD partner credentials with NepTech or Camara TZ
 //   ☐ Run npm test on backend before first deployment
 //
-const API_BASE = ""; // ← change to your backend URL when ready
+const API_BASE = import.meta.env.VITE_API_BASE || "";
 
 // ─── Stripe publishable key ──────────────────────────────────────────────────
-// Replace with your real pk_live_... key before processing live payments.
-// This key is safe to expose in frontend code (publishable, not secret).
-const STRIPE_PK = "pk_test_REPLACE_WITH_YOUR_PUBLISHABLE_KEY";
+// Set VITE_STRIPE_PK in your CI/CD environment — never hardcode the live key.
+const STRIPE_PK = import.meta.env.VITE_STRIPE_PK || "pk_test_REPLACE_WITH_YOUR_PUBLISHABLE_KEY";
+// loadStripe is called once at module level (Stripe docs requirement).
+// In demo mode (no API_BASE) the promise resolves to null — Elements won't mount.
+const stripePromise = API_BASE ? loadStripe(STRIPE_PK) : Promise.resolve(null);
 
 // ─── Debug logging ────────────────────────────────────────────────────────────
 // Set to true in development. Production builds strip all debug output.
@@ -4979,13 +4983,24 @@ card:     { icon:"💳", cls:"card",     name:"Debit / Credit Card", sub:"Visa �
 bank:     { icon:"🏦", cls:"bank",     name:"Bank Transfer",       sub:`${getCfg(country).taxBody} · ${getCfg(country).regulator}` },
 };
 
+// ─── PaymentGatewayWithStripe — wraps PaymentGateway in Stripe Elements context ──
+// This is the component used by the rest of the app. PaymentGateway itself uses
+// useStripe() / useElements() which require the Elements provider to be an ancestor.
+function PaymentGatewayWithStripe(props) {
+const appearance = { theme: "night", variables: { colorPrimary: "#2d6a4f", borderRadius: "10px" } };
+return (
+  <Elements stripe={stripePromise} options={{ appearance }}>
+    <PaymentGateway {...props} />
+  </Elements>
+);
+}
+
 function PaymentGateway({ totalTZS, cur, country, onClose, onSuccess,
 cart = [], qty = {}, couponResult = null, loyaltyPts = 0 }) {
+const stripe   = useStripe();
+const elements = useElements();
 const [method, setMethod]         = useState(null);
-const [cardNum, setCardNum]       = useState("");
-const [cardName, setCardName]     = useState("");
-const [cardExpiry, setCardExpiry] = useState("");
-const [cardCvv, setCardCvv]       = useState("");
+const [cardError, setCardError]   = useState("");   // Stripe CardElement error message
 const [phone, setPhone]           = useState("");
 const [phoneError, setPhoneError] = useState("");
 const paySheetRef = useRef(null); // focus trap for payment sheet
@@ -4996,20 +5011,19 @@ const [expressAnim, setExpressAnim] = useState(null);
 // TRA VFD receipt state
 const [vfd, setVfd]               = useState(null);   // null | object | "loading" | "error"
 
-const cardType   = detectCard(cardNum);
 const displayAmt = fmt(totalTZS, cur);
 const tzsAmt     = `TZS ${totalTZS.toLocaleString()}`;
 const refNum     = useRef(secureId("SF")).current;
 const pollRef    = useRef(null); // tracks active payment polling interval
-const cardBrandName = { visa:"VISA", mastercard:"Mastercard", amex:"Amex", discover:"Discover" };
 
 useEffect(() => { return () => clearInterval(pollRef.current); }, []);
 
 useEffect(() => {
 if (stage === "success") {
-  setCardNum(""); setCardName(""); setCardExpiry(""); setCardCvv("");
+  elements?.getElement(CardElement)?.clear();
+  setCardError("");
 }
-}, [stage]);
+}, [stage, elements]);
 
 useEffect(() => {
 const h = e => { if (e.key === "Escape") onClose(); };
@@ -5086,24 +5100,38 @@ if (!valid) { setPhoneError(error); return; }
 setPhoneError("");
 setPhone(e164);
 }
-// Card-specific validation before touching any network calls
+// Card-specific validation using Stripe Elements
 if (method === "card") {
-  const cardErr = validateCardFields(cardNum, cardName, cardExpiry, cardCvv);
-  if (cardErr) { setStage("choose"); alert(cardErr); return; }
-  // PRODUCTION GUARD: card PAN must NEVER be sent to your backend.
-  // Replace this entire block with Stripe.js tokenization:
-  //   const { paymentMethod, error } = await stripe.createPaymentMethod({ type:"card", card: cardElement });
-  //   then send paymentMethod.id (not the raw PAN) to your server.
   if (API_BASE) {
-    console.error("[Payment] Raw card data must not reach the server. Integrate Stripe Elements.");
-    setStage("choose");
+    if (!stripe || !elements) { alert("Payment system not ready — please wait a moment."); return; }
+    setStage("processing");
+    const cardEl = elements.getElement(CardElement);
+    const { paymentMethod, error } = await stripe.createPaymentMethod({ type: "card", card: cardEl });
+    if (error) { setStage("choose"); setCardError(error.message); return; }
+    setCardError("");
+    // paymentMethod.id (not raw PAN) is sent to the backend
+    try {
+      const { ref } = await apiService.initiatePayment({ method: "card", paymentMethodId: paymentMethod.id, amount: totalTZS, currency: "tzs", orderId: refNum, country });
+      clearInterval(pollRef.current);
+      let attempts = 0;
+      pollRef.current = setInterval(async () => {
+        attempts++;
+        const status = await apiService.pollPaymentStatus(ref);
+        if (status.status === "success") { clearInterval(pollRef.current); setStage("success"); }
+        if (status.status === "failed" || attempts > 40) { clearInterval(pollRef.current); setStage("choose"); alert("Payment failed. Please try again."); }
+      }, 3000);
+    } catch (err) { setStage("choose"); alert("Payment error: " + err.message); }
     return;
   }
+  // Demo mode — simulate card payment
+  setStage("processing");
+  setTimeout(() => setStage("success"), PAYMENT_DEMO_DELAY_MS);
+  return;
 }
 setStage("processing");
 if (!API_BASE) {
 // Demo mode — simulate processing delay
-setTimeout(() => setStage("success"), 2600);
+setTimeout(() => setStage("success"), PAYMENT_DEMO_DELAY_MS);
 return;
 }
 try {
@@ -5368,29 +5396,37 @@ return (
       <div className="card-form">
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
           <div className="card-form-title">Card Details</div>
-          <span style={{fontSize:13,fontWeight:800,color:"#635bff",letterSpacing:"-.5px"}} title={`Stripe PK: ${STRIPE_PK.slice(0,12)}...`}>stripe</span>
-        </div>
-        <div className="card-visual">
-          <div className="card-visual-chip">📱</div>
-          <div className="card-visual-num">{cardNum||"•••• •••• •••• ••••"}</div>
-          <div className="card-visual-bottom">
-            <div><div className="card-visual-label">Card Holder</div><div className="card-visual-value">{cardName||"YOUR NAME"}</div></div>
-            <div><div className="card-visual-label">Expires</div><div className="card-visual-value">{cardExpiry||"MM/YY"}</div></div>
-            <div><div className="card-visual-label">Network</div><div className="card-visual-brand">{cardType?cardBrandName[cardType]:"—"}</div></div>
-          </div>
+          <span style={{fontSize:13,fontWeight:800,color:"#635bff",letterSpacing:"-.5px"}}>stripe</span>
         </div>
         <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap"}}>
           {[["VISA","#1a1f71","white"],["MC","#eb001b","#f79e1b"],["AMEX","#2e77bc","white"],["Discover","#ff6600","white"]].map(([n,bg,col])=>(
             <span key={n} style={{background:bg,color:col,borderRadius:5,padding:"2px 7px",fontSize:10,fontWeight:700}}>{n}</span>
           ))}
         </div>
-        <div className="cfield"><label>Card Number</label><input placeholder="1234 5678 9012 3456" value={cardNum} maxLength={19} onChange={e=>setCardNum(fmtCard(e.target.value))}/></div>
-        <div className="cfield"><label>Cardholder Name</label><input placeholder="As printed on card" value={cardName} style={{fontFamily:"var(--font-body)"}} onChange={e=>setCardName(e.target.value.toUpperCase())}/></div>
-        <div className="cfield-row">
-          <div className="cfield" style={{flex:1}}><label>Expiry</label><input placeholder="MM/YY" value={cardExpiry} maxLength={5} onChange={e=>setCardExpiry(fmtExpiry(e.target.value))}/></div>
-          <div className="cfield" style={{flex:1}}><label>CVV</label><input placeholder="•••" type="password" value={cardCvv} maxLength={4} onChange={e=>setCardCvv(e.target.value.replace(/\D/g,"").slice(0,4))}/></div>
-        </div>
-        <div style={{fontSize:11,color:"#aaa",marginTop:4}}>🔒 Encrypted end-to-end via Stripe. We never store raw card data.</div>
+        {API_BASE ? (
+          <div className="cfield">
+            <label>Card Details</label>
+            <div style={{padding:"12px",border:"1.5px solid var(--sand)",borderRadius:10,background:"var(--mist)"}}>
+              <CardElement
+                options={{
+                  style: {
+                    base: { fontSize:"16px", color:"var(--text)", fontFamily:"var(--font-body)", "::placeholder":{ color:"#aaa" } },
+                    invalid: { color:"#e53e3e" },
+                  },
+                  hidePostalCode: true,
+                }}
+                onChange={e => setCardError(e.error?.message || "")}
+              />
+            </div>
+            {cardError && <div className="field-err" role="alert">⚠ {cardError}</div>}
+          </div>
+        ) : (
+          <div style={{padding:"14px 12px",border:"1.5px dashed var(--sand)",borderRadius:10,background:"var(--mist)",fontSize:13,color:"#666",textAlign:"center"}}>
+            <div style={{fontWeight:700,marginBottom:4}}>🧪 Demo Mode</div>
+            <div>Card payments are simulated — no real card data needed.</div>
+          </div>
+        )}
+        <div style={{fontSize:11,color:"#aaa",marginTop:8}}>🔒 Card data handled securely by Stripe. We never store raw card numbers.</div>
       </div>
     )}
 
@@ -6880,7 +6916,7 @@ return (
       const disc     = couponResult?.valid ? couponResult.discount : 0;
       const finalTZS = Math.max(0, cartTZS - disc) + DELIV_TZS;
       return (
-        <PaymentGateway
+        <PaymentGatewayWithStripe
           totalTZS={finalTZS}
           cur={cur}
           country={country}
