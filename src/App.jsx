@@ -464,6 +464,58 @@ en: {
 "ap.fill_required":  "⚠️ Fill in all required fields",
 "ap.approved_toast": "✅ Produce approved — certificate issued!",
 "ap.rejected_toast": "❌ Produce rejected — farmer notified.",
+// Farmer onboarding wizard
+"ob.progress":         "Step {n} of {total}",
+"ob.next":             "Next →",
+"ob.back":             "← Back",
+"ob.submit":           "Submit for Review",
+"ob.skip_location":    "Skip — set location later",
+"ob.detecting":        "Detecting your location…",
+"ob.detect_btn":       "📍 Detect My Location",
+"ob.pending_title":    "Profile Under Review",
+"ob.pending_sub":      "Our team reviews all new farmers within 24 hours. You will receive an SMS once approved.",
+"ob.approved_title":   "You're Approved! 🎉",
+"ob.approved_sub":     "Welcome to Asiel Farm Shop. You can now post listings.",
+"ob.start_listing":    "Start Listing Produce",
+"ob.s0.title":         "Welcome, Farmer!",
+"ob.s0.sub":           "We need a few details to set up your seller profile. It takes about 3 minutes.",
+"ob.s0.begin":         "Get Started",
+"ob.s1.title":         "Your Identity",
+"ob.s1.name":          "Full legal name",
+"ob.s1.name_ph":       "As on your national ID",
+"ob.s1.id":            "National ID number",
+"ob.s1.id_ph":         "NIDA / Huduma number",
+"ob.s2.title":         "Your Farm",
+"ob.s2.farm_name":     "Farm or trading name",
+"ob.s2.farm_name_ph":  "e.g. Kilima Fresh Farm",
+"ob.s2.region":        "Region / County",
+"ob.s2.region_ph":     "Select region",
+"ob.s2.size":          "Farm size",
+"ob.s3.title":         "Farm Location",
+"ob.s3.sub":           "Helps us match you with nearby buyers and hubs.",
+"ob.s4.title":         "What Do You Grow?",
+"ob.s4.sub":           "Select all crops you grow regularly.",
+"ob.s4.method":        "Farming method",
+"ob.s4.organic":       "Certified Organic",
+"ob.s4.conventional":  "Conventional",
+"ob.s4.mixed":         "Mixed",
+"ob.s4.year_round":    "Do you supply year-round?",
+"ob.s4.yes":           "Yes — year-round",
+"ob.s4.no":            "No — seasonal",
+"ob.s5.title":         "Delivery & Storage",
+"ob.s5.hub":           "Can you deliver to a collection hub?",
+"ob.s5.cold":          "Do you have cool / cold storage on-farm?",
+"ob.s5.max_kg":        "Maximum weekly supply (KG)",
+"ob.s5.max_kg_ph":     "e.g. 500",
+"ob.s6.title":         "Payout Details",
+"ob.s6.sub":           "How should we send your earnings?",
+"ob.s6.method":        "Preferred payout method",
+"ob.s6.phone":         "Mobile money number for payouts",
+"ob.s6.phone_ph":      "e.g. +255 712 345 678",
+"ob.s6.bank_note":     "Our team will contact you for bank account details.",
+"ob.s7.title":         "Review & Submit",
+"ob.s7.sub":           "Check your details before submitting.",
+"ob.s7.edit":          "Edit",
 },
 
 sw: {
@@ -558,6 +610,58 @@ sw: {
 "ap.fill_required":  "⚠️ Jaza sehemu zote zinazohitajika",
 "ap.approved_toast": "✅ Mazao yameidhinishwa — cheti kimetolewa!",
 "ap.rejected_toast": "❌ Mazao yamekataliwa — mkulima amearifiwa.",
+// Farmer onboarding wizard
+"ob.progress":         "Hatua {n} ya {total}",
+"ob.next":             "Endelea →",
+"ob.back":             "← Rudi",
+"ob.submit":           "Wasilisha kwa Mapitio",
+"ob.skip_location":    "Ruka — weka eneo baadaye",
+"ob.detecting":        "Inatambua eneo lako…",
+"ob.detect_btn":       "📍 Gundua Eneo Langu",
+"ob.pending_title":    "Wasifu Unakaguliwa",
+"ob.pending_sub":      "Timu yetu inakagua wakulima wapya ndani ya saa 24. Utapokea SMS ukikubaliwa.",
+"ob.approved_title":   "Umeidhinishwa! 🎉",
+"ob.approved_sub":     "Karibu Asiel Farm Shop. Sasa unaweza kuorodhesha mazao.",
+"ob.start_listing":    "Anza Kuorodhesha Mazao",
+"ob.s0.title":         "Karibu, Mkulima!",
+"ob.s0.sub":           "Tunahitaji maelezo machache kuanzisha wasifu wako wa muuzaji. Itachukua dakika 3.",
+"ob.s0.begin":         "Anza",
+"ob.s1.title":         "Utambulisho Wako",
+"ob.s1.name":          "Jina kamili la kisheria",
+"ob.s1.name_ph":       "Kama kwenye kitambulisho chako",
+"ob.s1.id":            "Nambari ya kitambulisho",
+"ob.s1.id_ph":         "Nambari ya NIDA / Huduma",
+"ob.s2.title":         "Shamba Lako",
+"ob.s2.farm_name":     "Jina la shamba au biashara",
+"ob.s2.farm_name_ph":  "mfano: Kilima Fresh Farm",
+"ob.s2.region":        "Mkoa / Kaunti",
+"ob.s2.region_ph":     "Chagua mkoa",
+"ob.s2.size":          "Ukubwa wa shamba",
+"ob.s3.title":         "Mahali pa Shamba",
+"ob.s3.sub":           "Inasaidia kuunganisha na wanunuzi na vituo vya karibu.",
+"ob.s4.title":         "Unalima Nini?",
+"ob.s4.sub":           "Chagua mazao yote unayolima mara kwa mara.",
+"ob.s4.method":        "Mbinu ya kilimo",
+"ob.s4.organic":       "Kilimo Hai Kilichoidhinishwa",
+"ob.s4.conventional":  "Kilimo cha Kawaida",
+"ob.s4.mixed":         "Mchanganyiko",
+"ob.s4.year_round":    "Je, unasambaza mwaka mzima?",
+"ob.s4.yes":           "Ndiyo — mwaka mzima",
+"ob.s4.no":            "La — kwa msimu",
+"ob.s5.title":         "Usafirishaji & Uhifadhi",
+"ob.s5.hub":           "Je, unaweza kuleta mazao kwenye kituo cha mkusanyiko?",
+"ob.s5.cold":          "Je, una ghala la baridi shambani?",
+"ob.s5.max_kg":        "Uzalishaji wa juu kwa wiki (KG)",
+"ob.s5.max_kg_ph":     "mfano 500",
+"ob.s6.title":         "Maelezo ya Malipo",
+"ob.s6.sub":           "Tungependa kukulipa vipi?",
+"ob.s6.method":        "Njia ya malipo unayopendelea",
+"ob.s6.phone":         "Nambari ya pesa ya simu kwa malipo",
+"ob.s6.phone_ph":      "mfano +255 712 345 678",
+"ob.s6.bank_note":     "Timu yetu itawasiliana nawe kwa maelezo ya benki.",
+"ob.s7.title":         "Kagua na Wasilisha",
+"ob.s7.sub":           "Angalia maelezo yako kabla ya kutuma.",
+"ob.s7.edit":          "Hariri",
 },
 };
 
@@ -1684,6 +1788,42 @@ return LOYALTY_TIERS.find(t => points >= t.min && points <= t.max) || LOYALTY_TI
 }
 function earnPoints(tzsSpent)  { return Math.floor(tzsSpent / LOYALTY_PTS_PER_TZS); }
 function redeemValue(points)   { return Math.floor(points / LOYALTY_REDEEM_THRESHOLD) * LOYALTY_TZS_PER_100_PTS; }
+
+// ─── Farmer onboarding data ───────────────────────────────────────────────────────────
+const TZ_REGIONS = [
+  "Arusha","Dar es Salaam","Dodoma","Geita","Iringa","Kagera","Katavi","Kigoma",
+  "Kilimanjaro","Lindi","Manyara","Mara","Mbeya","Morogoro","Mtwara","Mwanza",
+  "Njombe","Pemba North","Pemba South","Pwani","Rukwa","Ruvuma","Shinyanga",
+  "Simiyu","Singida","Songwe","Tabora","Tanga","Zanzibar North","Zanzibar South","Zanzibar West",
+];
+const KE_COUNTIES = [
+  "Baringo","Bomet","Bungoma","Busia","Elgeyo-Marakwet","Embu","Garissa","Homa Bay",
+  "Isiolo","Kajiado","Kakamega","Kericho","Kiambu","Kilifi","Kirinyaga","Kisii","Kisumu",
+  "Kitui","Kwale","Laikipia","Lamu","Machakos","Makueni","Mandera","Marsabit","Meru",
+  "Migori","Mombasa","Murang'a","Nairobi","Nakuru","Nandi","Narok","Nyamira","Nyandarua",
+  "Nyeri","Samburu","Siaya","Taita-Taveta","Tana River","Tharaka-Nithi","Trans-Nzoia",
+  "Turkana","Uasin Gishu","Vihiga","Wajir","West Pokot",
+];
+const CROPS_LIST = [
+  "Tomatoes","Maize","Rice","Cassava","Sweet Potatoes","Irish Potatoes","Onions",
+  "Garlic","Carrots","Cabbage","Spinach","Kale / Sukuma Wiki","Avocado","Bananas",
+  "Mango","Papaya","Watermelon","Pineapple","Passion Fruit","Oranges","Lemons",
+  "Coconut","Coffee","Tea","Sisal","Cotton","Sunflower","Sesame","Groundnuts",
+  "Beans","Cowpeas","Chickpeas","Soybeans","Sorghum","Millet","Wheat",
+  "Macadamia","Cashew","Pepper","Aubergine / Brinjal",
+];
+const FARM_SIZES = [
+  { id:"small",  label:"Small",  labelSw:"Ndogo",   sub:"< 2 acres" },
+  { id:"medium", label:"Medium", labelSw:"Wastani", sub:"2 – 10 acres" },
+  { id:"large",  label:"Large",  labelSw:"Kubwa",   sub:"> 10 acres" },
+];
+const OB_PAYOUT_METHODS = [
+  { id:"mpesa",  label:"M-Pesa",        icon:"🟢", countries:["TZ","KE"] },
+  { id:"tigo",   label:"Tigo Pesa",     icon:"🔵", countries:["TZ"] },
+  { id:"airtel", label:"Airtel Money",  icon:"🔴", countries:["TZ","KE"] },
+  { id:"bank",   label:"Bank Transfer", icon:"🏦", countries:["TZ","KE"] },
+];
+const OB_TOTAL_STEPS = 7; // steps 1-7 (step 0 = welcome)
 
 // ─── Commission / Escrow / Payout utilities ──────────────────────────────────────────
 //
@@ -2984,6 +3124,84 @@ cursor:pointer; transition:all .18s; background:white;
 .bn-label{font-size:9px}
 .ap-tab{font-size:9px;padding:6px 1px}
 }
+
+/* ── Farmer Onboarding wizard ─────────────────────────────────────────────── */
+.ob-wrap{display:flex;flex-direction:column;min-height:100dvh;background:var(--mist);font-family:var(--font-body)}
+.ob-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:var(--forest);color:white;position:sticky;top:0;z-index:10}
+.ob-header-brand{font-family:var(--font-head);font-size:16px;font-weight:800;letter-spacing:-.3px}
+.ob-progress-label{font-size:12px;opacity:.8}
+.ob-progress-track{height:4px;background:var(--sand)}
+.ob-progress-fill{height:4px;background:var(--amber);transition:width .4s ease}
+.ob-body{flex:1;padding:24px 20px 120px;max-width:520px;margin:0 auto;width:100%;box-sizing:border-box}
+.ob-step-title{font-family:var(--font-head);font-size:22px;color:var(--forest);margin:0 0 6px}
+.ob-step-sub{font-size:14px;color:#666;margin:0 0 20px;line-height:1.5}
+.ob-welcome{text-align:center;padding-top:16px}
+.ob-welcome-icon{font-size:64px;margin-bottom:12px}
+.ob-step-checklist{text-align:left;background:white;border-radius:14px;padding:14px 18px;margin:20px 0;border:1px solid var(--sand)}
+.ob-check-row{display:flex;align-items:center;gap:10px;padding:8px 0;font-size:14px;color:var(--text);border-bottom:1px solid var(--mist)}
+.ob-check-row:last-child{border-bottom:none}
+.ob-welcome-btn{margin-top:8px}
+.ob-field{margin-bottom:18px}
+.ob-field label{display:block;font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px}
+.ob-field input,.ob-field select{width:100%;padding:12px 14px;border:1.5px solid var(--sand);border-radius:10px;font-size:15px;font-family:var(--font-body);color:var(--text);background:white;outline:none;box-sizing:border-box;transition:border-color .15s}
+.ob-field input:focus,.ob-field select:focus{border-color:var(--forest)}
+.ob-err-input{border-color:#e53e3e !important}
+.ob-field-err{font-size:12px;color:#e53e3e;margin-top:4px;font-weight:600}
+.ob-field-hint{font-size:11px;color:#999;margin-top:4px}
+.ob-size-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.ob-size-card{padding:14px 10px;border:2px solid var(--sand);border-radius:12px;background:white;cursor:pointer;text-align:center;transition:all .15s}
+.ob-size-card.selected{border-color:var(--forest);background:var(--mist)}
+.ob-size-label{font-weight:700;font-size:14px;color:var(--text)}
+.ob-size-sub{font-size:11px;color:#888;margin-top:3px}
+.ob-location-set{display:flex;align-items:center;gap:12px;background:white;border:1.5px solid var(--leaf);border-radius:12px;padding:14px 16px;margin-bottom:16px}
+.ob-location-icon{font-size:24px}
+.ob-location-coords{font-size:13px;font-weight:700;color:var(--forest)}
+.ob-location-sub{font-size:12px;color:#888;margin-top:2px}
+.ob-location-reset{margin-left:auto;background:none;border:none;font-size:18px;color:#ccc;cursor:pointer;padding:4px}
+.ob-skip-link{display:block;text-align:center;margin-top:16px;font-size:13px;color:#999;background:none;border:none;cursor:pointer;text-decoration:underline}
+.ob-crop-grid{display:flex;flex-wrap:wrap;gap:8px}
+.ob-crop-chip{padding:7px 13px;border:1.5px solid var(--sand);border-radius:20px;font-size:13px;background:white;color:var(--text);cursor:pointer;transition:all .13s}
+.ob-crop-chip.selected{background:var(--forest);border-color:var(--forest);color:white;font-weight:600}
+.ob-radio-group{display:flex;flex-direction:column;gap:8px}
+.ob-radio-opt{display:flex;align-items:center;gap:10px;padding:11px 14px;border:1.5px solid var(--sand);border-radius:10px;background:white;cursor:pointer;font-size:14px}
+.ob-radio-opt.selected{border-color:var(--forest);background:var(--mist);font-weight:600}
+.ob-radio-opt input[type=radio]{accent-color:var(--forest)}
+.ob-yn-row{display:flex;gap:10px}
+.ob-yn-btn{flex:1;padding:13px;border:2px solid var(--sand);border-radius:12px;font-size:14px;font-weight:600;background:white;cursor:pointer;transition:all .15s}
+.ob-yn-btn.selected{background:var(--forest);border-color:var(--forest);color:white}
+.ob-input-row{display:flex;gap:10px;align-items:center}
+.ob-input-row input{flex:1}
+.ob-input-unit{font-size:13px;color:#888;white-space:nowrap}
+.ob-payout-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ob-payout-card{display:flex;flex-direction:column;align-items:center;gap:6px;padding:16px 10px;border:2px solid var(--sand);border-radius:12px;background:white;cursor:pointer;transition:all .15s}
+.ob-payout-card.selected{border-color:var(--forest);background:var(--mist)}
+.ob-payout-icon{font-size:22px}
+.ob-payout-label{font-size:13px;font-weight:700;color:var(--text)}
+.ob-bank-note{font-size:13px;color:#888;background:var(--mist);border-radius:10px;padding:12px 14px;margin-top:8px}
+.ob-review-list{background:white;border-radius:14px;border:1px solid var(--sand);overflow:hidden}
+.ob-review-row{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--mist)}
+.ob-review-row:last-child{border-bottom:none}
+.ob-review-label{font-size:12px;font-weight:700;color:#888;width:72px;flex-shrink:0}
+.ob-review-value{font-size:13px;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ob-review-edit{font-size:12px;color:var(--forest);background:none;border:none;cursor:pointer;font-weight:700;white-space:nowrap;text-decoration:underline;padding:0}
+.ob-nav{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--sand);padding:14px 20px;display:flex;gap:12px;z-index:20}
+.ob-nav-next{flex:1}
+.ob-btn-primary{background:var(--forest);color:white;border:none;border-radius:12px;padding:14px 28px;font-size:15px;font-weight:700;font-family:var(--font-body);cursor:pointer;transition:background .15s}
+.ob-btn-primary:hover{background:var(--leaf)}
+.ob-btn-primary:disabled{opacity:.5;cursor:not-allowed}
+.ob-btn-secondary{width:100%;background:white;border:2px solid var(--forest);color:var(--forest);border-radius:12px;padding:13px;font-size:14px;font-weight:700;font-family:var(--font-body);cursor:pointer}
+.ob-btn-ghost{background:none;border:2px solid var(--sand);color:var(--text);border-radius:12px;padding:13px 20px;font-size:14px;font-weight:700;font-family:var(--font-body);cursor:pointer}
+.ob-status-wrap{min-height:100dvh;display:flex;align-items:center;justify-content:center;background:var(--mist);padding:24px}
+.ob-status-card{background:white;border-radius:20px;border:2px solid var(--sand);padding:40px 28px;text-align:center;max-width:380px;width:100%}
+.ob-status-icon{font-size:56px;margin-bottom:16px}
+.ob-status-title{font-family:var(--font-head);font-size:22px;color:var(--forest);margin-bottom:10px}
+.ob-status-sub{font-size:14px;color:#666;line-height:1.6}
+.ob-status-hint{font-size:12px;color:#bbb;margin-top:16px}
+.dark .ob-field input,.dark .ob-field select{background:var(--card);border-color:#444;color:var(--text)}
+.dark .ob-size-card,.dark .ob-radio-opt,.dark .ob-yn-btn,.dark .ob-payout-card{background:var(--card);border-color:#444}
+.dark .ob-review-list,.dark .ob-status-card,.dark .ob-step-checklist,.dark .ob-location-set{background:var(--card);border-color:#444}
+.dark .ob-nav{background:var(--card);border-color:#444}
+.dark .ob-crop-chip{background:var(--card);border-color:#444}
 `;
 
 // ─── useFocusTrap hook — WCAG 2.1 SC 2.1.2 keyboard focus containment ─────────────────
@@ -5582,6 +5800,447 @@ return (
 );
 }
 
+// ─── FarmerOnboarding — 7-step profile wizard shown before farmer portal ─────────────
+//
+// Status lifecycle:
+//   null / undefined  → show wizard
+//   "pending"         → show "under review" screen
+//   "approved"        → onboarding complete, farmer portal unlocked
+//   "rejected"        → show rejection reason + restart option
+//
+// Progress is saved to localStorage after every step so the farmer can
+// resume where they left off if they close the app mid-way.
+//
+function FarmerOnboarding({ country, onApproved }) {
+const { t, lang } = useTranslation();
+
+const DRAFT_KEY   = "asf_farmer_draft";
+const STATUS_KEY  = "asf_farmer_status";
+
+const loadDraft = () => {
+  try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || "null"); } catch { return null; }
+};
+
+const [step, setStep] = useState(() => loadDraft()?.step ?? 0);
+const [profile, setProfile] = useState(() => loadDraft()?.profile ?? {
+  fullName: "", nationalId: "", farmName: "", region: "",
+  farmSize: "", lat: null, lng: null,
+  crops: [], farmingMethod: "conventional", yearRound: true,
+  canHubDeliver: null, hasColdStorage: null, maxWeeklyKg: "",
+  payoutMethod: "", payoutPhone: "",
+});
+const [status, setStatus]   = useState(() => {
+  try { return localStorage.getItem(STATUS_KEY) || null; } catch { return null; }
+});
+const [errs,    setErrs]    = useState({});
+const [geoLoading, setGeoLoading] = useState(false);
+const [submitting, setSubmitting] = useState(false);
+
+const regions = country === "KE" ? KE_COUNTIES : TZ_REGIONS;
+const payoutMethods = OB_PAYOUT_METHODS.filter(m => m.countries.includes(country));
+
+// Persist draft on every change
+useEffect(() => {
+  try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ step, profile })); } catch { /* quota */ }
+}, [step, profile]);
+
+function set(key, val) {
+  setProfile(p => ({ ...p, [key]: val }));
+  setErrs(e => ({ ...e, [key]: "" }));
+}
+
+function toggleCrop(crop) {
+  setProfile(p => ({
+    ...p,
+    crops: p.crops.includes(crop) ? p.crops.filter(c => c !== crop) : [...p.crops, crop],
+  }));
+  setErrs(e => ({ ...e, crops: "" }));
+}
+
+// Per-step validation
+function validate(s) {
+  const e = {};
+  if (s === 1) {
+    if (profile.fullName.trim().length < 2)       e.fullName  = "Full name is required";
+    if (!/^\d{8,20}$/.test(profile.nationalId.replace(/\s/g,"")))
+                                                   e.nationalId = "Enter a valid ID number (digits only)";
+  }
+  if (s === 2) {
+    if (profile.farmName.trim().length < 2)        e.farmName = "Farm name is required";
+    if (!profile.region)                           e.region   = "Please select your region";
+    if (!profile.farmSize)                         e.farmSize = "Please select a farm size";
+  }
+  if (s === 4) {
+    if (profile.crops.length === 0)                e.crops    = "Select at least one crop";
+  }
+  if (s === 5) {
+    if (!profile.maxWeeklyKg || isNaN(Number(profile.maxWeeklyKg)) || Number(profile.maxWeeklyKg) <= 0)
+                                                   e.maxWeeklyKg = "Enter a valid weekly supply in KG";
+    if (profile.canHubDeliver === null)            e.canHubDeliver = "Please answer this question";
+    if (profile.hasColdStorage === null)           e.hasColdStorage = "Please answer this question";
+  }
+  if (s === 6) {
+    if (!profile.payoutMethod)                     e.payoutMethod = "Select a payout method";
+    if (profile.payoutMethod !== "bank" && profile.payoutPhone.trim().length < 9)
+                                                   e.payoutPhone  = "Enter a valid mobile number";
+  }
+  return e;
+}
+
+function next() {
+  if (step === 0) { setStep(1); return; }
+  const e = validate(step);
+  if (Object.keys(e).length) { setErrs(e); return; }
+  if (step < OB_TOTAL_STEPS) { setStep(s => s + 1); }
+}
+
+function back() { if (step > 1) setStep(s => s - 1); }
+
+function detectLocation() {
+  if (!navigator.geolocation) return;
+  setGeoLoading(true);
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      set("lat", parseFloat(pos.coords.latitude.toFixed(5)));
+      set("lng", parseFloat(pos.coords.longitude.toFixed(5)));
+      setGeoLoading(false);
+    },
+    () => setGeoLoading(false),
+    { timeout: 8000 }
+  );
+}
+
+async function submit() {
+  const e = validate(6);
+  if (Object.keys(e).length) { setErrs(e); return; }
+  setSubmitting(true);
+  if (API_BASE) {
+    try {
+      await apiFetch("/api/farmers/profile", { method: "POST", body: JSON.stringify(profile) });
+    } catch { /* fail silently — status is still set locally */ }
+  }
+  const newStatus = API_BASE ? "pending" : "approved"; // demo: auto-approve
+  try { localStorage.setItem(STATUS_KEY, newStatus); } catch { /* quota */ }
+  setStatus(newStatus);
+  setSubmitting(false);
+  if (!API_BASE) setTimeout(onApproved, 1200); // demo: brief success flash then unlock
+}
+
+// ── Status screens ──────────────────────────────────────────────────────────
+if (status === "pending") return (
+  <div className="ob-status-wrap">
+    <div className="ob-status-card">
+      <div className="ob-status-icon">⏳</div>
+      <div className="ob-status-title">{t("ob.pending_title")}</div>
+      <div className="ob-status-sub">{t("ob.pending_sub")}</div>
+      <div className="ob-status-hint">Reference: {profile.nationalId || "—"}</div>
+    </div>
+  </div>
+);
+
+if (status === "approved") return (
+  <div className="ob-status-wrap">
+    <div className="ob-status-card" style={{borderColor:"var(--leaf)"}}>
+      <div className="ob-status-icon">🎉</div>
+      <div className="ob-status-title">{t("ob.approved_title")}</div>
+      <div className="ob-status-sub">{t("ob.approved_sub")}</div>
+      <button className="ob-btn-primary" style={{marginTop:24}} onClick={onApproved}>{t("ob.start_listing")}</button>
+    </div>
+  </div>
+);
+
+// ── Progress bar ────────────────────────────────────────────────────────────
+const pct = step === 0 ? 0 : Math.round((step / OB_TOTAL_STEPS) * 100);
+
+// ── Review summary rows ─────────────────────────────────────────────────────
+const reviewRows = [
+  ["Identity",  `${profile.fullName} · ID ${profile.nationalId}`],
+  ["Farm",      `${profile.farmName} · ${profile.region} · ${profile.farmSize}`],
+  ["Location",  profile.lat ? `${profile.lat}, ${profile.lng}` : "Not set"],
+  ["Crops",     profile.crops.slice(0,4).join(", ") + (profile.crops.length > 4 ? ` +${profile.crops.length-4}` : "")],
+  ["Method",    profile.farmingMethod + " · " + (profile.yearRound ? "Year-round" : "Seasonal")],
+  ["Logistics", `Hub: ${profile.canHubDeliver?"Yes":"No"} · Cold: ${profile.hasColdStorage?"Yes":"No"} · ${profile.maxWeeklyKg} KG/wk`],
+  ["Payout",    `${profile.payoutMethod}${profile.payoutPhone ? " · " + profile.payoutPhone : ""}`],
+];
+
+return (
+  <div className="ob-wrap">
+    {/* Header */}
+    <div className="ob-header">
+      <div className="ob-header-brand">🌱 Asiel Farm Shop</div>
+      {step > 0 && (
+        <div className="ob-progress-label">
+          {t("ob.progress").replace("{n}", step).replace("{total}", OB_TOTAL_STEPS)}
+        </div>
+      )}
+    </div>
+
+    {/* Progress bar */}
+    {step > 0 && (
+      <div className="ob-progress-track">
+        <div className="ob-progress-fill" style={{width:`${pct}%`}}/>
+      </div>
+    )}
+
+    <div className="ob-body">
+
+      {/* ── Step 0: Welcome ────────────────────────────────────────────── */}
+      {step === 0 && (
+        <div className="ob-step ob-welcome">
+          <div className="ob-welcome-icon">🌾</div>
+          <h2 className="ob-step-title">{t("ob.s0.title")}</h2>
+          <p className="ob-step-sub">{t("ob.s0.sub")}</p>
+          <div className="ob-step-checklist">
+            {[["👤","Identity & farm name"],["📍","Farm location"],["🌿","Crops you grow"],["🚐","Delivery capacity"],["💰","Payout details"]].map(([icon, label]) => (
+              <div key={label} className="ob-check-row"><span>{icon}</span><span>{label}</span></div>
+            ))}
+          </div>
+          <button className="ob-btn-primary ob-welcome-btn" onClick={next}>{t("ob.s0.begin")}</button>
+        </div>
+      )}
+
+      {/* ── Step 1: Identity ───────────────────────────────────────────── */}
+      {step === 1 && (
+        <div className="ob-step">
+          <h2 className="ob-step-title">{t("ob.s1.title")}</h2>
+          <div className="ob-field">
+            <label>{t("ob.s1.name")} *</label>
+            <input value={profile.fullName} placeholder={t("ob.s1.name_ph")}
+              className={errs.fullName ? "ob-err-input" : ""}
+              onChange={e => set("fullName", e.target.value)}/>
+            {errs.fullName && <div className="ob-field-err">{errs.fullName}</div>}
+          </div>
+          <div className="ob-field">
+            <label>{t("ob.s1.id")} *</label>
+            <input value={profile.nationalId} placeholder={t("ob.s1.id_ph")}
+              inputMode="numeric"
+              className={errs.nationalId ? "ob-err-input" : ""}
+              onChange={e => set("nationalId", e.target.value.replace(/[^\d\s]/g,""))}/>
+            {errs.nationalId && <div className="ob-field-err">{errs.nationalId}</div>}
+            <div className="ob-field-hint">
+              {country === "TZ" ? "20-digit NIDA number" : "7–8 digit Kenya National ID"}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Step 2: Farm details ────────────────────────────────────────── */}
+      {step === 2 && (
+        <div className="ob-step">
+          <h2 className="ob-step-title">{t("ob.s2.title")}</h2>
+          <div className="ob-field">
+            <label>{t("ob.s2.farm_name")} *</label>
+            <input value={profile.farmName} placeholder={t("ob.s2.farm_name_ph")}
+              className={errs.farmName ? "ob-err-input" : ""}
+              onChange={e => set("farmName", e.target.value)}/>
+            {errs.farmName && <div className="ob-field-err">{errs.farmName}</div>}
+          </div>
+          <div className="ob-field">
+            <label>{t("ob.s2.region")} *</label>
+            <select value={profile.region}
+              className={errs.region ? "ob-err-input" : ""}
+              onChange={e => set("region", e.target.value)}>
+              <option value="">{t("ob.s2.region_ph")}</option>
+              {regions.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+            {errs.region && <div className="ob-field-err">{errs.region}</div>}
+          </div>
+          <div className="ob-field">
+            <label>{t("ob.s2.size")} *</label>
+            <div className="ob-size-grid">
+              {FARM_SIZES.map(s => (
+                <button key={s.id}
+                  className={`ob-size-card${profile.farmSize === s.id ? " selected" : ""}`}
+                  onClick={() => set("farmSize", s.id)}>
+                  <div className="ob-size-label">{lang === "sw" ? s.labelSw : s.label}</div>
+                  <div className="ob-size-sub">{s.sub}</div>
+                </button>
+              ))}
+            </div>
+            {errs.farmSize && <div className="ob-field-err">{errs.farmSize}</div>}
+          </div>
+        </div>
+      )}
+
+      {/* ── Step 3: Location ────────────────────────────────────────────── */}
+      {step === 3 && (
+        <div className="ob-step">
+          <h2 className="ob-step-title">{t("ob.s3.title")}</h2>
+          <p className="ob-step-sub">{t("ob.s3.sub")}</p>
+          {profile.lat ? (
+            <div className="ob-location-set">
+              <div className="ob-location-icon">📍</div>
+              <div>
+                <div className="ob-location-coords">{profile.lat}, {profile.lng}</div>
+                <div className="ob-location-sub">Location detected</div>
+              </div>
+              <button className="ob-location-reset" onClick={() => { set("lat",null); set("lng",null); }}>✕</button>
+            </div>
+          ) : (
+            <button className="ob-btn-secondary" disabled={geoLoading} onClick={detectLocation}>
+              {geoLoading ? t("ob.detecting") : t("ob.detect_btn")}
+            </button>
+          )}
+          <button className="ob-skip-link" onClick={next}>{t("ob.skip_location")}</button>
+        </div>
+      )}
+
+      {/* ── Step 4: Crops & method ──────────────────────────────────────── */}
+      {step === 4 && (
+        <div className="ob-step">
+          <h2 className="ob-step-title">{t("ob.s4.title")}</h2>
+          <p className="ob-step-sub">{t("ob.s4.sub")}</p>
+          {errs.crops && <div className="ob-field-err" style={{marginBottom:8}}>{errs.crops}</div>}
+          <div className="ob-crop-grid">
+            {CROPS_LIST.map(crop => (
+              <button key={crop}
+                className={`ob-crop-chip${profile.crops.includes(crop) ? " selected" : ""}`}
+                onClick={() => toggleCrop(crop)}>
+                {crop}
+              </button>
+            ))}
+          </div>
+          <div className="ob-field" style={{marginTop:20}}>
+            <label>{t("ob.s4.method")}</label>
+            <div className="ob-radio-group">
+              {[["organic",t("ob.s4.organic")],["conventional",t("ob.s4.conventional")],["mixed",t("ob.s4.mixed")]].map(([val,label]) => (
+                <label key={val} className={`ob-radio-opt${profile.farmingMethod===val?" selected":""}`}>
+                  <input type="radio" name="method" value={val}
+                    checked={profile.farmingMethod === val}
+                    onChange={() => set("farmingMethod", val)}/>
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="ob-field">
+            <label>{t("ob.s4.year_round")}</label>
+            <div className="ob-radio-group">
+              {[[true,t("ob.s4.yes")],[false,t("ob.s4.no")]].map(([val,label]) => (
+                <label key={String(val)} className={`ob-radio-opt${profile.yearRound===val?" selected":""}`}>
+                  <input type="radio" name="yearRound"
+                    checked={profile.yearRound === val}
+                    onChange={() => set("yearRound", val)}/>
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Step 5: Logistics ────────────────────────────────────────────── */}
+      {step === 5 && (
+        <div className="ob-step">
+          <h2 className="ob-step-title">{t("ob.s5.title")}</h2>
+          <div className="ob-field">
+            <label>{t("ob.s5.hub")} *</label>
+            <div className="ob-yn-row">
+              {[[true,"Yes / Ndiyo"],[false,"No / Hapana"]].map(([val,label]) => (
+                <button key={String(val)}
+                  className={`ob-yn-btn${profile.canHubDeliver===val?" selected":""}`}
+                  onClick={() => { setProfile(p=>({...p,canHubDeliver:val})); setErrs(e=>({...e,canHubDeliver:""})); }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            {errs.canHubDeliver && <div className="ob-field-err">{errs.canHubDeliver}</div>}
+          </div>
+          <div className="ob-field">
+            <label>{t("ob.s5.cold")} *</label>
+            <div className="ob-yn-row">
+              {[[true,"Yes / Ndiyo"],[false,"No / Hapana"]].map(([val,label]) => (
+                <button key={String(val)}
+                  className={`ob-yn-btn${profile.hasColdStorage===val?" selected":""}`}
+                  onClick={() => { setProfile(p=>({...p,hasColdStorage:val})); setErrs(e=>({...e,hasColdStorage:""})); }}>
+                  {label}
+                </button>
+              ))}
+            </div>
+            {errs.hasColdStorage && <div className="ob-field-err">{errs.hasColdStorage}</div>}
+          </div>
+          <div className="ob-field">
+            <label>{t("ob.s5.max_kg")} *</label>
+            <div className="ob-input-row">
+              <input type="number" min="1" value={profile.maxWeeklyKg} placeholder={t("ob.s5.max_kg_ph")}
+                className={errs.maxWeeklyKg ? "ob-err-input" : ""}
+                onChange={e => set("maxWeeklyKg", e.target.value)}/>
+              <span className="ob-input-unit">KG / week</span>
+            </div>
+            {errs.maxWeeklyKg && <div className="ob-field-err">{errs.maxWeeklyKg}</div>}
+          </div>
+        </div>
+      )}
+
+      {/* ── Step 6: Payout details ──────────────────────────────────────── */}
+      {step === 6 && (
+        <div className="ob-step">
+          <h2 className="ob-step-title">{t("ob.s6.title")}</h2>
+          <p className="ob-step-sub">{t("ob.s6.sub")}</p>
+          <div className="ob-field">
+            <label>{t("ob.s6.method")} *</label>
+            <div className="ob-payout-grid">
+              {payoutMethods.map(m => (
+                <button key={m.id}
+                  className={`ob-payout-card${profile.payoutMethod===m.id?" selected":""}`}
+                  onClick={() => { set("payoutMethod",m.id); }}>
+                  <span className="ob-payout-icon">{m.icon}</span>
+                  <span className="ob-payout-label">{m.label}</span>
+                </button>
+              ))}
+            </div>
+            {errs.payoutMethod && <div className="ob-field-err">{errs.payoutMethod}</div>}
+          </div>
+          {profile.payoutMethod && profile.payoutMethod !== "bank" && (
+            <div className="ob-field">
+              <label>{t("ob.s6.phone")} *</label>
+              <input type="tel" value={profile.payoutPhone} placeholder={t("ob.s6.phone_ph")}
+                className={errs.payoutPhone ? "ob-err-input" : ""}
+                onChange={e => set("payoutPhone", e.target.value)}/>
+              {errs.payoutPhone && <div className="ob-field-err">{errs.payoutPhone}</div>}
+            </div>
+          )}
+          {profile.payoutMethod === "bank" && (
+            <div className="ob-bank-note">{t("ob.s6.bank_note")}</div>
+          )}
+        </div>
+      )}
+
+      {/* ── Step 7: Review & submit ─────────────────────────────────────── */}
+      {step === 7 && (
+        <div className="ob-step">
+          <h2 className="ob-step-title">{t("ob.s7.title")}</h2>
+          <p className="ob-step-sub">{t("ob.s7.sub")}</p>
+          <div className="ob-review-list">
+            {reviewRows.map(([label, value], idx) => (
+              <div key={label} className="ob-review-row">
+                <div className="ob-review-label">{label}</div>
+                <div className="ob-review-value">{value || "—"}</div>
+                <button className="ob-review-edit" onClick={() => setStep(idx + 1)}>{t("ob.s7.edit")}</button>
+              </div>
+            ))}
+          </div>
+          <button className="ob-btn-primary" disabled={submitting} onClick={submit} style={{marginTop:24,width:"100%"}}>
+            {submitting ? "Submitting…" : t("ob.submit")}
+          </button>
+        </div>
+      )}
+
+    </div>
+
+    {/* Navigation buttons */}
+    {step > 0 && (
+      <div className="ob-nav">
+        {step > 1 && <button className="ob-btn-ghost" onClick={back}>{t("ob.back")}</button>}
+        {step < OB_TOTAL_STEPS && (
+          <button className="ob-btn-primary ob-nav-next" onClick={next}>{t("ob.next")}</button>
+        )}
+      </div>
+    )}
+  </div>
+);
+}
+
 // ─── ErrorBoundary ───────────────────────────────────────────────────────────────────
 // Catches any uncaught JavaScript error in the component tree and shows a
 // graceful fallback instead of a blank white screen.
@@ -5741,6 +6400,18 @@ const toggleFavorite = useCallback(id => {
   });
 }, []);
 const handleSelect = useCallback(p => setSelected(p), []);
+
+// ── Farmer onboarding gate ──────────────────────────────────────────────────
+// Tracks whether the logged-in farmer has completed the onboarding wizard.
+// In demo mode: auto-approved. In production: stays "pending" until admin approves.
+const [farmerOnboarded, setFarmerOnboarded] = useState(() => {
+  try { return localStorage.getItem("asf_farmer_status") === "approved"; }
+  catch { return false; }
+});
+const handleFarmerApproved = useCallback(() => {
+  try { localStorage.setItem("asf_farmer_status", "approved"); } catch { /* quota */ }
+  setFarmerOnboarded(true);
+}, []);
 // ── Sprint 3: Scroll position memory ── each tab remembers where you left off
 const scrollPositions = useRef({});          // { [tabId]: scrollTop }
 const switchTab = useCallback((newTab) => {
@@ -6096,7 +6767,13 @@ return (
     <ConsentDialog onAccept={() => setConsentGiven(true)}/>
   )}
 
-  <div className="app" ref={appRef} id="main-content">
+  {/* Farmer onboarding gate — shown after consent, before the main app */}
+  {userRole === "farmer" && consentGiven && !farmerOnboarded && (
+    <FarmerOnboarding country={country} onApproved={handleFarmerApproved}/>
+  )}
+
+  <div className="app" ref={appRef} id="main-content"
+    style={userRole === "farmer" && consentGiven && !farmerOnboarded ? {display:"none"} : {}}>
     {/* Skip-to-content for keyboard users */}
     <a className="skip-link" href="#main-content">Skip to main content</a>
 

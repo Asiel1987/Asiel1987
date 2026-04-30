@@ -24,7 +24,8 @@ const paymentsRouter = require('./routes/payments');
 const eventsModule = require('./routes/events');   // { router, broadcast }
 const fxRouter = require('./routes/fx');
 const errorsRouter = require('./routes/errors');
-const vfdRouter = require('./routes/vfd');
+const vfdRouter     = require('./routes/vfd');
+const farmersRouter = require('./routes/farmers');
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
@@ -134,7 +135,8 @@ app.use('/api/payments', paymentsRouter);
 app.use('/api/events', eventsModule.router);
 app.use('/api/fx', fxRouter);
 app.use('/api/errors', errorsRouter);
-app.use('/api/vfd', vfdRouter);
+app.use('/api/vfd',     vfdRouter);
+app.use('/api/farmers', farmersRouter);
 
 // ── CSRF error handler (before global error handler) ─────────────────────────
 app.use(csrfErrorHandler);
