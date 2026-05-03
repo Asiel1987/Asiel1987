@@ -82,6 +82,11 @@ app.use(
 );
 
 // ── Body parsing ──────────────────────────────────────────────────────────────
+// Stripe webhook must receive the raw body for signature verification.
+// Register raw parser for this path BEFORE the global JSON parser so that
+// body-parser's internal `req._body = true` flag prevents double-parsing.
+app.use('/api/payments/stripe/webhook', express.raw({ type: 'application/json' }));
+
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
@@ -119,11 +124,17 @@ app.get('/health', (_req, res) =>
 );
 
 // ── CSRF protection ───────────────────────────────────────────────────────────
-// csrfProtection attaches req.csrfToken() to all requests.
-// Mutations (POST/PUT/DELETE/PATCH) must include the X-CSRF-Token header.
-// GET /api/csrf-token is the bootstrap endpoint — it must come AFTER csrfProtection
-// is applied so that req.csrfToken() is available, but is itself a GET (not validated).
-app.use(csrfProtection);
+// Payment provider callbacks are called by external services with no CSRF token.
+// Skip CSRF for those specific paths; validate for all other mutations.
+const CSRF_EXEMPT = [
+  '/api/payments/stripe/webhook',
+  '/api/payments/mpesa/callback',
+  '/api/payments/selcom/callback',
+];
+app.use((req, res, next) => {
+  if (CSRF_EXEMPT.includes(req.path)) return next();
+  return csrfProtection(req, res, next);
+});
 app.get('/api/csrf-token', csrfTokenHandler);
 
 // ── API routers ───────────────────────────────────────────────────────────────

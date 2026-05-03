@@ -5914,16 +5914,24 @@ async function submit() {
   const e = validate(6);
   if (Object.keys(e).length) { setErrs(e); return; }
   setSubmitting(true);
-  if (API_BASE) {
+  try {
+    if (API_BASE) {
+      try {
+        await apiFetch("/api/farmers/profile", { method: "POST", body: JSON.stringify(profile) });
+      } catch (err) {
+        log.warn("[FarmerOnboarding] Profile API call failed:", err.message);
+      }
+    }
+    const newStatus = API_BASE ? "pending" : "approved"; // demo: auto-approve
     try {
-      await apiFetch("/api/farmers/profile", { method: "POST", body: JSON.stringify(profile) });
-    } catch { /* fail silently — status is still set locally */ }
+      localStorage.setItem(STATUS_KEY, newStatus);
+      localStorage.removeItem(DRAFT_KEY); // clear draft after submission
+    } catch { /* quota */ }
+    setStatus(newStatus);
+    if (!API_BASE) setTimeout(onApproved, 1200); // demo: brief success flash then unlock
+  } finally {
+    setSubmitting(false);
   }
-  const newStatus = API_BASE ? "pending" : "approved"; // demo: auto-approve
-  try { localStorage.setItem(STATUS_KEY, newStatus); } catch { /* quota */ }
-  setStatus(newStatus);
-  setSubmitting(false);
-  if (!API_BASE) setTimeout(onApproved, 1200); // demo: brief success flash then unlock
 }
 
 // ── Status screens ──────────────────────────────────────────────────────────
@@ -6216,7 +6224,7 @@ return (
               <div key={label} className="ob-review-row">
                 <div className="ob-review-label">{label}</div>
                 <div className="ob-review-value">{value || "—"}</div>
-                <button className="ob-review-edit" onClick={() => setStep(idx + 1)}>{t("ob.s7.edit")}</button>
+                <button className="ob-review-edit" onClick={() => setStep(Math.min(idx + 1, OB_TOTAL_STEPS - 1))}>{t("ob.s7.edit")}</button>
               </div>
             ))}
           </div>

@@ -83,4 +83,11 @@ async function confirmPayment(paymentIntentId) {
   };
 }
 
-module.exports = { createPaymentIntent, confirmPayment };
+/**
+ * Verify and construct a Stripe webhook event from raw body + signature.
+ */
+function constructWebhookEvent(rawBody, signature, webhookSecret) {
+  return stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
+}
+
+module.exports = { createPaymentIntent, confirmPayment, constructWebhookEvent };

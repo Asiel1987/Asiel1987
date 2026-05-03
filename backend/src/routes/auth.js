@@ -75,7 +75,7 @@ router.post('/otp/send', otpLimiter, async (req, res, next) => {
  * POST /api/auth/otp/verify
  * Compare submitted code with Redis value. On match, upsert user, create session.
  */
-router.post('/otp/verify', async (req, res, next) => {
+router.post('/otp/verify', otpLimiter, async (req, res, next) => {
   try {
     const { error, value } = verifySchema.validate(req.body);
     if (error) return next(error);
@@ -164,7 +164,7 @@ router.post('/logout', async (req, res, next) => {
     });
 
     // Clear the session cookie from the browser
-    res.clearCookie('connect.sid', {
+    res.clearCookie('asf_sid', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
