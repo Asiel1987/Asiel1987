@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+# Disallow internal API paths
+Disallow: /api/
+
+Sitemap: https://asiel.farm/sitemap.xml

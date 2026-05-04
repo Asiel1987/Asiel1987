@@ -278,7 +278,7 @@ admin:     { label:"Admin",       icon:"🛠️", tabs:["market","portal","hub",
 //   $pageview     Tab navigation
 
 const APP_VERSION  = "2.0.0";  // bump on each release
-const SENTRY_DSN   = "";  // ← paste when deploying outside sandbox
+const SENTRY_DSN   = import.meta.env.VITE_SENTRY_DSN || "";
 const POSTHOG_KEY  = "";  // ← paste when deploying outside sandbox
 const POSTHOG_HOST = "https://app.posthog.com";
 
@@ -4765,7 +4765,7 @@ farmerId:   order.products?.[0]?.name, // production: use real farmerId
 country:    order.country,
 }),
 });
-} catch { /* fail silently — review is still stored locally */ }
+} catch (err) { log.warn("[review] Backend sync failed:", err.message); }
 }
 await new Promise(r => setTimeout(r, 600)); // simulate API delay in demo
 const review = {
@@ -6039,15 +6039,20 @@ function back() { if (step > 1) setStep(s => s - 1); }
 function detectLocation() {
   if (!navigator.geolocation) return;
   setGeoLoading(true);
+  let cancelled = false;
   navigator.geolocation.getCurrentPosition(
     pos => {
+      if (cancelled) return;
       set("lat", parseFloat(pos.coords.latitude.toFixed(5)));
       set("lng", parseFloat(pos.coords.longitude.toFixed(5)));
       setGeoLoading(false);
+      next(); // auto-advance to next step on success
     },
-    () => setGeoLoading(false),
+    () => { if (!cancelled) setGeoLoading(false); },
     { timeout: 8000 }
   );
+  // Cleanup: mark cancelled if component unmounts before GPS resolves
+  return () => { cancelled = true; };
 }
 
 async function submit() {
@@ -6125,7 +6130,12 @@ return (
 
     {/* Progress bar */}
     {step > 0 && (
-      <div className="ob-progress-track">
+      <div className="ob-progress-track"
+        role="progressbar"
+        aria-valuenow={step}
+        aria-valuemin={1}
+        aria-valuemax={OB_TOTAL_STEPS}
+        aria-label={`Step ${step} of ${OB_TOTAL_STEPS}`}>
         <div className="ob-progress-fill" style={{width:`${pct}%`}}/>
       </div>
     )}
@@ -6156,7 +6166,7 @@ return (
             <input value={profile.fullName} placeholder={t("ob.s1.name_ph")}
               className={errs.fullName ? "ob-err-input" : ""}
               onChange={e => set("fullName", e.target.value)}/>
-            {errs.fullName && <div className="ob-field-err">{errs.fullName}</div>}
+            {errs.fullName && <div className="ob-field-err" role="alert">{errs.fullName}</div>}
           </div>
           <div className="ob-field">
             <label>{t("ob.s1.id")} *</label>
@@ -6164,7 +6174,7 @@ return (
               inputMode="numeric"
               className={errs.nationalId ? "ob-err-input" : ""}
               onChange={e => set("nationalId", e.target.value.replace(/[^\d\s]/g,""))}/>
-            {errs.nationalId && <div className="ob-field-err">{errs.nationalId}</div>}
+            {errs.nationalId && <div className="ob-field-err" role="alert">{errs.nationalId}</div>}
             <div className="ob-field-hint">
               {country === "TZ" ? "20-digit NIDA number" : "7–8 digit Kenya National ID"}
             </div>
@@ -6181,7 +6191,7 @@ return (
             <input value={profile.farmName} placeholder={t("ob.s2.farm_name_ph")}
               className={errs.farmName ? "ob-err-input" : ""}
               onChange={e => set("farmName", e.target.value)}/>
-            {errs.farmName && <div className="ob-field-err">{errs.farmName}</div>}
+            {errs.farmName && <div className="ob-field-err" role="alert">{errs.farmName}</div>}
           </div>
           <div className="ob-field">
             <label>{t("ob.s2.region")} *</label>
@@ -6191,7 +6201,7 @@ return (
               <option value="">{t("ob.s2.region_ph")}</option>
               {regions.map(r => <option key={r} value={r}>{r}</option>)}
             </select>
-            {errs.region && <div className="ob-field-err">{errs.region}</div>}
+            {errs.region && <div className="ob-field-err" role="alert">{errs.region}</div>}
           </div>
           <div className="ob-field">
             <label>{t("ob.s2.size")} *</label>
@@ -6205,7 +6215,7 @@ return (
                 </button>
               ))}
             </div>
-            {errs.farmSize && <div className="ob-field-err">{errs.farmSize}</div>}
+            {errs.farmSize && <div className="ob-field-err" role="alert">{errs.farmSize}</div>}
           </div>
         </div>
       )}
@@ -6238,7 +6248,7 @@ return (
         <div className="ob-step">
           <h2 className="ob-step-title">{t("ob.s4.title")}</h2>
           <p className="ob-step-sub">{t("ob.s4.sub")}</p>
-          {errs.crops && <div className="ob-field-err" style={{marginBottom:8}}>{errs.crops}</div>}
+          {errs.crops && <div className="ob-field-err" role="alert" style={{marginBottom:8}}>{errs.crops}</div>}
           <div className="ob-crop-grid">
             {CROPS_LIST.map(crop => (
               <button key={crop}
@@ -6292,7 +6302,7 @@ return (
                 </button>
               ))}
             </div>
-            {errs.canHubDeliver && <div className="ob-field-err">{errs.canHubDeliver}</div>}
+            {errs.canHubDeliver && <div className="ob-field-err" role="alert">{errs.canHubDeliver}</div>}
           </div>
           <div className="ob-field">
             <label>{t("ob.s5.cold")} *</label>
@@ -6305,7 +6315,7 @@ return (
                 </button>
               ))}
             </div>
-            {errs.hasColdStorage && <div className="ob-field-err">{errs.hasColdStorage}</div>}
+            {errs.hasColdStorage && <div className="ob-field-err" role="alert">{errs.hasColdStorage}</div>}
           </div>
           <div className="ob-field">
             <label>{t("ob.s5.max_kg")} *</label>
@@ -6315,7 +6325,7 @@ return (
                 onChange={e => set("maxWeeklyKg", e.target.value)}/>
               <span className="ob-input-unit">KG / week</span>
             </div>
-            {errs.maxWeeklyKg && <div className="ob-field-err">{errs.maxWeeklyKg}</div>}
+            {errs.maxWeeklyKg && <div className="ob-field-err" role="alert">{errs.maxWeeklyKg}</div>}
           </div>
         </div>
       )}
@@ -6337,7 +6347,7 @@ return (
                 </button>
               ))}
             </div>
-            {errs.payoutMethod && <div className="ob-field-err">{errs.payoutMethod}</div>}
+            {errs.payoutMethod && <div className="ob-field-err" role="alert">{errs.payoutMethod}</div>}
           </div>
           {profile.payoutMethod && profile.payoutMethod !== "bank" && (
             <div className="ob-field">
@@ -6345,7 +6355,7 @@ return (
               <input type="tel" value={profile.payoutPhone} placeholder={t("ob.s6.phone_ph")}
                 className={errs.payoutPhone ? "ob-err-input" : ""}
                 onChange={e => set("payoutPhone", e.target.value)}/>
-              {errs.payoutPhone && <div className="ob-field-err">{errs.payoutPhone}</div>}
+              {errs.payoutPhone && <div className="ob-field-err" role="alert">{errs.payoutPhone}</div>}
             </div>
           )}
           {profile.payoutMethod === "bank" && (
@@ -6364,7 +6374,7 @@ return (
               <div key={label} className="ob-review-row">
                 <div className="ob-review-label">{label}</div>
                 <div className="ob-review-value">{value || "—"}</div>
-                <button className="ob-review-edit" onClick={() => setStep(Math.min(idx + 1, OB_TOTAL_STEPS - 1))}>{t("ob.s7.edit")}</button>
+                <button className="ob-review-edit" aria-label={`${t("ob.s7.edit")} ${label}`} onClick={() => setStep(Math.min(idx + 1, OB_TOTAL_STEPS - 1))}>{t("ob.s7.edit")}</button>
               </div>
             ))}
           </div>
@@ -6812,7 +6822,7 @@ const result = applyCoupon(couponCode, cartTZS);
 setCouponResult(result);
 if (result.valid) showToast(`${t("toast.coupon_applied")} ${fmt(result.discount,"TZS")}`);
 else showToast("❌ " + result.error);
-}, [couponCode, couponResult, cartTZS, showToast]);
+}, [couponCode, couponResult, cartTZS, showToast, t]);
 const awardLoyaltyPts = useCallback((tzsSpent) => {
 const pts = earnPoints(tzsSpent);
 setLoyaltyPts(p => p + pts);

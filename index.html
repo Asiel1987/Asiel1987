@@ -9,16 +9,43 @@
     <!-- ── Security headers (belt-and-braces; real headers should also be set server-side) ── -->
     <!-- Referrer: send origin only on cross-origin requests — prevents URL leaking session params -->
     <meta name="referrer" content="strict-origin-when-cross-origin" />
-    <!-- CSP: tighten as API_BASE and payment domains are confirmed in production -->
+    <!-- CSP: style-src includes unsafe-inline because all CSS is injected via React's
+         template-literal stylesheet pattern; migrate to external CSS before full launch -->
     <meta http-equiv="Content-Security-Policy"
           content="default-src 'self';
-                   script-src 'self' 'wasm-unsafe-eval';
-                   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+                   script-src 'self' 'wasm-unsafe-eval'
+                              https://accounts.google.com
+                              https://appleid.cdn-apple.com;
+                   style-src 'self' 'unsafe-inline'
+                             https://fonts.googleapis.com
+                             https://accounts.google.com;
                    font-src 'self' https://fonts.gstatic.com;
                    img-src 'self' data: blob: https:;
-                   connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com;
+                   connect-src 'self'
+                               https://fonts.googleapis.com
+                               https://fonts.gstatic.com
+                               https://oauth2.googleapis.com
+                               https://appleid.apple.com
+                               https://accounts.google.com;
+                   frame-src https://accounts.google.com;
                    worker-src 'self';
                    frame-ancestors 'none';" />
+
+    <!-- ── SEO / Open Graph ── -->
+    <meta property="og:type"        content="website" />
+    <meta property="og:url"         content="https://asiel.farm/" />
+    <meta property="og:title"       content="Asiel Farm Shop — Farm-to-Fork Tanzania &amp; Kenya" />
+    <meta property="og:description" content="Buy fresh produce directly from verified farmers in Tanzania and Kenya. Organic, hub-ready, fast delivery." />
+    <meta property="og:image"       content="https://asiel.farm/icon-512.png" />
+    <meta property="og:locale"      content="sw_TZ" />
+    <meta property="og:locale:alternate" content="en_KE" />
+    <!-- Twitter Card -->
+    <meta name="twitter:card"        content="summary_large_image" />
+    <meta name="twitter:title"       content="Asiel Farm Shop" />
+    <meta name="twitter:description" content="Farm-to-Fork marketplace · Tanzania &amp; Kenya" />
+    <meta name="twitter:image"       content="https://asiel.farm/icon-512.png" />
+    <!-- Canonical -->
+    <link rel="canonical" href="https://asiel.farm/" />
 
     <!-- ── iOS PWA ── -->
     <meta name="apple-mobile-web-app-capable" content="yes" />

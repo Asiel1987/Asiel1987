@@ -11,7 +11,7 @@ const router = express.Router();
 
 const profileSchema = Joi.object({
   fullName:       Joi.string().min(2).max(100).required(),
-  nationalId:     Joi.string().pattern(/^\d{8,20}$/).required(),
+  nationalId:     Joi.string().pattern(/^\d{8,20}$/).optional().allow(''),
   farmName:       Joi.string().min(2).max(200).required(),
   region:         Joi.string().min(2).max(100).required(),
   farmSize:       Joi.string().valid('small','medium','large').required(),

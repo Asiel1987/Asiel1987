@@ -23,26 +23,29 @@ function errorHandler(err, req, res, next) {
 
   // ── PostgreSQL / pg errors ────────────────────────────────────────────────
   if (err.code && typeof err.code === 'string' && err.code.length === 5) {
+    const isProd = process.env.NODE_ENV === 'production';
+
+    // Log full details server-side; never expose table/constraint names to client
     logger.error('Database error', {
-      pgCode: err.code,
-      detail: err.detail,
-      table: err.table,
-      constraint: err.constraint,
-      path: req.path,
-      method: req.method,
+      pgCode:     err.code,
+      detail:     isProd ? '[redacted]' : err.detail,
+      table:      isProd ? '[redacted]' : err.table,
+      constraint: isProd ? '[redacted]' : err.constraint,
+      path:       req.path,
+      method:     req.method,
     });
 
     // Unique constraint violation
     if (err.code === '23505') {
-      return res.status(409).json({ error: 'Duplicate entry', detail: err.detail });
+      return res.status(409).json({ error: 'Duplicate entry' });
     }
     // Foreign key violation
     if (err.code === '23503') {
-      return res.status(409).json({ error: 'Related resource not found', detail: err.detail });
+      return res.status(409).json({ error: 'Related resource not found' });
     }
     // Not-null violation
     if (err.code === '23502') {
-      return res.status(400).json({ error: 'Missing required field', detail: err.detail });
+      return res.status(400).json({ error: 'Missing required field' });
     }
 
     return res.status(500).json({ error: 'Database error' });

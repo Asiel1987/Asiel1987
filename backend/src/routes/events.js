@@ -3,93 +3,85 @@
 /**
  * Server-Sent Events (SSE) — real-time event stream
  *
- * Clients connect to GET /api/events and receive a persistent HTTP stream.
+ * Uses Redis pub/sub so all backend instances participate in broadcasting.
+ * Each SSE connection subscribes to the Redis channel `sse:<userId>`.
+ * broadcast() publishes to that channel; every instance forwards the message
+ * to any browser tabs it is currently serving for that user.
  *
- * In production this handler subscribes to a Redis pub/sub channel
- * (events:{userId}) and forwards messages as SSE events. The current
- * implementation keeps an in-process Map of active connections so that
- * other route handlers can call broadcast() to push events to specific users.
- *
- * For a multi-process / multi-server deployment, replace the in-process
- * broadcast() with a Redis pub/sub subscriber per connection.
+ * This replaces the previous in-process Map which broke on 2+ instances.
  */
 
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
+const redisClient = require('../redis');
 const logger = require('../logger');
 
 const router = express.Router();
 
-// Active SSE clients: Map<userId, Set<res>>
-// Each user may have multiple browser tabs open simultaneously.
-const clients = new Map();
+// One shared subscriber Redis connection (a duplicate so it can stay in
+// subscribe mode without blocking data commands on the main client).
+const subscriber = redisClient.duplicate();
+
+subscriber.on('error', (err) => {
+  logger.error('SSE Redis subscriber error', { error: err.message });
+});
+
+// channel → Set<res>  (which SSE responses are listening on this channel)
+const channelClients = new Map();
+
+// Forward Redis pub/sub messages to the appropriate SSE connections
+subscriber.on('message', (channel, message) => {
+  const conns = channelClients.get(channel);
+  if (!conns || conns.size === 0) return;
+  const frame = `data: ${message}\n\n`;
+  conns.forEach((res) => {
+    try { res.write(frame); } catch { /* socket already gone */ }
+  });
+});
 
 /**
  * Broadcast a typed event to ALL active connections for a given userId.
- * Exported so other route handlers can push real-time events to a user.
- *
- * @param {string} userId  - Target user's UUID
- * @param {string} type    - Event type e.g. 'order:updated', 'payment:completed'
- * @param {object} payload - Event data
+ * Works across multiple server instances via Redis pub/sub.
  */
 function broadcast(userId, type, payload = {}) {
-  const conns = clients.get(String(userId));
-  if (!conns || conns.size === 0) return;
-
-  const frame = `data: ${JSON.stringify({ type, payload, ts: Date.now() })}\n\n`;
-
-  conns.forEach((res) => {
-    try {
-      res.write(frame);
-    } catch {
-      // Client socket closed — will be cleaned up on the 'close' event
-    }
+  const message = JSON.stringify({ type, payload, ts: Date.now() });
+  redisClient.publish(`sse:${userId}`, message).catch((err) => {
+    logger.error('SSE broadcast publish error', { userId, error: err.message });
   });
 }
 
-// Export broadcast so other modules can push events
 module.exports.broadcast = broadcast;
 
 /**
  * GET /api/events
  * Opens an SSE stream for the authenticated user.
- * Sends a keep-alive ping every 30 seconds.
- *
- * NOTE: In production, subscribe to Redis pub/sub channel `events:{userId}`
- * here and forward messages as SSE frames. On disconnect, unsubscribe and
- * quit the dedicated subscriber connection.
  */
 router.get('/', requireAuth, (req, res) => {
-  // ── SSE response headers ──────────────────────────────────────────────────
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
-  res.setHeader('X-Accel-Buffering', 'no'); // disable nginx proxy buffering
-
-  // Flush headers immediately so the browser opens the stream
+  res.setHeader('X-Accel-Buffering', 'no');
   res.flushHeaders();
 
-  const userId = String(req.session.userId);
+  const userId  = String(req.session.userId);
+  const channel = `sse:${userId}`;
 
-  // Register this connection
-  if (!clients.has(userId)) clients.set(userId, new Set());
-  clients.get(userId).add(res);
+  // Register this connection in the channel map
+  if (!channelClients.has(channel)) {
+    channelClients.set(channel, new Set());
+    // Subscribe to Redis channel when first client connects for this user
+    subscriber.subscribe(channel, (err) => {
+      if (err) logger.error('SSE Redis subscribe error', { channel, error: err.message });
+    });
+  }
+  channelClients.get(channel).add(res);
 
-  logger.info('SSE client connected', {
-    userId,
-    openConnections: clients.get(userId).size,
-  });
+  logger.info('SSE client connected', { userId, openConnections: channelClients.get(channel).size });
 
-  // ── Initial connected event ───────────────────────────────────────────────
-  res.write(
-    `data: ${JSON.stringify({
-      type: 'connected',
-      payload: { userId, message: 'Asiel Farm Shop event stream connected' },
-      ts: Date.now(),
-    })}\n\n`
-  );
+  // Initial handshake event
+  res.write(`data: ${JSON.stringify({ type: 'connected', payload: { userId }, ts: Date.now() })}\n\n`);
 
-  // ── Keep-alive ping every 30 s ────────────────────────────────────────────
+  // 30-second keep-alive ping
   const timer = setInterval(() => {
     try {
       res.write(`data: ${JSON.stringify({ type: 'ping', ts: Date.now() })}\n\n`);
@@ -98,11 +90,16 @@ router.get('/', requireAuth, (req, res) => {
     }
   }, 30_000);
 
-  // ── Cleanup on client disconnect ──────────────────────────────────────────
+  // Cleanup on client disconnect
   req.on('close', () => {
     clearInterval(timer);
-    clients.get(userId)?.delete(res);
-    if (clients.get(userId)?.size === 0) clients.delete(userId);
+    const conns = channelClients.get(channel);
+    conns?.delete(res);
+    if (conns?.size === 0) {
+      channelClients.delete(channel);
+      // Unsubscribe from Redis when no more local clients for this user
+      subscriber.unsubscribe(channel).catch(() => {});
+    }
     logger.info('SSE client disconnected', { userId });
   });
 });

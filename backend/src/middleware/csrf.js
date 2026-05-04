@@ -1,42 +1,51 @@
 'use strict';
 
-const csurf = require('csurf');
+const crypto = require('crypto');
 
 /**
- * csrfProtection middleware
+ * Session-based synchronizer token CSRF protection.
+ * Replaces the deprecated `csurf` package.
  *
- * Uses csurf with cookie-based token storage.
- * The token must be sent by the client as the X-CSRF-Token header
- * (or _csrf body field) on all state-mutating requests (POST, PUT, DELETE, PATCH).
- *
- * GET /api/csrf-token is intentionally excluded from CSRF validation
- * so the client can bootstrap the token.
+ * Flow:
+ *   1. Any GET request (or on login) establishes req.session.csrfToken.
+ *   2. Client fetches the token via GET /api/csrf-token.
+ *   3. All mutating requests (POST/PUT/PATCH/DELETE) must include
+ *      X-CSRF-Token: <token> in the request headers.
+ *   4. The middleware compares the header value against the session token.
  */
-const csrfProtection = csurf({
-  cookie: {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-  },
-});
 
-/**
- * GET /api/csrf-token
- * Returns a fresh CSRF token for the current session.
- * The client should store this and include it as the X-CSRF-Token header.
- */
-function csrfTokenHandler(req, res) {
-  res.json({ csrfToken: req.csrfToken() });
+const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+function generateToken() {
+  return crypto.randomBytes(32).toString('hex');
 }
 
-/**
- * CSRF error handler — must be mounted before the global error handler.
- * csurf throws an error with code 'EBADCSRFTOKEN' when the token is invalid.
- */
-function csrfErrorHandler(err, req, res, next) {
-  if (err.code === 'EBADCSRFTOKEN') {
+function csrfProtection(req, res, next) {
+  // Ensure every session has a CSRF token; create one on first visit
+  if (!req.session.csrfToken) {
+    req.session.csrfToken = generateToken();
+  }
+
+  if (SAFE_METHODS.has(req.method)) return next();
+
+  const submitted = req.headers['x-csrf-token'];
+  if (!submitted || submitted !== req.session.csrfToken) {
     return res.status(403).json({ error: 'Invalid or missing CSRF token' });
   }
+
+  next();
+}
+
+function csrfTokenHandler(req, res) {
+  if (!req.session.csrfToken) {
+    req.session.csrfToken = generateToken();
+  }
+  res.json({ csrfToken: req.session.csrfToken });
+}
+
+// Kept for backward compatibility — no longer needed since we removed csurf,
+// but index.js still registers it as an error handler.
+function csrfErrorHandler(err, req, res, next) {
   next(err);
 }
 
