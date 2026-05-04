@@ -124,9 +124,14 @@ app.get('/health', (_req, res) =>
 );
 
 // ── CSRF protection ───────────────────────────────────────────────────────────
-// Payment provider callbacks are called by external services with no CSRF token.
-// Skip CSRF for those specific paths; validate for all other mutations.
+// Auth initiation endpoints and payment provider callbacks are exempt:
+//   - Auth: no session exists yet so no CSRF token can have been issued
+//   - Webhooks: called by external services with no browser cookie
 const CSRF_EXEMPT = [
+  '/api/auth/otp/send',
+  '/api/auth/otp/verify',
+  '/api/auth/google',
+  '/api/auth/apple',
   '/api/payments/stripe/webhook',
   '/api/payments/mpesa/callback',
   '/api/payments/selcom/callback',

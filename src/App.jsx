@@ -816,6 +816,11 @@ apiService.syncPreferences({ country: state.country, currency: state.cur, consen
 //
 const API_BASE = import.meta.env.VITE_API_BASE || "";
 
+// ─── Social sign-in ───────────────────────────────────────────────────────────
+// Set these in .env.production/.env.development — they are public client IDs, not secrets.
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+const APPLE_CLIENT_ID  = import.meta.env.VITE_APPLE_CLIENT_ID  || "";
+
 // ─── Stripe publishable key ──────────────────────────────────────────────────
 // Set VITE_STRIPE_PK in your CI/CD environment — never hardcode the live key.
 const STRIPE_PK = import.meta.env.VITE_STRIPE_PK || "pk_test_REPLACE_WITH_YOUR_PUBLISHABLE_KEY";
@@ -1142,9 +1147,17 @@ body: JSON.stringify({ phone, code }),
 async fetchCsrfToken() {
 if (!API_BASE) { _csrfToken = "demo-csrf-token"; return; }
 try {
-const { token } = await apiFetch("/api/csrf");
-_csrfToken = token || "";
+const { csrfToken } = await apiFetch("/api/csrf-token");
+_csrfToken = csrfToken || "";
 } catch { _csrfToken = ""; }
+},
+
+async loginWithGoogle(credential) {
+return apiFetch("/api/auth/google", { method: "POST", body: JSON.stringify({ credential }) });
+},
+
+async loginWithApple(idToken, user) {
+return apiFetch("/api/auth/apple", { method: "POST", body: JSON.stringify({ idToken, user }) });
 },
 
 async logout() {
@@ -2972,6 +2985,13 @@ cursor:pointer; transition:all .18s; background:white;
 .otp-divider { display:flex; align-items:center; gap:8px; margin:12px 0; }
 .otp-divider-line { flex:1; height:1px; background:var(--sand); }
 .otp-divider-text { font-size:11px; color:#aaa; white-space:nowrap; }
+.social-wrap { display:flex; flex-direction:column; gap:10px; margin-top:2px; }
+.social-btn { width:100%; display:flex; align-items:center; justify-content:center; gap:10px; border:1.5px solid #dadce0; border-radius:14px; padding:13px 16px; font-size:13px; font-weight:600; cursor:pointer; background:white; font-family:var(--font-body); transition:all .18s; color:#3c4043; box-sizing:border-box; }
+.social-btn:hover:not(:disabled) { background:#f8f9fa; border-color:#bbb; transform:translateY(-1px); box-shadow:0 2px 8px rgba(0,0,0,.08); }
+.social-btn:disabled { opacity:.5; cursor:not-allowed; }
+.social-btn.apple-btn { background:#000; color:#fff; border-color:#000; }
+.social-btn.apple-btn:hover:not(:disabled) { background:#1a1a1a; transform:translateY(-1px); }
+.social-google-wrap { width:100%; display:flex; justify-content:center; border-radius:14px; overflow:hidden; min-height:44px; }
 
 /* ══ GDPR CONSENT ══ */
 .consent-bd { position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:900; display:flex; align-items:flex-end; justify-content:center; animation:fadeIn .2s; }
@@ -3247,6 +3267,18 @@ const DIAL_CODES = [
 { code:"ZA", flag:"🇿🇦", dial:"+27",  label:"South Africa (+27)" },
 ];
 
+// Google logo SVG — inline so no external fetch needed
+function SvgGoogle() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+      <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908C16.658 14.095 17.64 11.787 17.64 9.2Z"/>
+      <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z"/>
+      <path fill="#FBBC05" d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332Z"/>
+      <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 6.29C4.672 4.163 6.656 3.58 9 3.58Z"/>
+    </svg>
+  );
+}
+
 function LoginScreen({ onLogin }) {
 const [stage,        setStage]        = useState("phone");
 const [dialCode,     setDialCode]     = useState("+255");
@@ -3256,7 +3288,10 @@ const [selectedRole, setSelectedRole] = useState(null);
 const [loading,      setLoading]      = useState(false);
 const [error,        setError]        = useState("");
 const [resendTimer,  setResendTimer]  = useState(0);
-const digitRefs = [useRef(),useRef(),useRef(),useRef(),useRef(),useRef()];
+const [googleReady,  setGoogleReady]  = useState(false);
+const [socialLoading,setSocialLoading]= useState(false);
+const digitRefs   = [useRef(),useRef(),useRef(),useRef(),useRef(),useRef()];
+const googleBtnRef = useRef(null);
 
 const fullPhone = dialCode + localNumber.replace(/\D/g,"").slice(0,10);
 const otpCode   = otpDigits.join("");
@@ -3270,6 +3305,88 @@ return () => clearTimeout(t);
 useEffect(() => {
 if (stage === "otp") setTimeout(() => digitRefs[0].current?.focus(), 80);
 }, [stage]); // eslint-disable-line
+
+// ── Google Identity Services ─────────────────────────────────────────────────
+const handleGoogleCredential = useCallback(async (response) => {
+  setSocialLoading(true);
+  setError("");
+  try {
+    if (!API_BASE) { setStage("role"); return; }
+    const res = await apiService.loginWithGoogle(response.credential);
+    if (res.success) {
+      analytics.capture("auth.login_success", { method: "google" });
+      apiService.fetchCsrfToken();
+      if (res.role) onLogin(res.role);
+      else setStage("role");
+    } else {
+      setError(res.error || "Google sign-in failed. Please try again.");
+    }
+  } catch { setError("Google sign-in failed. Please try again."); }
+  finally { setSocialLoading(false); }
+}, [onLogin]);
+
+useEffect(() => {
+  if (!GOOGLE_CLIENT_ID) return;
+  const s = document.createElement("script");
+  s.src = "https://accounts.google.com/gsi/client";
+  s.async = true;
+  s.onload = () => {
+    window.google?.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleCredential });
+    setGoogleReady(true);
+  };
+  document.head.appendChild(s);
+  return () => { try { document.head.removeChild(s); } catch {} };
+}, [handleGoogleCredential]);
+
+// Render Google's button after the div is in the DOM and GIS is ready
+useEffect(() => {
+  if (!googleReady || !googleBtnRef.current) return;
+  window.google?.accounts.id.renderButton(googleBtnRef.current, {
+    theme: "outline", size: "large", shape: "rectangular",
+    width: googleBtnRef.current.offsetWidth || 320,
+    text: "continue_with", logo_alignment: "left",
+  });
+}, [googleReady]);
+
+// ── Apple Sign In ─────────────────────────────────────────────────────────────
+useEffect(() => {
+  if (!APPLE_CLIENT_ID) return;
+  const s = document.createElement("script");
+  s.src = "https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js";
+  s.async = true;
+  s.onload = () => {
+    window.AppleID?.auth.init({
+      clientId: APPLE_CLIENT_ID,
+      scope: "name email",
+      redirectURI: window.location.origin,
+      usePopup: true,
+    });
+  };
+  document.head.appendChild(s);
+  return () => { try { document.head.removeChild(s); } catch {} };
+}, []);
+
+const handleAppleSignIn = useCallback(async () => {
+  setSocialLoading(true);
+  setError("");
+  try {
+    if (!API_BASE) { setStage("role"); return; }
+    const data = await window.AppleID.auth.signIn();
+    const res = await apiService.loginWithApple(data.authorization.id_token, data.user || null);
+    if (res.success) {
+      analytics.capture("auth.login_success", { method: "apple" });
+      apiService.fetchCsrfToken();
+      if (res.role) onLogin(res.role);
+      else setStage("role");
+    } else {
+      setError(res.error || "Apple sign-in failed. Please try again.");
+    }
+  } catch (err) {
+    if (err?.error !== "popup_closed_by_user") {
+      setError("Apple sign-in failed. Please try again.");
+    }
+  } finally { setSocialLoading(false); }
+}, [onLogin]);
 
 async function handleSendOTP() {
 setError("");
@@ -3359,6 +3476,29 @@ return (
         {loading ? <span className="otp-spinner"><div className="spinner" style={{width:16,height:16,borderWidth:2,margin:0}}/>Sending...</span> : "Send Code →"}
       </button>
       <div className="otp-hint" style={{marginTop:10}}>🔒 One-time code via SMS · Africa's Talking</div>
+
+      {/* ── Social sign-in ── */}
+      <div className="otp-divider">
+        <div className="otp-divider-line"/>
+        <span className="otp-divider-text">or continue with</span>
+        <div className="otp-divider-line"/>
+      </div>
+      <div className="social-wrap">
+        {GOOGLE_CLIENT_ID
+          ? <div ref={googleBtnRef} className="social-google-wrap"/>
+          : <button className="social-btn" disabled={socialLoading}
+              onClick={() => { setSocialLoading(true); setTimeout(() => { setSocialLoading(false); setStage("role"); }, 700); }}>
+              <SvgGoogle/>
+              <span>{!API_BASE ? "Continue with Google (Demo)" : "Continue with Google"}</span>
+            </button>
+        }
+        <button className="social-btn apple-btn"
+          disabled={socialLoading}
+          onClick={APPLE_CLIENT_ID ? handleAppleSignIn : () => { setSocialLoading(true); setTimeout(() => { setSocialLoading(false); setStage("role"); }, 700); }}>
+          <span style={{fontSize:17,lineHeight:1,fontFamily:"system-ui"}}>&#63743;</span>
+          <span>{!API_BASE && !APPLE_CLIENT_ID ? "Continue with Apple (Demo)" : "Continue with Apple"}</span>
+        </button>
+      </div>
     </>}
 
     {/* ── Stage 2: OTP verification ── */}
@@ -3412,7 +3552,7 @@ return (
     </>}
 
     <div style={{fontSize:10,color:"#ccc",textAlign:"center",marginTop:12}}>
-      🔒 Secured by Asiel Farm Shop · Africa's Talking SMS
+      🔒 Secured by Asiel Farm Shop · SMS · Google · Apple
     </div>
   </div>
 </div>

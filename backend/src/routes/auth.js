@@ -1,7 +1,9 @@
 'use strict';
 
 const express = require('express');
-const Joi = require('joi');
+const Joi     = require('joi');
+const crypto  = require('crypto');
+const axios   = require('axios');
 const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
@@ -10,6 +12,98 @@ const db = require('../db');
 const logger = require('../logger');
 const { generateOTP, sendOTP } = require('../services/africastalking');
 const { otpLimiter } = require('../middleware/rateLimit');
+
+// ── Social auth helpers ───────────────────────────────────────────────────────
+
+async function verifyGoogleToken(credential) {
+  const { data } = await axios.get('https://oauth2.googleapis.com/tokeninfo', {
+    params: { id_token: credential },
+    timeout: 8000,
+  });
+  if (data.aud !== process.env.GOOGLE_CLIENT_ID) {
+    throw new Error('Google token audience mismatch');
+  }
+  if (parseInt(data.exp, 10) < Math.floor(Date.now() / 1000)) {
+    throw new Error('Google token expired');
+  }
+  return {
+    googleId:      data.sub,
+    email:         data.email || null,
+    emailVerified: data.email_verified === 'true',
+    name:          data.name  || null,
+  };
+}
+
+async function verifyAppleToken(idToken) {
+  const parts = idToken.split('.');
+  if (parts.length !== 3) throw new Error('Invalid Apple JWT structure');
+
+  const header  = JSON.parse(Buffer.from(parts[0], 'base64url').toString());
+  const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+
+  if (payload.iss !== 'https://appleid.apple.com') throw new Error('Invalid Apple issuer');
+  if (payload.aud !== process.env.APPLE_CLIENT_ID)  throw new Error('Apple token audience mismatch');
+  if (payload.exp  < Math.floor(Date.now() / 1000)) throw new Error('Apple token expired');
+
+  // Fetch Apple JWKS and verify RS256 signature using Node built-in crypto
+  const { data } = await axios.get('https://appleid.apple.com/auth/keys', { timeout: 8000 });
+  const jwk = data.keys.find(k => k.kid === header.kid && k.alg === header.alg);
+  if (!jwk) throw new Error('No matching Apple public key');
+
+  const publicKey = crypto.createPublicKey({ key: jwk, format: 'jwk' });
+  const verifier  = crypto.createVerify('SHA256');
+  verifier.update(`${parts[0]}.${parts[1]}`);
+  if (!verifier.verify(publicKey, parts[2], 'base64url')) {
+    throw new Error('Apple JWT signature invalid');
+  }
+
+  return {
+    appleId:       payload.sub,
+    email:         payload.email || null,
+    emailVerified: payload.email_verified === true || payload.email_verified === 'true',
+  };
+}
+
+// Finds an existing user by social ID, then email; links the social ID if found by email.
+// Creates a new user (no phone) if no match found.
+async function findOrCreateSocialUser({ provider, socialId, email, displayName }) {
+  const idCol = provider === 'google' ? 'google_id' : 'apple_id';
+
+  // 1) Lookup by social ID
+  let result = await db.query(`SELECT * FROM users WHERE ${idCol} = $1`, [socialId]);
+  if (result.rows.length) return result.rows[0];
+
+  // 2) Lookup by email and link
+  if (email) {
+    result = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    if (result.rows.length) {
+      const user = result.rows[0];
+      await db.query(
+        `UPDATE users SET ${idCol} = $1, display_name = COALESCE(display_name, $2), updated_at = NOW() WHERE id = $3`,
+        [socialId, displayName, user.id]
+      );
+      return { ...user, [idCol]: socialId };
+    }
+  }
+
+  // 3) Create new user (phone = NULL for social-only accounts)
+  const inserted = await db.query(
+    `INSERT INTO users (id, phone, email, ${idCol}, display_name, country)
+     VALUES ($1, NULL, $2, $3, $4, 'TZ')
+     RETURNING *`,
+    [uuidv4(), email, socialId, displayName || null]
+  );
+  return inserted.rows[0];
+}
+
+async function createSocialSession(req, user) {
+  await new Promise((resolve, reject) => {
+    req.session.regenerate(err => (err ? reject(err) : resolve()));
+  });
+  req.session.userId  = user.id;
+  req.session.role    = user.role;
+  req.session.country = user.country;
+}
 
 // ── Validation schemas ────────────────────────────────────────────────────────
 
@@ -173,6 +267,99 @@ router.post('/logout', async (req, res, next) => {
     logger.info('User logged out', { userId });
 
     return res.status(200).json({ success: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/auth/google
+ * Verify a Google Identity Services credential (ID token) and create a session.
+ */
+router.post('/google', async (req, res, next) => {
+  try {
+    const { credential } = req.body || {};
+    if (!credential || typeof credential !== 'string') {
+      return res.status(400).json({ error: 'Google credential is required' });
+    }
+    if (!process.env.GOOGLE_CLIENT_ID) {
+      return res.status(501).json({ error: 'Google sign-in is not configured on this server' });
+    }
+
+    let googleUser;
+    try {
+      googleUser = await verifyGoogleToken(credential);
+    } catch (err) {
+      logger.warn('Google token verification failed', { error: err.message });
+      return res.status(401).json({ error: 'Google credential could not be verified' });
+    }
+
+    const user = await findOrCreateSocialUser({
+      provider:    'google',
+      socialId:    googleUser.googleId,
+      email:       googleUser.email,
+      displayName: googleUser.name,
+    });
+
+    await createSocialSession(req, user);
+
+    logger.info('Google sign-in success', { userId: user.id, role: user.role });
+
+    return res.json({
+      success: true,
+      role:    user.role,
+      country: user.country,
+      name:    user.display_name || user.name || null,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/**
+ * POST /api/auth/apple
+ * Verify an Apple Sign In identity token and create a session.
+ * `user` object (name/email) is only present on the very first authorization.
+ */
+router.post('/apple', async (req, res, next) => {
+  try {
+    const { idToken, user: appleUserInfo } = req.body || {};
+    if (!idToken || typeof idToken !== 'string') {
+      return res.status(400).json({ error: 'Apple id_token is required' });
+    }
+    if (!process.env.APPLE_CLIENT_ID) {
+      return res.status(501).json({ error: 'Apple sign-in is not configured on this server' });
+    }
+
+    let applePayload;
+    try {
+      applePayload = await verifyAppleToken(idToken);
+    } catch (err) {
+      logger.warn('Apple token verification failed', { error: err.message });
+      return res.status(401).json({ error: 'Apple identity token could not be verified' });
+    }
+
+    const displayName = appleUserInfo?.name
+      ? `${appleUserInfo.name.firstName || ''} ${appleUserInfo.name.lastName || ''}`.trim() || null
+      : null;
+
+    const user = await findOrCreateSocialUser({
+      provider:    'apple',
+      socialId:    applePayload.appleId,
+      email:       applePayload.email,
+      displayName,
+    });
+
+    await createSocialSession(req, user);
+
+    logger.info('Apple sign-in success', { userId: user.id, role: user.role });
+
+    return res.json({
+      success: true,
+      role:    user.role,
+      country: user.country,
+      name:    user.display_name || user.name || null,
+    });
   } catch (err) {
     next(err);
   }
