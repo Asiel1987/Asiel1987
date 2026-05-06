@@ -193,16 +193,22 @@ router.post('/', requireAuth, async (req, res, next) => {
     totalTzs = totalTzs + value.deliveryFee - value.discount;
     totalTzs = Math.max(0, totalTzs);
 
-    // Insert order
+    // Apply loyalty points redemption to the chargeable amount upfront so the
+    // payment processor is charged the correct net figure, not the gross total.
+    const loyaltyDiscount = Math.min(value.loyaltyPtsRedeem, totalTzs);
+    const chargeableTzs = totalTzs - loyaltyDiscount;
+
+    // Insert order — total_tzs is the gross amount; charged_tzs is after loyalty discount
     const orderId = uuidv4();
     await client.query(
       `INSERT INTO orders
-         (id, customer_id, status, total_tzs, delivery_fee, discount, country, delivery_address)
-       VALUES ($1, $2, 'pending', $3, $4, $5, $6, $7)`,
+         (id, customer_id, status, total_tzs, charged_tzs, delivery_fee, discount, country, delivery_address)
+       VALUES ($1, $2, 'pending', $3, $4, $5, $6, $7, $8)`,
       [
         orderId,
         req.session.userId,
         totalTzs,
+        chargeableTzs,
         value.deliveryFee,
         value.discount,
         value.country,
@@ -228,25 +234,24 @@ router.post('/', requireAuth, async (req, res, next) => {
       );
     }
 
-    // Apply loyalty points redemption if requested
-    if (value.loyaltyPtsRedeem > 0) {
-      // 1 loyalty pt = 1 TZS discount; verify the user has enough
+    // Deduct loyalty points (already capped to loyaltyDiscount = min(requested, total))
+    if (loyaltyDiscount > 0) {
       const loyaltyResult = await client.query(
         'SELECT loyalty_pts FROM users WHERE id = $1 FOR UPDATE',
         [req.session.userId]
       );
       const currentPts = loyaltyResult.rows[0]?.loyalty_pts || 0;
-      if (value.loyaltyPtsRedeem > currentPts) {
+      if (loyaltyDiscount > currentPts) {
         await client.query('ROLLBACK');
         return res.status(400).json({
           error: 'Insufficient loyalty points',
           available: currentPts,
-          requested: value.loyaltyPtsRedeem,
+          requested: loyaltyDiscount,
         });
       }
       await client.query(
         'UPDATE users SET loyalty_pts = loyalty_pts - $1, updated_at = NOW() WHERE id = $2',
-        [value.loyaltyPtsRedeem, req.session.userId]
+        [loyaltyDiscount, req.session.userId]
       );
     }
 
@@ -260,7 +265,7 @@ router.post('/', requireAuth, async (req, res, next) => {
       itemCount: value.items.length,
     });
 
-    return res.status(201).json({ id: orderId, totalTzs, status: 'pending' });
+    return res.status(201).json({ id: orderId, totalTzs, chargeableTzs, status: 'pending' });
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});
     next(err);
@@ -363,6 +368,27 @@ const statusSchema = Joi.object({
   riderId: Joi.string().uuid().optional(),  // required when assigning
 });
 
+// Valid transitions per role.  '*' means any current status is acceptable.
+const ALLOWED_TRANSITIONS = {
+  rider: {
+    'picked-up': ['assigned'],
+    delivered:   ['picked-up'],
+  },
+  admin: {
+    assigned:    ['pending', 'assigned'],
+    'picked-up': ['assigned'],
+    delivered:   ['picked-up'],
+    cancelled:   ['pending', 'assigned', 'picked-up'],
+  },
+};
+
+function isTransitionAllowed(role, currentStatus, targetStatus) {
+  const map = ALLOWED_TRANSITIONS[role] || {};
+  const allowed = map[targetStatus];
+  if (!allowed) return false;
+  return allowed.includes(currentStatus);
+}
+
 const PUSH_MESSAGES = {
   assigned:   { title: '🛵 Rider on the way!',        body: 'Your order has been accepted and a rider is heading to pick it up.' },
   'picked-up':{ title: '📦 Order picked up',           body: 'Your order is now on its way — rider is heading to you!' },
@@ -385,6 +411,14 @@ router.patch('/:id/status', requireAuth, async (req, res, next) => {
     const isRider = String(order.rider_id) === String(req.session.userId);
     const isAdmin = req.session.role === 'admin';
     if (!isRider && !isAdmin) return res.status(403).json({ error: 'Forbidden' });
+
+    // Validate state machine transition
+    const actorRole = isAdmin ? 'admin' : 'rider';
+    if (!isTransitionAllowed(actorRole, order.status, value.status)) {
+      return res.status(422).json({
+        error: `Cannot transition order from '${order.status}' to '${value.status}'`,
+      });
+    }
 
     // Build update — optionally set rider_id when assigning
     let updateQuery, params;

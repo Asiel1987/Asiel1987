@@ -67,7 +67,7 @@ async function initiatePush(phone, amount, orderId, ref) {
     payment_purpose: `Order ${orderId}`,
     no_of_items: 1,
     header_colour: '#1B8A2D',
-    callback_url: `${process.env.FRONTEND_URL || 'https://yourdomain.com'}/api/payments/selcom/callback`,
+    callback_url: `${process.env.BACKEND_URL || process.env.SELCOM_CALLBACK_URL || 'https://api.yourdomain.com'}/api/payments/selcom/callback`,
     cancel_url: `${process.env.FRONTEND_URL || 'https://yourdomain.com'}/payment-cancelled`,
     billing_address: 'Tanzania',
     shipping_address: 'Tanzania',

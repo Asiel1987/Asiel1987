@@ -78,8 +78,8 @@ router.get('/', requireAuth, (req, res) => {
 
   logger.info('SSE client connected', { userId, openConnections: channelClients.get(channel).size });
 
-  // Initial handshake event
-  res.write(`data: ${JSON.stringify({ type: 'connected', payload: { userId }, ts: Date.now() })}\n\n`);
+  // Initial handshake event (userId intentionally omitted from payload)
+  res.write(`data: ${JSON.stringify({ type: 'connected', ts: Date.now() })}\n\n`);
 
   // 30-second keep-alive ping
   const timer = setInterval(() => {

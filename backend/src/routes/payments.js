@@ -2,6 +2,7 @@
 
 const express         = require('express');
 const Joi             = require('joi');
+const crypto          = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const db              = require('../db');
 const logger          = require('../logger');
@@ -81,7 +82,12 @@ router.post('/initiate', requireAuth, async (req, res, next) => {
 // GET /api/payments/:ref/status
 router.get('/:ref/status', requireAuth, async (req, res, next) => {
   try {
-    const { rows } = await db.query('SELECT * FROM payments WHERE ref = $1', [req.params.ref]);
+    const { rows } = await db.query(
+      `SELECT p.* FROM payments p
+         JOIN orders o ON o.id = p.order_id
+        WHERE p.ref = $1 AND (o.customer_id = $2 OR $3 = 'admin')`,
+      [req.params.ref, req.session.userId, req.session.role]
+    );
     if (!rows.length) return res.status(404).json({ error: 'Payment not found' });
 
     const payment = rows[0];
@@ -169,9 +175,24 @@ router.post('/mpesa/callback', async (req, res, next) => {
   }
 });
 
+// Verify Selcom callback using HMAC-SHA256 of the request body
+function verifySelcomCallback(req) {
+  const secret = process.env.SELCOM_API_SECRET;
+  if (!secret) return true; // not configured — skip in dev/sandbox
+  const signature = req.headers['x-selcom-signature'] || req.headers['authorization'] || '';
+  const bodyStr = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+  const expected = crypto.createHmac('sha256', secret).update(bodyStr).digest('hex');
+  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+}
+
 // POST /api/payments/selcom/callback — Selcom TZ push result
 router.post('/selcom/callback', async (req, res, next) => {
   try {
+    if (!verifySelcomCallback(req)) {
+      logger.warn('Selcom callback signature mismatch', { ip: req.ip });
+      return res.status(400).json({ result: 'FAIL' });
+    }
+
     const { transid, utilityref, result } = req.body || {};
     if (!utilityref) return res.json({ result: 'SUCCESS' });
 

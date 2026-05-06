@@ -3,13 +3,15 @@
 const { Pool } = require('pg');
 const logger = require('./logger');
 
+// In production use the default NODE_EXTRA_CA_CERTS or DATABASE_SSL_CA env var.
+// Disable SSL entirely only in local dev (no DATABASE_URL SSL requirement).
+const sslConfig = process.env.NODE_ENV === 'production'
+  ? { rejectUnauthorized: true }        // enforce certificate validation
+  : (process.env.DATABASE_URL?.includes('supabase') ? { rejectUnauthorized: false } : false);
+
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    // Supabase requires SSL; rejectUnauthorized:false works with their self-signed cert.
-    // For stricter setups supply the CA via ssl.ca option.
-    rejectUnauthorized: false,
-  },
+  ssl: sslConfig,
   max: 20,                   // max pool size
   idleTimeoutMillis: 30000,  // close idle clients after 30 s
   connectionTimeoutMillis: 5000,

@@ -6,7 +6,7 @@ const Joi = require('joi');
 const router = express.Router();
 const db = require('../db');
 const logger = require('../logger');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireRole } = require('../middleware/auth');
 
 // ── Validation schemas ────────────────────────────────────────────────────────
 
@@ -60,7 +60,7 @@ router.get('/me', requireAuth, async (req, res, next) => {
  * In practice this would be called internally by the order completion flow;
  * the endpoint is exposed here for admin tooling and testing.
  */
-router.put('/me/loyalty', requireAuth, async (req, res, next) => {
+router.put('/me/loyalty', requireAuth, requireRole('admin'), async (req, res, next) => {
   try {
     const { error, value } = loyaltySchema.validate(req.body);
     if (error) return next(error);

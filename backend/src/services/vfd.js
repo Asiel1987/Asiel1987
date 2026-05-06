@@ -44,10 +44,8 @@ async function issueReceipt({ orderId, amount, country, items }) {
 
   const now = new Date();
 
-  // Fiscal number: TIN + sequential number (in production this comes from TRA EFDMS)
-  const fiscalNumber = `${VFD_TIN.replace(/-/g, '')}${String(
-    Math.floor(Math.random() * 900000) + 100000
-  )}`;
+  // Fiscal number: TIN + cryptographically secure random suffix
+  const fiscalNumber = `${VFD_TIN.replace(/-/g, '')}${crypto.randomInt(100000, 999999)}`;
 
   const receiptNumber = `RCT${Date.now().toString(36).toUpperCase()}`;
 

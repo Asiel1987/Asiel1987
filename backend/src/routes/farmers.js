@@ -119,24 +119,28 @@ router.patch('/:userId/status', requireAuth, requireRole('admin'), async (req, r
 // GET /api/farmers/pending — list pending farmer applications (admin only)
 router.get('/pending', requireAuth, requireRole('admin'), async (req, res, next) => {
   try {
-    // Scan Redis for pending farmer profiles (pattern scan, acceptable for admin use)
-    const keys = await redisClient.keys('farmer:profile:*');
     const pending = [];
+    let cursor = '0';
 
-    for (const key of keys) {
-      const raw = await redisClient.get(key);
-      if (!raw) continue;
-      const profile = JSON.parse(raw);
-      if (profile.status === 'pending') {
-        pending.push({
-          userId:    profile.userId,
-          farmName:  profile.farmName,
-          region:    profile.region,
-          crops:     profile.crops,
-          createdAt: profile.createdAt,
-        });
+    // Use SCAN to avoid blocking the Redis event loop (KEYS is O(N) blocking)
+    do {
+      const [nextCursor, keys] = await redisClient.scan(cursor, 'MATCH', 'farmer:profile:*', 'COUNT', 100);
+      cursor = nextCursor;
+      for (const key of keys) {
+        const raw = await redisClient.get(key);
+        if (!raw) continue;
+        const profile = JSON.parse(raw);
+        if (profile.status === 'pending') {
+          pending.push({
+            userId:    profile.userId,
+            farmName:  profile.farmName,
+            region:    profile.region,
+            crops:     profile.crops,
+            createdAt: profile.createdAt,
+          });
+        }
       }
-    }
+    } while (cursor !== '0');
 
     res.json({ pending });
   } catch (err) {
