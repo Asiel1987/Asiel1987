@@ -11,7 +11,7 @@ const redisClient = require('../redis');
 const db = require('../db');
 const logger = require('../logger');
 const { generateOTP, sendOTP } = require('../services/africastalking');
-const { otpLimiter } = require('../middleware/rateLimit');
+const { otpSendLimiter, otpVerifyLimiter } = require('../middleware/rateLimit');
 
 // ── Social auth helpers ───────────────────────────────────────────────────────
 
@@ -142,7 +142,7 @@ function otpRedisKey(phone) {
  * POST /api/auth/otp/send
  * Validate phone, generate OTP, store in Redis with 10-min TTL, send via AT SMS.
  */
-router.post('/otp/send', otpLimiter, async (req, res, next) => {
+router.post('/otp/send', otpSendLimiter, async (req, res, next) => {
   try {
     const { error, value } = sendSchema.validate(req.body);
     if (error) return next(error);
@@ -169,7 +169,7 @@ router.post('/otp/send', otpLimiter, async (req, res, next) => {
  * POST /api/auth/otp/verify
  * Compare submitted code with Redis value. On match, upsert user, create session.
  */
-router.post('/otp/verify', otpLimiter, async (req, res, next) => {
+router.post('/otp/verify', otpVerifyLimiter, async (req, res, next) => {
   try {
     const { error, value } = verifySchema.validate(req.body);
     if (error) return next(error);

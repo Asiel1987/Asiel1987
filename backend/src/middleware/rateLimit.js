@@ -22,20 +22,36 @@ const generalLimiter = rateLimit({
 });
 
 /**
- * otpLimiter
- * 5 requests per hour per IP — stricter limit for OTP send endpoint
- * to prevent SMS abuse and billing exploitation.
+ * otpSendLimiter
+ * 5 requests per hour per IP — strict to prevent SMS billing abuse.
  */
-const otpLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,   // 1 hour
+const otpSendLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
   max: 5,
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: { error: 'Too many OTP requests. Please wait before requesting another code.' },
   store: new RedisStore({
     sendCommand: (...args) => redisClient.call(...args),
-    prefix: 'rl:otp:',
+    prefix: 'rl:otp:send:',
   }),
 });
 
-module.exports = { generalLimiter, otpLimiter };
+/**
+ * otpVerifyLimiter
+ * 15 requests per hour per IP — more permissive than send since per-OTP
+ * brute-force is already capped at 5 attempts in the auth handler.
+ */
+const otpVerifyLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 15,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Too many verification attempts. Please try again later.' },
+  store: new RedisStore({
+    sendCommand: (...args) => redisClient.call(...args),
+    prefix: 'rl:otp:verify:',
+  }),
+});
+
+module.exports = { generalLimiter, otpSendLimiter, otpVerifyLimiter };
