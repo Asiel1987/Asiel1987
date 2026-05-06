@@ -1,16 +1,31 @@
 // Asiel Farm Shop — Service Worker v2
 // Deploy this file at /sw.js (web root, same origin as the app)
 
-const CACHE_NAME = 'asiel-farm-shop-v2';
-const API_CACHE  = 'asiel-api-v2';
+const CACHE_NAME    = 'asiel-farm-shop-v3';
+const API_CACHE     = 'asiel-api-v3';
+const PRODUCT_CACHE = 'asiel-products-v3';
+
+// Static shell — always cached on install
 const STATIC_ASSETS = ['/', '/index.html'];
+
+// Product catalogue URLs to pre-cache for offline browsing
+const PRODUCT_CATALOGUE_URLS = [
+  '/api/products?country=TZ',
+  '/api/products?country=KE',
+];
 
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(c => c.addAll(STATIC_ASSETS))
-      // Log rather than silently swallow — broken offline shell is worse than a failed install
       .catch(err => console.warn('[SW] Failed to precache static assets:', err))
+      .then(async () => {
+        // Pre-fetch product catalogue for offline browsing (best-effort, don't block install)
+        const pc = await caches.open(PRODUCT_CACHE);
+        await Promise.allSettled(
+          PRODUCT_CATALOGUE_URLS.map(url => fetch(url).then(r => r.ok ? pc.put(url, r) : null).catch(() => null))
+        );
+      })
       .then(() => self.skipWaiting())
   );
 });
@@ -18,7 +33,9 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME && k !== API_CACHE).map(k => caches.delete(k)))
+      Promise.all(
+        keys.filter(k => ![CACHE_NAME, API_CACHE, PRODUCT_CACHE].includes(k)).map(k => caches.delete(k))
+      )
     ).then(() => self.clients.claim())
   );
 });
@@ -28,7 +45,8 @@ self.addEventListener('fetch', event => {
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
   if (url.pathname.startsWith('/api/products')) {
-    event.respondWith(staleWhileRevalidate(request, API_CACHE));
+    // Products use their own cache for offline catalogue; update in background
+    event.respondWith(staleWhileRevalidate(request, PRODUCT_CACHE));
     return;
   }
   if (url.pathname.startsWith('/api/')) {

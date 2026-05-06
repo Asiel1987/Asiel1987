@@ -29,6 +29,7 @@ const farmersRouter   = require('./routes/farmers');
 const pushRouter      = require('./routes/push');
 const referralsRouter = require('./routes/referrals');
 const addressesRouter = require('./routes/addresses');
+const ussdRouter      = require('./routes/ussd');
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
@@ -138,6 +139,7 @@ const CSRF_EXEMPT = [
   '/api/payments/stripe/webhook',
   '/api/payments/mpesa/callback',
   '/api/payments/selcom/callback',
+  '/api/ussd',
 ];
 app.use((req, res, next) => {
   if (CSRF_EXEMPT.includes(req.path)) return next();
@@ -159,6 +161,7 @@ app.use('/api/farmers',   farmersRouter);
 app.use('/api/push',      pushRouter);
 app.use('/api/referrals', referralsRouter);
 app.use('/api/addresses', addressesRouter);
+app.use('/api/ussd',      ussdRouter);
 
 // ── CSRF error handler (before global error handler) ─────────────────────────
 app.use(csrfErrorHandler);

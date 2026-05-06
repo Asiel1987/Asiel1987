@@ -177,16 +177,18 @@ return withPlus; // return clean form; display grouping can be CSS-level
 }
 
 // ─── Static data ────────────────────────────────────────────────────────────────────
+// marketPrice: nearest physical market reference price in TZS (Kariakoo for TZ, Gikomba for KE)
+// videoUrl: short farmer harvest preview — real uploads go to /api/products/:id/video
 const PRODUCTS = [
-{ id:1, emoji:"🥑", name:"Hass Avocados",  tzsPrice:7500,  unit:"KG",    farmer:"Mama Zawadi",   farm:"Kilifi Farm, Kilifi County",   dist:"34 km",  rating:4.8, sales:240, organic:true,  verified:true,  harvest:"2 days ago", country:"KE", stockQty:48,  bio:"Third-generation avocado farmer tending 2 acres along the Kilifi coast. KEPHIS-certified, zero-pesticide cultivation.", traceability:"KE-KLF-2026-0041", farmerPhone:"+254712001001", wholesale:[{minQty:10,price:6800},{minQty:50,price:6200}] },
-{ id:2, emoji:"🍅", name:"Roma Tomatoes",  tzsPrice:25800, unit:"KG",    farmer:"Baba Juma",     farm:"Morogoro Farm, Morogoro",       dist:"88 km",  rating:4.6, sales:512, organic:false, verified:true,  harvest:"Yesterday",  country:"TZ", stockQty:120, bio:"Baba Juma runs a 5-acre plot in the fertile Morogoro foothills. Harvested twice weekly at the Ubungo hub by 6 AM.", traceability:"TZ-MRG-2026-0117", farmerPhone:"+255712002002", wholesale:[{minQty:20,price:23000},{minQty:100,price:20000}] },
-{ id:3, emoji:"🥬", name:"Sukuma Wiki",    tzsPrice:17200, unit:"Bunch", farmer:"Grace Ndungu",  farm:"Limuru Farm, Kiambu",           dist:"12 km",  rating:4.9, sales:890, organic:true,  verified:true,  harvest:"Today",      country:"KE", stockQty:4,   bio:"Grace began farming collard greens 8 years ago. Now supplies 6 restaurants and 120 households weekly from her peri-urban plot near Limuru.", traceability:"KE-KMB-2026-0203", farmerPhone:"+254722003003" },
-{ id:4, emoji:"🌽", name:"Sweet Maize",    tzsPrice:53700, unit:"Crate", farmer:"John Otieno",   farm:"Kisumu Farm, Kisumu",           dist:"56 km",  rating:4.5, sales:134, organic:false, verified:false, harvest:"3 days ago", country:"KE", stockQty:0,   bio:"John is a first-generation commercial farmer growing sweet maize for the Nairobi market. Awaiting KEPHIS certification.", traceability:"KE-KSM-2026-0088", farmerPhone:"+254733004004", wholesale:[{minQty:5,price:50000},{minQty:20,price:46000}] },
-{ id:5, emoji:"🧅", name:"Red Onions",     tzsPrice:38700, unit:"KG",    farmer:"Fatuma Hassan", farm:"Arusha Farm, Arusha",           dist:"120 km", rating:4.7, sales:305, organic:false, verified:true,  harvest:"4 days ago", country:"TZ", stockQty:300, bio:"Fatuma's family farm near Mount Meru has supplied Arusha markets for two decades. TBS-certified.", traceability:"TZ-ARU-2026-0066", farmerPhone:"+255765005005", wholesale:[{minQty:25,price:35000},{minQty:100,price:31000}] },
-{ id:6, emoji:"🍠", name:"Sweet Potato",   tzsPrice:20400, unit:"KG",    farmer:"Peter Mwangi",  farm:"Nakuru Farm, Nakuru",           dist:"28 km",  rating:4.4, sales:178, organic:true,  verified:true,  harvest:"2 days ago", country:"KE", stockQty:2,   bio:"Peter intercropped sweet potatoes with beans using regenerative methods. Certified organic by KOAN.", traceability:"KE-NKR-2026-0154", farmerPhone:"+254722006006" },
-{ id:7, emoji:"🥦", name:"Broccoli",       tzsPrice:14500, unit:"KG",    farmer:"Amina Mtui",    farm:"Kilimanjaro Farm, Moshi",       dist:"45 km",  rating:4.6, sales:203, organic:true,  verified:true,  harvest:"Today",      country:"TZ", stockQty:85,  bio:"Amina grows highland broccoli on the cool slopes of Kilimanjaro at 1,600 m. Certified organic by TOAM. Harvested pre-dawn and delivered same day.", traceability:"TZ-MSH-2026-0201", farmerPhone:"+255783007007", wholesale:[{minQty:10,price:13000},{minQty:50,price:11500}] },
-{ id:8, emoji:"🧄", name:"Garlic",         tzsPrice:31200, unit:"KG",    farmer:"Hassan Mkwawa",  farm:"Iringa Farm, Iringa",          dist:"67 km",  rating:4.5, sales:167, organic:false, verified:true,  harvest:"3 days ago", country:"TZ", stockQty:167, bio:"Hassan's family has farmed garlic in the Iringa highlands for three generations. TBS-certified, sun-dried post-harvest for extended shelf life.", traceability:"TZ-IRG-2026-0089", farmerPhone:"+255712008008", wholesale:[{minQty:10,price:28500},{minQty:50,price:25000}] },
-{ id:9, emoji:"🍋", name:"Limons (Limes)", tzsPrice:9800,  unit:"KG",    farmer:"Zaina Hamisi",  farm:"Zanzibar Farm, Unguja",         dist:"22 km",  rating:4.8, sales:421, organic:true,  verified:true,  harvest:"Yesterday",  country:"TZ", stockQty:3,   bio:"Zaina tends a spice-and-citrus smallholding on Unguja island. Her Persian limes are hand-picked and washed in fresh well water — zero chemical use.", traceability:"TZ-ZNZ-2026-0312", farmerPhone:"+255765009009" },
+{ id:1, emoji:"🥑", name:"Hass Avocados",  tzsPrice:7500,  unit:"KG",    farmer:"Mama Zawadi",   farm:"Kilifi Farm, Kilifi County",   dist:"34 km",  rating:4.8, sales:240, organic:true,  verified:true,  harvest:"2 days ago", country:"KE", stockQty:48,  bio:"Third-generation avocado farmer tending 2 acres along the Kilifi coast. KEPHIS-certified, zero-pesticide cultivation.", traceability:"KE-KLF-2026-0041", farmerPhone:"+254712001001", wholesale:[{minQty:10,price:6800},{minQty:50,price:6200}], marketPrice:9200,  videoUrl:"https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" },
+{ id:2, emoji:"🍅", name:"Roma Tomatoes",  tzsPrice:25800, unit:"KG",    farmer:"Baba Juma",     farm:"Morogoro Farm, Morogoro",       dist:"88 km",  rating:4.6, sales:512, organic:false, verified:true,  harvest:"Yesterday",  country:"TZ", stockQty:120, bio:"Baba Juma runs a 5-acre plot in the fertile Morogoro foothills. Harvested twice weekly at the Ubungo hub by 6 AM.", traceability:"TZ-MRG-2026-0117", farmerPhone:"+255712002002", wholesale:[{minQty:20,price:23000},{minQty:100,price:20000}], marketPrice:32000, videoUrl:"https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4" },
+{ id:3, emoji:"🥬", name:"Sukuma Wiki",    tzsPrice:17200, unit:"Bunch", farmer:"Grace Ndungu",  farm:"Limuru Farm, Kiambu",           dist:"12 km",  rating:4.9, sales:890, organic:true,  verified:true,  harvest:"Today",      country:"KE", stockQty:4,   bio:"Grace began farming collard greens 8 years ago. Now supplies 6 restaurants and 120 households weekly from her peri-urban plot near Limuru.", traceability:"KE-KMB-2026-0203", farmerPhone:"+254722003003", marketPrice:21500 },
+{ id:4, emoji:"🌽", name:"Sweet Maize",    tzsPrice:53700, unit:"Crate", farmer:"John Otieno",   farm:"Kisumu Farm, Kisumu",           dist:"56 km",  rating:4.5, sales:134, organic:false, verified:false, harvest:"3 days ago", country:"KE", stockQty:0,   bio:"John is a first-generation commercial farmer growing sweet maize for the Nairobi market. Awaiting KEPHIS certification.", traceability:"KE-KSM-2026-0088", farmerPhone:"+254733004004", wholesale:[{minQty:5,price:50000},{minQty:20,price:46000}], marketPrice:68000 },
+{ id:5, emoji:"🧅", name:"Red Onions",     tzsPrice:38700, unit:"KG",    farmer:"Fatuma Hassan", farm:"Arusha Farm, Arusha",           dist:"120 km", rating:4.7, sales:305, organic:false, verified:true,  harvest:"4 days ago", country:"TZ", stockQty:300, bio:"Fatuma's family farm near Mount Meru has supplied Arusha markets for two decades. TBS-certified.", traceability:"TZ-ARU-2026-0066", farmerPhone:"+255765005005", wholesale:[{minQty:25,price:35000},{minQty:100,price:31000}], marketPrice:47500, videoUrl:"https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackOnStreetAndDirt.mp4" },
+{ id:6, emoji:"🍠", name:"Sweet Potato",   tzsPrice:20400, unit:"KG",    farmer:"Peter Mwangi",  farm:"Nakuru Farm, Nakuru",           dist:"28 km",  rating:4.4, sales:178, organic:true,  verified:true,  harvest:"2 days ago", country:"KE", stockQty:2,   bio:"Peter intercropped sweet potatoes with beans using regenerative methods. Certified organic by KOAN.", traceability:"KE-NKR-2026-0154", farmerPhone:"+254722006006", marketPrice:25000 },
+{ id:7, emoji:"🥦", name:"Broccoli",       tzsPrice:14500, unit:"KG",    farmer:"Amina Mtui",    farm:"Kilimanjaro Farm, Moshi",       dist:"45 km",  rating:4.6, sales:203, organic:true,  verified:true,  harvest:"Today",      country:"TZ", stockQty:85,  bio:"Amina grows highland broccoli on the cool slopes of Kilimanjaro at 1,600 m. Certified organic by TOAM. Harvested pre-dawn and delivered same day.", traceability:"TZ-MSH-2026-0201", farmerPhone:"+255783007007", wholesale:[{minQty:10,price:13000},{minQty:50,price:11500}], marketPrice:19000 },
+{ id:8, emoji:"🧄", name:"Garlic",         tzsPrice:31200, unit:"KG",    farmer:"Hassan Mkwawa",  farm:"Iringa Farm, Iringa",          dist:"67 km",  rating:4.5, sales:167, organic:false, verified:true,  harvest:"3 days ago", country:"TZ", stockQty:167, bio:"Hassan's family has farmed garlic in the Iringa highlands for three generations. TBS-certified, sun-dried post-harvest for extended shelf life.", traceability:"TZ-IRG-2026-0089", farmerPhone:"+255712008008", wholesale:[{minQty:10,price:28500},{minQty:50,price:25000}], marketPrice:38000 },
+{ id:9, emoji:"🍋", name:"Limons (Limes)", tzsPrice:9800,  unit:"KG",    farmer:"Zaina Hamisi",  farm:"Zanzibar Farm, Unguja",         dist:"22 km",  rating:4.8, sales:421, organic:true,  verified:true,  harvest:"Yesterday",  country:"TZ", stockQty:3,   bio:"Zaina tends a spice-and-citrus smallholding on Unguja island. Her Persian limes are hand-picked and washed in fresh well water — zero chemical use.", traceability:"TZ-ZNZ-2026-0312", farmerPhone:"+255765009009", marketPrice:13500 },
 ];
 
 const SHIPS_INIT = [
@@ -3371,6 +3373,60 @@ cursor:pointer; transition:all .18s; background:white;
 .addr-form{display:flex;flex-direction:column;gap:10px;background:var(--mist);border-radius:14px;padding:16px;margin-top:4px}
 .dark .addr-card{background:var(--card);border-color:#444}
 .dark .addr-form{background:var(--card)}
+
+/* ── Video produce previews ───────────────────────────────────────────────── */
+.modal-video-wrap{position:relative;width:100%;background:#000;border-radius:0;overflow:hidden;max-height:220px}
+.modal-video{width:100%;max-height:220px;object-fit:cover;display:block}
+.modal-video-badge{position:absolute;top:10px;left:10px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;font-weight:700;border-radius:6px;padding:3px 8px;display:flex;align-items:center;gap:4px;pointer-events:none}
+.card-video-pill{position:absolute;bottom:6px;right:6px;background:rgba(0,0,0,.6);color:#fff;font-size:9px;font-weight:700;border-radius:5px;padding:2px 7px;display:flex;align-items:center;gap:3px}
+
+/* ── Price comparison widget ──────────────────────────────────────────────── */
+.price-compare{display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,#f0faf4,#e6f7ed);border:1.5px solid var(--leaf);border-radius:10px;padding:9px 12px;margin-top:10px}
+.price-compare-save{font-weight:800;font-size:13px;color:var(--forest)}
+.price-compare-vs{font-size:11px;color:#666;line-height:1.35}
+.price-compare-icon{font-size:20px;flex-shrink:0}
+.card-save-badge{position:absolute;top:6px;right:34px;background:var(--leaf);color:#fff;font-size:9px;font-weight:800;border-radius:5px;padding:2px 6px}
+
+/* ── Chama group buying ───────────────────────────────────────────────────── */
+.chama-btn{display:flex;align-items:center;gap:6px;background:var(--forest);color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;font-family:var(--font-body);cursor:pointer;width:100%;justify-content:center;margin-top:8px}
+.chama-btn:hover{background:var(--leaf)}
+.chama-overlay{position:fixed;inset:0;z-index:8800;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}
+.chama-sheet{background:var(--card,#fff);border-radius:24px 24px 0 0;width:100%;max-width:540px;padding:24px 20px 40px;animation:slideUp .35s ease}
+.chama-title{font-family:var(--font-head);font-size:20px;color:var(--forest);margin-bottom:6px}
+.chama-sub{font-size:13px;color:#888;margin-bottom:16px;line-height:1.5}
+.chama-link-box{display:flex;align-items:center;gap:8px;background:var(--mist);border-radius:10px;padding:10px 14px;margin-bottom:14px}
+.chama-link-text{flex:1;font-size:12px;color:#555;word-break:break-all}
+.chama-copy-btn{background:var(--forest);color:#fff;border:none;border-radius:8px;padding:7px 13px;font-size:12px;font-weight:700;font-family:var(--font-body);cursor:pointer;white-space:nowrap;flex-shrink:0}
+.chama-member-list{margin-bottom:14px}
+.chama-member{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--sand)}
+.chama-member:last-child{border-bottom:none}
+.chama-member-av{font-size:20px}
+.chama-member-name{flex:1;font-size:13px;font-weight:600}
+.chama-member-items{font-size:12px;color:#888}
+.chama-checkout-btn{width:100%;background:var(--forest);color:#fff;border:none;border-radius:14px;padding:14px;font-size:15px;font-weight:700;font-family:var(--font-body);cursor:pointer}
+.chama-badge{position:absolute;top:-6px;right:-6px;background:var(--forest);color:#fff;font-size:9px;font-weight:800;border-radius:10px;padding:2px 6px;white-space:nowrap}
+
+/* ── Stock alert (notify me) ──────────────────────────────────────────────── */
+.notify-btn{width:100%;background:none;border:1.5px solid var(--forest);color:var(--forest);border-radius:10px;padding:9px;font-size:13px;font-weight:700;font-family:var(--font-body);cursor:pointer;margin-top:8px}
+.notify-btn.active{background:var(--mist);border-color:var(--leaf);color:var(--leaf)}
+.notify-pill{font-size:9px;font-weight:700;background:#fff3cd;color:#856404;border-radius:5px;padding:2px 6px;position:absolute;bottom:6px;left:6px}
+
+/* ── Delivery ETA on card ─────────────────────────────────────────────────── */
+.card-eta{font-size:10px;color:var(--leaf);font-weight:700;margin-top:3px}
+
+/* ── Recently viewed ─────────────────────────────────────────────────────── */
+.recent-section{padding:0 16px 4px}
+.recent-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#bbb;margin-bottom:8px}
+.recent-scroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none}
+.recent-scroll::-webkit-scrollbar{display:none}
+.recent-chip{flex:0 0 auto;background:var(--card);border:1.5px solid var(--sand);border-radius:12px;padding:8px 12px;display:flex;align-items:center;gap:8px;cursor:pointer}
+.recent-chip:hover{border-color:var(--forest)}
+.recent-chip-emoji{font-size:20px}
+.recent-chip-name{font-size:12px;font-weight:600;color:var(--text)}
+.recent-chip-price{font-size:11px;color:#888}
+
+/* ── Receipt sharing ──────────────────────────────────────────────────────── */
+.receipt-share-btn{display:flex;align-items:center;gap:6px;background:#25D366;color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:700;font-family:var(--font-body);cursor:pointer;width:100%;justify-content:center;margin-top:8px}
 
 /* ── Farmer Tour ──────────────────────────────────────────────────────────── */
 .ftour-overlay{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;justify-content:center}
@@ -6766,6 +6822,214 @@ function VoiceMic({ lang, onResult, title }) {
   );
 }
 
+// ─── Delivery ETA helper ─────────────────────────────────────────────────────────────
+// Estimates an arrival window based on distance and current hour.
+// Hub collection adds ~30 min; rider speed ~25 km/h on average East African roads.
+function calcETA(distStr) {
+  const km = parseFloat(distStr) || 0;
+  const rideMin = Math.round((km / 25) * 60);
+  const totalMin = 30 + rideMin;  // hub + ride
+  const now = new Date();
+  const arrivalMs = now.getTime() + totalMin * 60000;
+  const arrival = new Date(arrivalMs);
+  const hh = arrival.getHours();
+  const mm = String(arrival.getMinutes()).padStart(2, "0");
+  const period = hh >= 12 ? "PM" : "AM";
+  const h12 = hh % 12 || 12;
+  // Cut-off: orders placed after 2 PM arrive next morning
+  if (now.getHours() >= 14) return "Tomorrow 8–10 AM";
+  return `Delivers by ${h12}:${mm} ${period} today`;
+}
+
+// ─── Price comparison widget helpers ────────────────────────────────────────────────
+const MARKET_NAME = { TZ: "Kariakoo", KE: "Gikomba", default: "local market" };
+function PriceCompare({ product, cur, country }) {
+  if (!product.marketPrice || product.marketPrice <= product.tzsPrice) return null;
+  const saveTZS = product.marketPrice - product.tzsPrice;
+  const savePct = Math.round((saveTZS / product.marketPrice) * 100);
+  const market  = MARKET_NAME[country] || MARKET_NAME.default;
+  return (
+    <div className="price-compare">
+      <span className="price-compare-icon">🏷️</span>
+      <div>
+        <div className="price-compare-save">Save {fmt(saveTZS, cur)}/{product.unit} ({savePct}% off)</div>
+        <div className="price-compare-vs">vs {market} market price of {fmt(product.marketPrice, cur)}</div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Chama group buying ──────────────────────────────────────────────────────────────
+// Creates a shareable group-order session. All members add items; one member checks out.
+// In demo mode: session lives in localStorage; production uses /api/group-orders/:id.
+function useChamaSession() {
+  const [session, setSession] = React.useState(() => {
+    try {
+      const raw = sessionStorage.getItem("asf_chama");
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  });
+
+  const createSession = React.useCallback((cart) => {
+    const id = secureId();
+    const s = { id, creatorCart: cart, members: [{ name: "You (organiser)", items: cart.length }], createdAt: Date.now() };
+    try { sessionStorage.setItem("asf_chama", JSON.stringify(s)); } catch {}
+    setSession(s);
+    return s;
+  }, []);
+
+  const clearSession = React.useCallback(() => {
+    try { sessionStorage.removeItem("asf_chama"); } catch {}
+    setSession(null);
+  }, []);
+
+  return { session, createSession, clearSession };
+}
+
+function ChamaSheet({ cart, cur, country, onClose, onCheckout, showToast }) {
+  const { session, createSession } = useChamaSession();
+  const [copied, setCopied] = React.useState(false);
+
+  const activeSession = React.useRef(session || createSession(cart)).current;
+  const shareUrl = `${window.location.origin}/?chama=${activeSession.id}`;
+
+  const copyLink = React.useCallback(async () => {
+    try { await navigator.clipboard.writeText(shareUrl); } catch {}
+    setCopied(true);
+    showToast("Group order link copied! 🤝");
+    setTimeout(() => setCopied(false), 2000);
+  }, [shareUrl, showToast]);
+
+  const shareWA = React.useCallback(() => {
+    const msg = encodeURIComponent(
+      `Jiunge nami kwenye order ya pamoja (Chama) ya Asiel Farm Shop! Bonyeza link hii uongeze vitu vyako: ${shareUrl}`
+    );
+    window.open(`https://wa.me/?text=${msg}`, "_blank", "noopener");
+  }, [shareUrl]);
+
+  const totalTZS = cart.reduce((s, p) => s + p.tzsPrice, 0);
+  const DEMO_MEMBERS = [
+    { name: "You (organiser)", items: cart.length },
+    { name: "Amina Saleh", items: 3 },
+    { name: "Grace Wanjiku", items: 2 },
+  ];
+
+  return (
+    <div className="chama-overlay" role="dialog" aria-modal="true" aria-label="Group order">
+      <div className="chama-sheet">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}}>
+          <div className="chama-title">🤝 Chama Group Order</div>
+          <button onClick={onClose} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#aaa",padding:0}}>✕</button>
+        </div>
+        <div className="chama-sub">
+          Share the link below — when everyone has added their items, one person checks out and pays together. Great for women's savings groups!
+        </div>
+        <div className="chama-link-box">
+          <div className="chama-link-text">{shareUrl}</div>
+          <button className="chama-copy-btn" onClick={copyLink}>{copied ? "Copied!" : "Copy"}</button>
+        </div>
+        <button className="ref-share-btn" style={{marginBottom:14}} onClick={shareWA}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.570-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+          Invite via WhatsApp
+        </button>
+        <div style={{fontWeight:700,fontSize:12,color:"#888",marginBottom:8}}>👥 Members ({DEMO_MEMBERS.length})</div>
+        <div className="chama-member-list">
+          {DEMO_MEMBERS.map((m, i) => (
+            <div key={i} className="chama-member">
+              <span className="chama-member-av">{["🧑‍🌾","👩","👩‍💼"][i] || "👤"}</span>
+              <span className="chama-member-name">{m.name}</span>
+              <span className="chama-member-items">{m.items} item{m.items !== 1 ? "s" : ""}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{fontWeight:700,fontSize:14,marginBottom:10}}>
+          Group total: <strong style={{color:"var(--forest)"}}>{fmt(totalTZS + 43200, cur)}</strong>
+        </div>
+        <button className="chama-checkout-btn" onClick={onCheckout}>🔒 Group Checkout</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Recently viewed tracker ─────────────────────────────────────────────────────────
+const MAX_RECENT = 6;
+function useRecentlyViewed() {
+  const [recent, setRecent] = React.useState(() => {
+    try { return JSON.parse(localStorage.getItem("asf_recent_viewed") || "[]"); }
+    catch { return []; }
+  });
+
+  const trackView = React.useCallback((product) => {
+    setRecent(prev => {
+      const filtered = prev.filter(p => p.id !== product.id);
+      const next = [{ id: product.id, emoji: product.emoji, name: product.name, tzsPrice: product.tzsPrice, unit: product.unit }, ...filtered].slice(0, MAX_RECENT);
+      try { localStorage.setItem("asf_recent_viewed", JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }, []);
+
+  return { recent, trackView };
+}
+
+function RecentlyViewed({ items, cur, onSelect, allProducts }) {
+  if (!items || items.length === 0) return null;
+  return (
+    <div className="recent-section">
+      <div className="recent-title">👀 Recently Viewed</div>
+      <div className="recent-scroll">
+        {items.map(item => {
+          const full = allProducts.find(p => p.id === item.id) || item;
+          return (
+            <div key={item.id} className="recent-chip" onClick={() => onSelect(full)}>
+              <span className="recent-chip-emoji">{item.emoji}</span>
+              <div>
+                <div className="recent-chip-name">{item.name}</div>
+                <div className="recent-chip-price">{fmt(item.tzsPrice, cur)}/{item.unit}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Receipt share via WhatsApp ──────────────────────────────────────────────────────
+function buildReceiptText(orders, cur, country) {
+  const lines = [
+    `🧾 *Asiel Farm Shop Receipt*`,
+    `📅 ${new Date().toLocaleDateString("en-TZ", { dateStyle: "medium" })}`,
+    ``,
+  ];
+  orders.forEach((p, i) => {
+    lines.push(`${i + 1}. ${p.emoji} ${p.name} — ${fmt(p.tzsPrice, cur)}/${p.unit}`);
+  });
+  lines.push(``);
+  lines.push(`Total: *${fmt(orders.reduce((s, p) => s + p.tzsPrice, 0), cur)}*`);
+  lines.push(`🌿 Farm-fresh, delivered from verified farmers`);
+  lines.push(`asiel.farm`);
+  return lines.join("\n");
+}
+
+// ─── Stock alert (notify me when back in stock) ──────────────────────────────────────
+function useStockAlerts() {
+  const [alerts, setAlerts] = React.useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem("asf_stock_alerts") || "[]")); }
+    catch { return new Set(); }
+  });
+
+  const toggle = React.useCallback((productId) => {
+    setAlerts(prev => {
+      const next = new Set(prev);
+      if (next.has(productId)) next.delete(productId); else next.add(productId);
+      try { localStorage.setItem("asf_stock_alerts", JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  }, []);
+
+  return { alerts, toggle };
+}
+
 // ─── usePushSubscription — request permission + register with backend ────────────────
 function usePushSubscription(isAuthenticated) {
   const [state, setState] = React.useState("idle"); // idle | prompted | subscribed | denied | unsupported
@@ -7245,10 +7509,11 @@ function LiveTrackingMap({ order, riderData, onClose }) {
 // Handlers (onSelect, onFavorite, onAddToCart) must be stable refs (useCallback) to
 // prevent defeating the memo — they are defined with useCallback in AppInner.
 const ProductCard = React.memo(function ProductCard({
-  p, isFav, inCart: alreadyInCart, stock, cur, onSelect, onToggleFav, onAddToCart,
+  p, isFav, inCart: alreadyInCart, stock, cur, onSelect, onToggleFav, onAddToCart, isAlerted, onToggleAlert, country,
 }) {
   const waMsg = encodeURIComponent(`Habari! Nataka kununua ${p.name} kutoka ${p.farm}. Je, una stock?`);
   const waHref = `https://wa.me/${p.farmerPhone?.replace(/\D/g,"")}?text=${waMsg}`;
+  const saveTZS = p.marketPrice && p.marketPrice > p.tzsPrice ? p.marketPrice - p.tzsPrice : 0;
 
   return (
     <div className="card" onClick={() => onSelect(p)}>
@@ -7257,6 +7522,9 @@ const ProductCard = React.memo(function ProductCard({
         {p.organic  && <span className="badge-org">Organic</span>}
         {p.verified && <span className="badge-ver">★ Verified</span>}
         {p.wholesale?.length > 0 && <span className="badge-bulk">Bulk ↓</span>}
+        {p.videoUrl  && <span className="card-video-pill">▶ Video</span>}
+        {saveTZS > 0 && <span className="card-save-badge">Save {Math.round(saveTZS/1000)}k</span>}
+        {stock <= 0  && <span className="notify-pill">🔔 Alert me</span>}
         <button
           className={`fav-btn${isFav ? " fav-active" : ""}`}
           aria-label={isFav ? "Remove from saved" : "Save product"}
@@ -7280,7 +7548,14 @@ const ProductCard = React.memo(function ProductCard({
           </button>
           <StockBadge qty={stock}/>
         </div>
-        <div className="card-dist">📍 {p.dist} · ⭐ {p.rating} ({p.reviews})</div>
+        <div className="card-dist">📍 {p.dist} · ⭐ {p.rating} · {p.sales}+ orders</div>
+        {stock > 0 && <div className="card-eta">{calcETA(p.dist)}</div>}
+        {stock <= 0 && (
+          <button className={`notify-btn${isAlerted ? " active" : ""}`}
+                  onClick={e => { e.stopPropagation(); onToggleAlert(p.id); }}>
+            {isAlerted ? "🔔 Alert set" : "🔕 Notify when back"}
+          </button>
+        )}
       </div>
       {p.farmerPhone && (
         <div className="card-wa-row">
@@ -7326,7 +7601,7 @@ const toggleFavorite = useCallback(id => {
     return next;
   });
 }, []);
-const handleSelect = useCallback(p => setSelected(p), []);
+const handleSelect = useCallback(p => { setSelected(p); trackView(p); }, [trackView]);
 
 // ── Farmer onboarding gate ──────────────────────────────────────────────────
 // Tracks whether the logged-in farmer has completed the onboarding wizard.
@@ -7355,6 +7630,15 @@ const [mapOrder, setMapOrder] = useState(null);
 
 // ── Saved address selection in cart ────────────────────────────────────────
 const [selectedAddressId, setSelectedAddressId] = useState(null);
+
+// ── Stock alerts ─────────────────────────────────────────────────────────────
+const { alerts: stockAlerts, toggle: toggleStockAlert } = useStockAlerts();
+
+// ── Recently viewed ──────────────────────────────────────────────────────────
+const { recent: recentlyViewed, trackView } = useRecentlyViewed();
+
+// ── Chama group buy ──────────────────────────────────────────────────────────
+const [chamaOpen, setChamaOpen] = useState(false);
 
 // ── Push notification opt-in ────────────────────────────────────────────────
 const [pushDismissed, setPushDismissed] = useState(() => {
@@ -7925,6 +8209,7 @@ return (
           ))}
         </div>
 
+        <RecentlyViewed items={recentlyViewed} cur={cur} onSelect={handleSelect} allProducts={allProducts}/>
         <SeasonalCalendar country={country}/>
 
         <div className="sec-label">🌿 {(tabLoading||productsLoading) ? t("market.loading") : `${visible.length} ${t("market.listings")}`} · {curMeta.flag} {curMeta.code}</div>
@@ -7946,9 +8231,12 @@ return (
                 inCart={inCart(p.id)}
                 stock={stockMap[p.id] ?? p.stockQty ?? 999}
                 cur={cur}
+                country={country}
                 onSelect={handleSelect}
                 onToggleFav={toggleFavorite}
                 onAddToCart={addToCart}
+                isAlerted={stockAlerts.has(p.id)}
+                onToggleAlert={toggleStockAlert}
               />
             ))}
           </div>
@@ -8341,18 +8629,29 @@ return (
            onClick={() => setSelected(null)}>
         <div className="modal" ref={modalRef} onClick={e => e.stopPropagation()}>
           <div className="modal-handle"/>
-          <div className="modal-img">
-            <span style={{fontSize:84}}>{selected.emoji}</span>
-            <div className="modal-badges">
-              {selected.organic  && <span className="badge-org">Organic</span>}
-              {selected.verified && <span className="badge-ver">★ Verified</span>}
+          {selected.videoUrl ? (
+            <div className="modal-video-wrap">
+              <video className="modal-video" src={selected.videoUrl}
+                     autoPlay muted loop playsInline preload="metadata"
+                     aria-label={`Harvest preview for ${selected.name}`}/>
+              <div className="modal-video-badge">▶ Farmer Preview</div>
+              <button className="modal-close" aria-label="Close product details" onClick={() => setSelected(null)}>✕</button>
             </div>
-            <button className="modal-close" aria-label="Close product details" onClick={() => setSelected(null)}>✕</button>
-          </div>
+          ) : (
+            <div className="modal-img">
+              <span style={{fontSize:84}}>{selected.emoji}</span>
+              <div className="modal-badges">
+                {selected.organic  && <span className="badge-org">Organic</span>}
+                {selected.verified && <span className="badge-ver">★ Verified</span>}
+              </div>
+              <button className="modal-close" aria-label="Close product details" onClick={() => setSelected(null)}>✕</button>
+            </div>
+          )}
           <div className="modal-body">
             <div className="modal-title">{selected.name}</div>
             <div className="modal-main-price">{fmt(selected.tzsPrice,cur)}</div>
-            <div className="modal-unit">per {selected.unit} · harvested {selected.harvest}</div>
+            <div className="modal-unit">per {selected.unit} · harvested {selected.harvest} · {calcETA(selected.dist)}</div>
+            <PriceCompare product={selected} cur={cur} country={country}/>
             <div className="conv-grid">
               {CURRENCIES.map(c => (
                 <div key={c.code} className={`conv-pill${cur===c.code?" active-cur":""}${c.code==="TZS"?" base-cur":""}`} onClick={() => setCur(c.code)}>
@@ -8493,15 +8792,33 @@ return (
           <div style={{padding:"0 20px 6px"}}>
             <StockBadge qty={stockMap[selected.id] ?? selected.stockQty ?? 999}/>
           </div>
-          <button className="modal-add"
-            disabled={(stockMap[selected.id] ?? selected.stockQty ?? 999) <= 0 && !inCart(selected.id)}
-            onClick={() => addToCart(selected)}>
-            {inCart(selected.id)
-              ? "✓ Already in Cart"
-              : (stockMap[selected.id] ?? selected.stockQty ?? 999) <= 0
-                ? "❌ Sold Out"
+          {(stockMap[selected.id] ?? selected.stockQty ?? 999) <= 0 && !inCart(selected.id) ? (
+            <button
+              className={`notify-btn${stockAlerts.has(selected.id) ? " active" : ""}`}
+              style={{margin:"12px 20px 0",width:"calc(100% - 40px)"}}
+              onClick={() => { toggleStockAlert(selected.id); showToast(stockAlerts.has(selected.id) ? "Alert removed" : "🔔 We'll notify you when it's back!"); }}>
+              {stockAlerts.has(selected.id) ? "🔔 Alert set — we'll notify you!" : "🔕 Notify me when back in stock"}
+            </button>
+          ) : (
+            <button className="modal-add"
+              disabled={(stockMap[selected.id] ?? selected.stockQty ?? 999) <= 0 && !inCart(selected.id)}
+              onClick={() => addToCart(selected)}>
+              {inCart(selected.id)
+                ? "✓ Already in Cart"
                 : `🛒 Add to Cart — ${fmt(selected.tzsPrice,cur)} /${selected.unit}`}
-          </button>
+            </button>
+          )}
+          {/* Receipt share */}
+          {inCart(selected.id) && (
+            <button className="receipt-share-btn" style={{margin:"8px 20px 0",width:"calc(100% - 40px)"}}
+              onClick={() => {
+                const msg = buildReceiptText(cart, cur, country);
+                window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
+              }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.570-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+              Share Receipt via WhatsApp
+            </button>
+          )}
         </div>
       </div>
     )}
@@ -8620,6 +8937,9 @@ return (
                     analytics.capture("checkout.started", { totalTZS: finalTZS, items: cart.length, country });
                     setPayOpen(true);
                   }}>🔒 Checkout · {fmt(finalTZS,cur)}</button>
+                  <button className="chama-btn" onClick={() => { setCartOpen(false); setChamaOpen(true); }}>
+                    🤝 Start Chama Group Order
+                  </button>
                   <div style={{display:"flex",gap:8,marginTop:8}}>
                     <button style={{flex:1,background:"#000",color:"white",border:"none",borderRadius:10,padding:"10px 6px",fontSize:12,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:4}} onClick={() => setPayOpen(true)}>🍎 Pay · {fmt(finalTZS,cur)}</button>
                     <button style={{flex:1,background:"white",color:"#3c4043",border:"1.5px solid #dadce0",borderRadius:10,padding:"10px 6px",fontSize:11,fontWeight:700,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:2}} onClick={() => setPayOpen(true)}>
@@ -8673,6 +8993,16 @@ return (
           setReviews(prev => [review, ...prev]);
           showToast(t("toast.review_thanks"));
         }}
+      />
+    )}
+
+    {/* CHAMA GROUP ORDER SHEET */}
+    {chamaOpen && (
+      <ChamaSheet
+        cart={cart} cur={cur} country={country}
+        onClose={() => setChamaOpen(false)}
+        onCheckout={() => { setChamaOpen(false); setPayOpen(true); }}
+        showToast={showToast}
       />
     )}
 
