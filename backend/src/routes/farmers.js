@@ -4,7 +4,6 @@ const express         = require('express');
 const Joi             = require('joi');
 const db              = require('../db');
 const logger          = require('../logger');
-const redisClient     = require('../redis');
 const { requireAuth, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
@@ -27,7 +26,7 @@ const profileSchema = Joi.object({
   payoutPhone:    Joi.string().pattern(/^\+?[0-9]{9,15}$/).allow('').default(''),
 });
 
-// POST /api/farmers/profile — submit onboarding profile
+// POST /api/farmers/profile — submit or update onboarding profile
 router.post('/profile', requireAuth, requireRole('farmer'), async (req, res, next) => {
   try {
     const { error, value } = profileSchema.validate(req.body, { abortEarly: false });
@@ -35,25 +34,63 @@ router.post('/profile', requireAuth, requireRole('farmer'), async (req, res, nex
       return res.status(400).json({ error: error.details.map(d => d.message).join('; ') });
     }
 
+    // nationalId is collected for identity verification but not stored
+    const { nationalId: _nid, ...profile } = value;
+
     await db.query(
       `UPDATE users SET name = $1, updated_at = NOW() WHERE id = $2`,
-      [value.fullName, req.session.userId]
+      [profile.fullName, req.session.userId]
     );
 
-    // Store full profile in Redis (TTL 30 days); nationalId excluded from stored data
-    const { nationalId: _nid, ...profileData } = value;
-    await redisClient.set(
-      `farmer:profile:${req.session.userId}`,
-      JSON.stringify({ ...profileData, userId: req.session.userId, status: 'pending', createdAt: new Date().toISOString() }),
-      'EX',
-      30 * 24 * 3600
+    await db.query(
+      `INSERT INTO farmer_profiles
+         (user_id, full_name, farm_name, region, farm_size, lat, lng, crops,
+          farming_method, year_round, can_hub_deliver, has_cold_storage,
+          max_weekly_kg, payout_method, payout_phone, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'pending')
+       ON CONFLICT (user_id) DO UPDATE SET
+         full_name        = EXCLUDED.full_name,
+         farm_name        = EXCLUDED.farm_name,
+         region           = EXCLUDED.region,
+         farm_size        = EXCLUDED.farm_size,
+         lat              = EXCLUDED.lat,
+         lng              = EXCLUDED.lng,
+         crops            = EXCLUDED.crops,
+         farming_method   = EXCLUDED.farming_method,
+         year_round       = EXCLUDED.year_round,
+         can_hub_deliver  = EXCLUDED.can_hub_deliver,
+         has_cold_storage = EXCLUDED.has_cold_storage,
+         max_weekly_kg    = EXCLUDED.max_weekly_kg,
+         payout_method    = EXCLUDED.payout_method,
+         payout_phone     = EXCLUDED.payout_phone,
+         status           = 'pending',
+         reviewed_by      = NULL,
+         reviewed_at      = NULL,
+         updated_at       = NOW()`,
+      [
+        req.session.userId,
+        profile.fullName,
+        profile.farmName,
+        profile.region,
+        profile.farmSize,
+        profile.lat,
+        profile.lng,
+        profile.crops,
+        profile.farmingMethod,
+        profile.yearRound,
+        profile.canHubDeliver,
+        profile.hasColdStorage,
+        profile.maxWeeklyKg,
+        profile.payoutMethod,
+        profile.payoutPhone,
+      ]
     );
 
     logger.info('Farmer onboarding profile submitted', {
       userId: req.session.userId,
-      farmName: value.farmName,
-      region: value.region,
-      crops: value.crops.length,
+      farmName: profile.farmName,
+      region: profile.region,
+      crops: profile.crops.length,
     });
 
     res.status(201).json({ status: 'pending', message: 'Profile submitted for review' });
@@ -62,15 +99,14 @@ router.post('/profile', requireAuth, requireRole('farmer'), async (req, res, nex
   }
 });
 
-// GET /api/farmers/profile/status — check review status
+// GET /api/farmers/profile/status — check own review status
 router.get('/profile/status', requireAuth, requireRole('farmer'), async (req, res, next) => {
   try {
-    const raw = await redisClient.get(`farmer:profile:${req.session.userId}`);
-    if (raw) {
-      const profile = JSON.parse(raw);
-      return res.json({ status: profile.status || 'pending' });
-    }
-    res.json({ status: 'not_submitted' });
+    const { rows } = await db.query(
+      'SELECT status FROM farmer_profiles WHERE user_id = $1',
+      [req.session.userId]
+    );
+    res.json({ status: rows[0]?.status || 'not_submitted' });
   } catch (err) {
     next(err);
   }
@@ -80,22 +116,21 @@ router.get('/profile/status', requireAuth, requireRole('farmer'), async (req, re
 router.patch('/:userId/status', requireAuth, requireRole('admin'), async (req, res, next) => {
   try {
     const { status } = req.body;
-    if (!['approved','rejected'].includes(status)) {
+    if (!['approved', 'rejected'].includes(status)) {
       return res.status(400).json({ error: 'status must be "approved" or "rejected"' });
     }
 
-    const key = `farmer:profile:${req.params.userId}`;
-    const raw = await redisClient.get(key);
-    if (!raw) {
+    const { rowCount } = await db.query(
+      `UPDATE farmer_profiles
+          SET status      = $1,
+              reviewed_by = $2,
+              reviewed_at = NOW()
+        WHERE user_id = $3`,
+      [status, req.session.userId, req.params.userId]
+    );
+    if (!rowCount) {
       return res.status(404).json({ error: 'Farmer profile not found' });
     }
-
-    const profile = JSON.parse(raw);
-    profile.status = status;
-    profile.reviewedAt = new Date().toISOString();
-    profile.reviewedBy = req.session.userId;
-
-    await redisClient.set(key, JSON.stringify(profile), 'EX', 30 * 24 * 3600);
 
     if (status === 'approved') {
       await db.query(
@@ -119,30 +154,13 @@ router.patch('/:userId/status', requireAuth, requireRole('admin'), async (req, r
 // GET /api/farmers/pending — list pending farmer applications (admin only)
 router.get('/pending', requireAuth, requireRole('admin'), async (req, res, next) => {
   try {
-    const pending = [];
-    let cursor = '0';
-
-    // Use SCAN to avoid blocking the Redis event loop (KEYS is O(N) blocking)
-    do {
-      const [nextCursor, keys] = await redisClient.scan(cursor, 'MATCH', 'farmer:profile:*', 'COUNT', 100);
-      cursor = nextCursor;
-      for (const key of keys) {
-        const raw = await redisClient.get(key);
-        if (!raw) continue;
-        const profile = JSON.parse(raw);
-        if (profile.status === 'pending') {
-          pending.push({
-            userId:    profile.userId,
-            farmName:  profile.farmName,
-            region:    profile.region,
-            crops:     profile.crops,
-            createdAt: profile.createdAt,
-          });
-        }
-      }
-    } while (cursor !== '0');
-
-    res.json({ pending });
+    const { rows } = await db.query(
+      `SELECT user_id AS "userId", farm_name AS "farmName", region, crops, created_at AS "createdAt"
+         FROM farmer_profiles
+        WHERE status = 'pending'
+        ORDER BY created_at ASC`
+    );
+    res.json({ pending: rows });
   } catch (err) {
     next(err);
   }
