@@ -1256,6 +1256,72 @@ return () => {
 };
 
 },
+
+// ── Push notifications ────────────────────────────────────────────────────────────────
+async getVapidKey() {
+if (!API_BASE) return null;
+try { return (await apiFetch("/api/push/vapid-public-key")).key; } catch { return null; }
+},
+async subscribePush(subscription) {
+if (!API_BASE) return;
+return apiFetch("/api/push/subscribe", { method: "POST", body: JSON.stringify(subscription) });
+},
+async unsubscribePush(endpoint) {
+if (!API_BASE) return;
+return apiFetch("/api/push/subscribe", { method: "DELETE", body: JSON.stringify({ endpoint }) });
+},
+
+// ── Referrals ─────────────────────────────────────────────────────────────────────────
+async getMyReferralCode() {
+if (!API_BASE) return { code: "DEMO01", paid: 2, pending: 1, earned_tzs: 10000 };
+return apiFetch("/api/referrals/my-code");
+},
+async useReferralCode(code) {
+if (!API_BASE) return { ok: true };
+return apiFetch("/api/referrals/use", { method: "POST", body: JSON.stringify({ code }) });
+},
+
+// ── Saved addresses ───────────────────────────────────────────────────────────────────
+async getSavedAddresses() {
+if (!API_BASE) {
+  try { return JSON.parse(localStorage.getItem("asf_saved_addresses") || "[]"); } catch { return []; }
+}
+return apiFetch("/api/addresses");
+},
+async saveAddress(addr) {
+if (!API_BASE) {
+  try {
+    const list = JSON.parse(localStorage.getItem("asf_saved_addresses") || "[]");
+    const entry = { ...addr, id: secureId(), createdAt: new Date().toISOString() };
+    list.push(entry);
+    localStorage.setItem("asf_saved_addresses", JSON.stringify(list.slice(-3)));
+    return entry;
+  } catch { return addr; }
+}
+return apiFetch("/api/addresses", { method: "POST", body: JSON.stringify(addr) });
+},
+async deleteAddress(id) {
+if (!API_BASE) {
+  try {
+    const list = JSON.parse(localStorage.getItem("asf_saved_addresses") || "[]");
+    localStorage.setItem("asf_saved_addresses", JSON.stringify(list.filter(a => a.id !== id)));
+  } catch {}
+  return;
+}
+return apiFetch(`/api/addresses/${id}`, { method: "DELETE" });
+},
+async setDefaultAddress(id) {
+if (!API_BASE) {
+  try {
+    const list = JSON.parse(localStorage.getItem("asf_saved_addresses") || "[]");
+    localStorage.setItem("asf_saved_addresses", JSON.stringify(
+      list.map(a => ({ ...a, isDefault: a.id === id }))
+    ));
+  } catch {}
+  return;
+}
+return apiFetch(`/api/addresses/${id}/default`, { method: "PATCH", body: JSON.stringify({}) });
+},
 };
 
 // ─── useApi hook — consistent loading / error / data state for any apiService call ─
@@ -3224,6 +3290,87 @@ cursor:pointer; transition:all .18s; background:white;
 .dark .ob-review-list,.dark .ob-status-card,.dark .ob-step-checklist,.dark .ob-location-set{background:var(--card);border-color:#444}
 .dark .ob-nav{background:var(--card);border-color:#444}
 .dark .ob-crop-chip{background:var(--card);border-color:#444}
+
+/* ── Push notifications opt-in ────────────────────────────────────────────── */
+.push-banner{display:flex;align-items:center;gap:12px;background:var(--forest);color:#fff;padding:12px 16px;border-radius:0}
+.push-banner-text{flex:1;font-size:13px;line-height:1.45}
+.push-banner-text strong{display:block;margin-bottom:2px}
+.push-allow-btn{flex-shrink:0;background:#fff;color:var(--forest);border:none;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;font-family:var(--font-body);cursor:pointer}
+.push-dismiss-btn{background:none;border:none;color:rgba(255,255,255,.6);font-size:20px;cursor:pointer;padding:0 4px;line-height:1}
+
+/* ── Seasonal calendar ─────────────────────────────────────────────────────── */
+.season-section{padding:0 16px 4px}
+.season-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#bbb;margin-bottom:10px}
+.season-scroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.season-scroll::-webkit-scrollbar{display:none}
+.season-card{flex:0 0 140px;background:var(--card);border:1.5px solid var(--sand);border-radius:14px;padding:12px;cursor:default}
+.season-card.peak{border-color:var(--leaf);background:linear-gradient(135deg,#f0faf4,#e6f7ed)}
+.season-emoji{font-size:28px;margin-bottom:6px}
+.season-crop{font-weight:700;font-size:13px;color:var(--text);margin-bottom:2px}
+.season-loc{font-size:11px;color:#888;margin-bottom:6px}
+.season-badge{display:inline-block;font-size:10px;font-weight:700;border-radius:5px;padding:2px 7px}
+.season-badge.in-season{background:#d4edda;color:#1a5c36}
+.season-badge.peak-season{background:var(--leaf);color:#fff}
+.season-badge.upcoming{background:#fff3cd;color:#856404}
+.dark .season-card{background:var(--card);border-color:#444}
+.dark .season-card.peak{background:linear-gradient(135deg,#1a3a2a,#142d20)}
+
+/* ── Farmer earnings dashboard ────────────────────────────────────────────── */
+.earn-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.earn-stat{background:var(--mist);border-radius:12px;padding:12px 14px}
+.earn-stat-val{font-family:var(--font-head);font-size:20px;color:var(--forest)}
+.earn-stat-lbl{font-size:11px;color:#888;margin-top:2px}
+.earn-chart-wrap{margin-bottom:16px}
+.earn-chart-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#bbb;margin-bottom:8px}
+.earn-bars{display:flex;align-items:flex-end;gap:6px;height:80px}
+.earn-bar-col{display:flex;flex-direction:column;align-items:center;flex:1;gap:3px}
+.earn-bar{width:100%;border-radius:4px 4px 0 0;min-height:4px;transition:height .4s ease}
+.earn-bar.this-week{background:var(--forest)}
+.earn-bar.last-week{background:var(--sand);opacity:.7}
+.earn-bar-lbl{font-size:9px;color:#aaa;white-space:nowrap}
+.earn-legend{display:flex;gap:12px;margin-top:6px}
+.earn-leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:#888}
+.earn-leg-dot{width:10px;height:10px;border-radius:2px}
+.earn-top{margin-top:4px}
+.earn-top-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--sand)}
+.earn-top-row:last-child{border-bottom:none}
+.earn-top-emoji{font-size:20px}
+.earn-top-name{flex:1;font-size:13px;font-weight:600}
+.earn-top-amt{font-size:13px;color:var(--forest);font-weight:700}
+
+/* ── Referral system ──────────────────────────────────────────────────────── */
+.ref-card{background:linear-gradient(135deg,var(--forest),var(--leaf));color:#fff;border-radius:16px;padding:20px;margin:0 16px 16px}
+.ref-title{font-family:var(--font-head);font-size:18px;margin-bottom:4px}
+.ref-sub{font-size:13px;opacity:.85;line-height:1.45;margin-bottom:14px}
+.ref-code-row{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.15);border-radius:10px;padding:10px 14px;margin-bottom:14px}
+.ref-code{font-family:var(--font-head);font-size:22px;letter-spacing:3px;flex:1}
+.ref-copy-btn{background:#fff;color:var(--forest);border:none;border-radius:8px;padding:7px 14px;font-size:13px;font-weight:700;font-family:var(--font-body);cursor:pointer;white-space:nowrap}
+.ref-share-btn{display:flex;align-items:center;gap:6px;background:#25D366;color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:14px;font-weight:700;font-family:var(--font-body);cursor:pointer;width:100%;justify-content:center}
+.ref-stats{display:flex;gap:16px;margin-top:14px}
+.ref-stat{text-align:center}
+.ref-stat-val{font-family:var(--font-head);font-size:18px}
+.ref-stat-lbl{font-size:10px;opacity:.75;margin-top:1px}
+.ref-input-row{display:flex;gap:8px;margin-bottom:8px}
+.ref-input{flex:1;padding:11px 14px;border-radius:10px;border:1.5px solid var(--sand);font-family:var(--font-body);font-size:14px;background:var(--card);color:var(--text)}
+.ref-apply-btn{background:var(--forest);color:#fff;border:none;border-radius:10px;padding:11px 18px;font-size:14px;font-weight:700;font-family:var(--font-body);cursor:pointer}
+
+/* ── Saved addresses ──────────────────────────────────────────────────────── */
+.addr-list{display:flex;flex-direction:column;gap:10px;margin-bottom:12px}
+.addr-card{display:flex;align-items:center;gap:12px;background:var(--card);border:1.5px solid var(--sand);border-radius:12px;padding:12px 14px;cursor:pointer}
+.addr-card.selected{border-color:var(--forest);background:#f0faf4}
+.addr-card.default-addr{border-color:var(--leaf)}
+.addr-icon{font-size:22px;flex-shrink:0}
+.addr-info{flex:1;min-width:0}
+.addr-nick{font-weight:700;font-size:14px;color:var(--text)}
+.addr-text{font-size:12px;color:#888;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.addr-default-badge{font-size:10px;font-weight:700;color:var(--leaf)}
+.addr-del-btn{background:none;border:none;color:#ccc;font-size:18px;cursor:pointer;padding:0 4px;flex-shrink:0}
+.addr-del-btn:hover{color:var(--tomato)}
+.addr-add-btn{width:100%;background:none;border:2px dashed var(--sand);color:#888;border-radius:12px;padding:12px;font-size:14px;font-family:var(--font-body);cursor:pointer}
+.addr-add-btn:hover{border-color:var(--forest);color:var(--forest)}
+.addr-form{display:flex;flex-direction:column;gap:10px;background:var(--mist);border-radius:14px;padding:16px;margin-top:4px}
+.dark .addr-card{background:var(--card);border-color:#444}
+.dark .addr-form{background:var(--card)}
 
 /* ── Farmer Tour ──────────────────────────────────────────────────────────── */
 .ftour-overlay{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;justify-content:center}
@@ -6619,6 +6766,361 @@ function VoiceMic({ lang, onResult, title }) {
   );
 }
 
+// ─── usePushSubscription — request permission + register with backend ────────────────
+function usePushSubscription(isAuthenticated) {
+  const [state, setState] = React.useState("idle"); // idle | prompted | subscribed | denied | unsupported
+
+  // Convert VAPID public key string to Uint8Array
+  function urlBase64ToUint8Array(base64String) {
+    const padding = "=".repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const raw = atob(base64);
+    return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+  }
+
+  const subscribe = React.useCallback(async () => {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      setState("unsupported"); return;
+    }
+    try {
+      const key = await apiService.getVapidKey();
+      if (!key) { setState("unsupported"); return; }
+
+      const perm = await Notification.requestPermission();
+      if (perm !== "granted") { setState("denied"); return; }
+
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(key),
+      });
+      await apiService.subscribePush(sub.toJSON());
+      setState("subscribed");
+    } catch (err) {
+      log.warn("[Push] subscribe failed:", err.message);
+      setState("idle");
+    }
+  }, []);
+
+  // Check existing subscription on mount
+  React.useEffect(() => {
+    if (!isAuthenticated || !("PushManager" in window)) return;
+    navigator.serviceWorker.ready.then(reg =>
+      reg.pushManager.getSubscription().then(sub => {
+        if (sub) setState("subscribed");
+        else setState("prompted");
+      })
+    ).catch(() => setState("unsupported"));
+  }, [isAuthenticated]);
+
+  return { state, subscribe };
+}
+
+// ─── SeasonalCalendar — 3-month ahead crop availability view ─────────────────────────
+// Data: month indices 1-12 (Jan=1). peakMonths = best picking; inSeasonMonths = available.
+const SEASON_DATA = [
+  { emoji:"🥑", crop:"Hass Avocados",    loc:"Kilifi, KE",      peakMonths:[3,4,5],    inSeasonMonths:[2,3,4,5,6] },
+  { emoji:"🍅", crop:"Roma Tomatoes",    loc:"Morogoro, TZ",    peakMonths:[6,7,8],    inSeasonMonths:[5,6,7,8,9] },
+  { emoji:"🥬", crop:"Sukuma Wiki",       loc:"Kiambu, KE",      peakMonths:[1,2,11,12],inSeasonMonths:[1,2,3,10,11,12] },
+  { emoji:"🌽", crop:"Sweet Maize",      loc:"Kisumu, KE",      peakMonths:[8,9],      inSeasonMonths:[7,8,9,10] },
+  { emoji:"🧅", crop:"Red Onions",       loc:"Arusha, TZ",      peakMonths:[4,5,6],    inSeasonMonths:[3,4,5,6,7] },
+  { emoji:"🥦", crop:"Broccoli",         loc:"Moshi, TZ",       peakMonths:[6,7,8,9],  inSeasonMonths:[5,6,7,8,9,10] },
+  { emoji:"🍋", crop:"Limons (Limes)",   loc:"Zanzibar, TZ",    peakMonths:[10,11,12], inSeasonMonths:[9,10,11,12,1] },
+  { emoji:"🥭", crop:"Mangoes",          loc:"Coast Region, KE", peakMonths:[11,12,1], inSeasonMonths:[10,11,12,1,2] },
+  { emoji:"🍌", crop:"Plantains",        loc:"Tanga, TZ",       peakMonths:[1,2,3,4,5,6,7,8,9,10,11,12], inSeasonMonths:[1,2,3,4,5,6,7,8,9,10,11,12] },
+];
+
+const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+function SeasonalCalendar({ country }) {
+  const now = new Date();
+  const months = [0, 1, 2].map(offset => {
+    const d = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+    return { idx: d.getMonth() + 1, label: MONTH_NAMES[d.getMonth()] };
+  });
+
+  // Filter to show crops relevant to this country + at least one of next 3 months
+  const relevant = SEASON_DATA.filter(c =>
+    months.some(m => c.peakMonths.includes(m.idx) || c.inSeasonMonths.includes(m.idx))
+  );
+
+  const getStatus = (crop, monthIdx) => {
+    if (crop.peakMonths.includes(monthIdx)) return "peak-season";
+    if (crop.inSeasonMonths.includes(monthIdx)) return "in-season";
+    return null;
+  };
+
+  // Show cards for current month prioritised by status
+  const cards = relevant.map(c => {
+    const thisMonth = months[0].idx;
+    const status = getStatus(c, thisMonth) ||
+      (getStatus(c, months[1].idx) ? "upcoming" : null);
+    if (!status) return null;
+    const weeksAway = status === "upcoming"
+      ? Math.round(((new Date(now.getFullYear(), now.getMonth() + 1, 1)) - now) / (7 * 86400000))
+      : 0;
+    return { ...c, status, weeksAway };
+  }).filter(Boolean);
+
+  if (!cards.length) return null;
+
+  return (
+    <div className="season-section">
+      <div className="season-title">🌿 In Season · Coming Soon</div>
+      <div className="season-scroll">
+        {cards.map((c, i) => (
+          <div key={i} className={`season-card${c.status === "peak-season" ? " peak" : ""}`}>
+            <div className="season-emoji">{c.emoji}</div>
+            <div className="season-crop">{c.crop}</div>
+            <div className="season-loc">{c.loc}</div>
+            <span className={`season-badge ${c.status}`}>
+              {c.status === "peak-season" ? "🌟 Peak now"
+               : c.status === "in-season"  ? "✅ In season"
+               : `⏳ In ~${c.weeksAway}w`}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── EarningsDashboard — visual weekly earnings chart for farmers ─────────────────────
+// Uses static demo data in demo mode; production would fetch from /api/farmers/earnings.
+const EARNINGS_DEMO = {
+  thisWeek: [42000, 65000, 38000, 91000, 55000, 72000, 48000],  // Mon–Sun TZS
+  lastWeek: [35000, 58000, 44000, 78000, 49000, 61000, 40000],
+  topCrops: [
+    { emoji:"🍅", name:"Roma Tomatoes", amt:210000 },
+    { emoji:"🥑", name:"Hass Avocados", amt:168000 },
+    { emoji:"🥬", name:"Sukuma Wiki",    amt:94000  },
+  ],
+};
+const DAY_LABELS = ["M","T","W","T","F","S","S"];
+
+function EarningsDashboard({ cur }) {
+  const d = EARNINGS_DEMO;
+  const maxVal = Math.max(...d.thisWeek, ...d.lastWeek);
+  const totalThis = d.thisWeek.reduce((a, b) => a + b, 0);
+  const totalLast = d.lastWeek.reduce((a, b) => a + b, 0);
+  const growthPct = totalLast > 0
+    ? Math.round(((totalThis - totalLast) / totalLast) * 100)
+    : 0;
+
+  return (
+    <div className="fcard">
+      <h3>📊 Earnings Dashboard</h3>
+      <div className="earn-grid">
+        <div className="earn-stat">
+          <div className="earn-stat-val">{fmt(totalThis, cur)}</div>
+          <div className="earn-stat-lbl">This week</div>
+        </div>
+        <div className="earn-stat">
+          <div className="earn-stat-val" style={{ color: growthPct >= 0 ? "var(--leaf)" : "var(--tomato)" }}>
+            {growthPct >= 0 ? "+" : ""}{growthPct}%
+          </div>
+          <div className="earn-stat-lbl">vs last week</div>
+        </div>
+      </div>
+
+      <div className="earn-chart-wrap">
+        <div className="earn-chart-title">Daily earnings (TZS)</div>
+        <div className="earn-bars">
+          {d.thisWeek.map((val, i) => (
+            <div key={i} className="earn-bar-col">
+              <div className="earn-bar last-week" style={{ height: `${(d.lastWeek[i] / maxVal) * 60}px` }}/>
+              <div className="earn-bar this-week" style={{ height: `${(val / maxVal) * 60}px` }}/>
+              <div className="earn-bar-lbl">{DAY_LABELS[i]}</div>
+            </div>
+          ))}
+        </div>
+        <div className="earn-legend">
+          <div className="earn-leg-item"><div className="earn-leg-dot" style={{background:"var(--forest)"}}/>This week</div>
+          <div className="earn-leg-item"><div className="earn-leg-dot" style={{background:"var(--sand)"}}/>Last week</div>
+        </div>
+      </div>
+
+      <div className="earn-chart-title">🏆 Top selling produce</div>
+      <div className="earn-top">
+        {d.topCrops.map((c, i) => (
+          <div key={i} className="earn-top-row">
+            <span className="earn-top-emoji">{c.emoji}</span>
+            <span className="earn-top-name">{c.name}</span>
+            <span className="earn-top-amt">{fmt(c.amt, cur)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── ReferralCard — share code + apply code UI ───────────────────────────────────────
+function ReferralCard({ showToast }) {
+  const { data: refData } = useApi(() => apiService.getMyReferralCode(), []);
+  const [applyCode, setApplyCode] = React.useState("");
+  const [applyMsg, setApplyMsg]   = React.useState("");
+  const [copying, setCopying]     = React.useState(false);
+
+  const copyCode = React.useCallback(async () => {
+    if (!refData?.code) return;
+    try {
+      await navigator.clipboard.writeText(refData.code);
+      setCopying(true);
+      showToast("Referral code copied! 🎉");
+      setTimeout(() => setCopying(false), 2000);
+    } catch { showToast("Code: " + refData.code); }
+  }, [refData, showToast]);
+
+  const shareWA = React.useCallback(() => {
+    if (!refData?.code) return;
+    const msg = encodeURIComponent(
+      `Jiunge na Asiel Farm Shop — soko bora la mazao mapya kutoka kwa wakulima! Tumia code yangu ${refData.code} kupata punguzo la kwanza. https://asiel.farm`
+    );
+    window.open(`https://wa.me/?text=${msg}`, "_blank", "noopener");
+  }, [refData]);
+
+  const handleApply = React.useCallback(async () => {
+    if (!applyCode.trim()) return;
+    try {
+      await apiService.useReferralCode(applyCode.trim());
+      setApplyMsg("✅ Code applied — reward will be paid on your first purchase!");
+      setApplyCode("");
+    } catch (err) {
+      setApplyMsg(`⚠ ${err.message || "Invalid code"}`);
+    }
+  }, [applyCode]);
+
+  return (
+    <div style={{padding:"0 0 4px"}}>
+      <div className="ref-card">
+        <div className="ref-title">🎁 Refer a Farmer</div>
+        <div className="ref-sub">
+          Share your code. Earn <strong>TZS 5,000</strong> when they make their first sale.
+        </div>
+        {refData && (
+          <>
+            <div className="ref-code-row">
+              <div className="ref-code">{refData.code}</div>
+              <button className="ref-copy-btn" onClick={copyCode}>
+                {copying ? "Copied!" : "Copy"}
+              </button>
+            </div>
+            <button className="ref-share-btn" onClick={shareWA}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.570-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+              Share on WhatsApp
+            </button>
+            <div className="ref-stats">
+              <div className="ref-stat"><div className="ref-stat-val">{refData.paid}</div><div className="ref-stat-lbl">Paid</div></div>
+              <div className="ref-stat"><div className="ref-stat-val">{refData.pending}</div><div className="ref-stat-lbl">Pending</div></div>
+              <div className="ref-stat"><div className="ref-stat-val">TZS {Number(refData.earned_tzs || 0).toLocaleString()}</div><div className="ref-stat-lbl">Earned</div></div>
+            </div>
+          </>
+        )}
+      </div>
+      <div style={{padding:"0 16px"}}>
+        <div style={{fontSize:12,color:"#aaa",marginBottom:6}}>Have a friend's referral code?</div>
+        <div className="ref-input-row">
+          <input className="ref-input" placeholder="Enter code e.g. DEMO01" maxLength={10}
+                 value={applyCode} onChange={e => setApplyCode(e.target.value.toUpperCase())}/>
+          <button className="ref-apply-btn" onClick={handleApply}>Apply</button>
+        </div>
+        {applyMsg && <div style={{fontSize:12,marginTop:4,color:applyMsg.startsWith("✅") ? "var(--leaf)" : "var(--tomato)"}}>{applyMsg}</div>}
+      </div>
+    </div>
+  );
+}
+
+// ─── AddressBook — save up to 3 delivery addresses with nicknames ─────────────────────
+const ADDR_ICONS = { Home:"🏠", Office:"🏢", "Mum's place":"👩", default:"📍" };
+function addrIcon(nick) {
+  return ADDR_ICONS[nick] || ADDR_ICONS.default;
+}
+
+function AddressBook({ country, onSelect, selectedId }) {
+  const { data: addresses, loading, refetch } = useApi(() => apiService.getSavedAddresses(), []);
+  const [showForm, setShowForm] = React.useState(false);
+  const [form, setForm] = React.useState({ nickname: "", address: "", country, isDefault: false });
+  const [saving, setSaving] = React.useState(false);
+
+  const handleSave = React.useCallback(async () => {
+    if (!form.nickname.trim() || !form.address.trim()) return;
+    setSaving(true);
+    try {
+      await apiService.saveAddress({ ...form, country });
+      setShowForm(false);
+      setForm({ nickname: "", address: "", country, isDefault: false });
+      refetch();
+    } catch { /* ignore */ }
+    setSaving(false);
+  }, [form, country, refetch]);
+
+  const handleDelete = React.useCallback(async (id, e) => {
+    e.stopPropagation();
+    await apiService.deleteAddress(id);
+    refetch();
+  }, [refetch]);
+
+  const handleDefault = React.useCallback(async (id, e) => {
+    e.stopPropagation();
+    await apiService.setDefaultAddress(id);
+    refetch();
+  }, [refetch]);
+
+  if (loading) return null;
+  const list = addresses || [];
+  const canAdd = list.length < 3;
+
+  return (
+    <div>
+      <div style={{fontSize:12,fontWeight:700,color:"#aaa",textTransform:"uppercase",letterSpacing:.8,marginBottom:8}}>
+        📍 Saved Addresses
+      </div>
+      <div className="addr-list">
+        {list.map(a => (
+          <div key={a.id}
+               className={`addr-card${selectedId === a.id ? " selected" : ""}${a.isDefault ? " default-addr" : ""}`}
+               onClick={() => onSelect?.(a)}>
+            <span className="addr-icon">{addrIcon(a.nickname)}</span>
+            <div className="addr-info">
+              <div className="addr-nick">{a.nickname}</div>
+              <div className="addr-text">{a.address}</div>
+              {a.isDefault && <div className="addr-default-badge">★ Default</div>}
+            </div>
+            {!a.isDefault && (
+              <button className="addr-del-btn" title="Set as default" onClick={e => handleDefault(a.id, e)}>☆</button>
+            )}
+            <button className="addr-del-btn" title="Remove" onClick={e => handleDelete(a.id, e)}>×</button>
+          </div>
+        ))}
+      </div>
+      {canAdd && !showForm && (
+        <button className="addr-add-btn" onClick={() => setShowForm(true)}>+ Add address</button>
+      )}
+      {showForm && (
+        <div className="addr-form">
+          <div className="fg">
+            <label>Nickname</label>
+            <input placeholder="e.g. Home, Office, Mum's place" maxLength={40}
+                   value={form.nickname} onChange={e => setForm(f => ({...f, nickname: e.target.value}))}/>
+          </div>
+          <div className="fg">
+            <label>Full address</label>
+            <input placeholder="Street, area, city" maxLength={500}
+                   value={form.address} onChange={e => setForm(f => ({...f, address: e.target.value}))}/>
+          </div>
+          <div style={{display:"flex",gap:8}}>
+            <button className="ob-btn-primary" style={{flex:1,padding:"11px"}}
+                    onClick={handleSave} disabled={saving}>
+              {saving ? "Saving…" : "Save"}
+            </button>
+            <button className="ob-btn-ghost" onClick={() => setShowForm(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── FarmerTour — 3-screen first-time walkthrough for new farmers ─────────────────────
 const TOUR_SLIDES = [
   {
@@ -6850,6 +7352,20 @@ const dismissFarmerTour = useCallback(() => {
 
 // ── Live order tracking map ─────────────────────────────────────────────────
 const [mapOrder, setMapOrder] = useState(null);
+
+// ── Saved address selection in cart ────────────────────────────────────────
+const [selectedAddressId, setSelectedAddressId] = useState(null);
+
+// ── Push notification opt-in ────────────────────────────────────────────────
+const [pushDismissed, setPushDismissed] = useState(() => {
+  try { return localStorage.getItem("asf_push_dismissed") === "1"; } catch { return false; }
+});
+const { state: pushState, subscribe: subscribePush } = usePushSubscription(!!userRole);
+const showPushBanner = userRole && !pushDismissed && pushState === "prompted";
+const dismissPushBanner = useCallback(() => {
+  try { localStorage.setItem("asf_push_dismissed", "1"); } catch { /* quota */ }
+  setPushDismissed(true);
+}, []);
 // ── Sprint 3: Scroll position memory ── each tab remembers where you left off
 const scrollPositions = useRef({});          // { [tabId]: scrollTop }
 const switchTab = useCallback((newTab) => {
@@ -7315,6 +7831,21 @@ return (
       </div>
     )}
 
+    {/* ── Push notification opt-in banner ── */}
+    {showPushBanner && (
+      <div className="push-banner">
+        <span style={{fontSize:24}}>🔔</span>
+        <div className="push-banner-text">
+          <strong>Enable order notifications</strong>
+          Get notified when your rider is on the way and when your order arrives.
+        </div>
+        <button className="push-allow-btn" onClick={() => { subscribePush(); dismissPushBanner(); }}>
+          Allow
+        </button>
+        <button className="push-dismiss-btn" aria-label="Dismiss" onClick={dismissPushBanner}>×</button>
+      </div>
+    )}
+
     {/* ── PWA install prompt ── */}
     {canInstall && (
       <div className="pwa-banner" role="complementary" aria-label="Install app">
@@ -7394,6 +7925,8 @@ return (
           ))}
         </div>
 
+        <SeasonalCalendar country={country}/>
+
         <div className="sec-label">🌿 {(tabLoading||productsLoading) ? t("market.loading") : `${visible.length} ${t("market.listings")}`} · {curMeta.flag} {curMeta.code}</div>
 
         {(tabLoading || productsLoading) ? <ShimmerGrid/> : visible.length === 0 ? (
@@ -7429,6 +7962,9 @@ return (
             onTrack={order => setMapOrder(order)}
           />
         )}
+
+        {/* ── Referral card (authenticated users) ── */}
+        {userRole && <ReferralCard showToast={showToast}/>}
       </main>
     )}
     {tab === "portal" && (
@@ -7458,9 +7994,12 @@ return (
               </div>
             </div>
 
+            {/* ── Earnings dashboard ── */}
+            <EarningsDashboard cur={cur}/>
+
             {/* ── Payout Ledger ── */}
             <div className="fcard">
-              <h3>📊 Payout Ledger</h3>
+              <h3>📋 Payout Ledger</h3>
               <div style={{fontSize:11,color:"#aaa",marginBottom:12}}>
                 Tap any row to see the full commission breakdown.
                 {getCfg(country).vfdRequired && " VAT (18%) applied to platform commission."}
@@ -8057,6 +8596,13 @@ return (
               {couponResult && !couponResult.valid && <div className="coupon-err">❌ {couponResult.error}</div>}
             </div>
 
+            <div style={{marginBottom:12}}>
+              <AddressBook
+                country={country}
+                selectedId={selectedAddressId}
+                onSelect={a => setSelectedAddressId(a.id)}
+              />
+            </div>
             <div className="cart-sub"><span>Subtotal (est.)</span><span>{fmt(cartTZS,cur)}</span></div>
             {couponResult?.valid && (
               <div className="discount-line"><span>🎟️ {couponResult.code}</span><span>−{fmt(couponResult.discount,cur)}</span></div>

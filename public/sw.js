@@ -42,6 +42,38 @@ self.addEventListener('sync', event => {
   if (event.tag === 'order-queue') event.waitUntil(replayOrderQueue());
 });
 
+// ── Push notifications ────────────────────────────────────────────────────────
+self.addEventListener('push', event => {
+  if (!event.data) return;
+  let payload;
+  try { payload = event.data.json(); } catch { return; }
+
+  const { title = 'Asiel Farm Shop', body = '', data = {} } = payload;
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      data,
+      tag: data.orderId || 'asiel',     // collapse duplicate order notifications
+      renotify: true,
+      requireInteraction: data.status === 'delivered', // keep delivered notification until tapped
+    })
+  );
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const url = event.notification.data?.url || '/';
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(wins => {
+      const match = wins.find(w => w.url.includes(self.location.origin));
+      if (match) return match.focus().then(w => w.navigate(url));
+      return clients.openWindow(url);
+    })
+  );
+});
+
 // Each order is replayed independently so one failure doesn't block others.
 // The IDB transaction is re-opened per item to avoid auto-close across async gaps.
 async function replayOrderQueue() {

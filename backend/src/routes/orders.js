@@ -10,6 +10,7 @@ const redisClient = require('../redis');
 const logger = require('../logger');
 const { requireAuth } = require('../middleware/auth');
 const { broadcast } = require('./events');
+const { sendPush } = require('../services/push');
 
 // ── Validation schemas ────────────────────────────────────────────────────────
 
@@ -354,6 +355,68 @@ router.get('/:id', requireAuth, async (req, res, next) => {
   }
 });
 
+// ── PATCH /api/orders/:id/status ───────────────────────────────────────────
+// Riders update order status; admins can update any order.
+// Fires push notifications at three key customer moments.
+const statusSchema = Joi.object({
+  status:  Joi.string().valid('assigned', 'picked-up', 'delivered', 'cancelled').required(),
+  riderId: Joi.string().uuid().optional(),  // required when assigning
+});
+
+const PUSH_MESSAGES = {
+  assigned:   { title: '🛵 Rider on the way!',        body: 'Your order has been accepted and a rider is heading to pick it up.' },
+  'picked-up':{ title: '📦 Order picked up',           body: 'Your order is now on its way — rider is heading to you!' },
+  delivered:  { title: '✅ Order delivered!',           body: 'Enjoy your fresh produce. Leave a review to help other shoppers.' },
+};
+
+router.patch('/:id/status', requireAuth, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { error, value } = statusSchema.validate(req.body);
+    if (error) return res.status(400).json({ error: error.details[0].message });
+
+    const { rows } = await db.query(
+      'SELECT customer_id, rider_id, status FROM orders WHERE id = $1',
+      [id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Order not found' });
+
+    const order = rows[0];
+    const isRider = String(order.rider_id) === String(req.session.userId);
+    const isAdmin = req.session.role === 'admin';
+    if (!isRider && !isAdmin) return res.status(403).json({ error: 'Forbidden' });
+
+    // Build update — optionally set rider_id when assigning
+    let updateQuery, params;
+    if (value.status === 'assigned' && value.riderId) {
+      updateQuery = 'UPDATE orders SET status = $1, rider_id = $2, updated_at = NOW() WHERE id = $3';
+      params = [value.status, value.riderId, id];
+    } else {
+      updateQuery = 'UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2';
+      params = [value.status, id];
+    }
+    await db.query(updateQuery, params);
+
+    // Broadcast SSE to all connected clients
+    broadcast(String(order.customer_id), 'order_update', { id, status: value.status });
+
+    // Push notification to customer at three key moments
+    const pushMsg = PUSH_MESSAGES[value.status];
+    if (pushMsg) {
+      sendPush(String(order.customer_id), pushMsg.title, pushMsg.body, {
+        orderId: id,
+        status: value.status,
+        url: `/?order=${id}`,
+      }).catch(() => {});
+    }
+
+    logger.info('Order status updated', { orderId: id, status: value.status, by: req.session.userId });
+    res.json({ ok: true, status: value.status });
+  } catch (err) {
+    next(err);
+  }
+});
+
 // ── PUT /api/orders/:id/rider-location ─────────────────────────────────────
 // Called by the rider app (or demo simulator) to update their GPS position.
 // Stores in Redis with a 10-minute TTL and broadcasts SSE to the customer.
@@ -392,6 +455,21 @@ router.put('/:id/rider-location', requireAuth, async (req, res, next) => {
       lat: value.lat,
       lng: value.lng,
     });
+
+    // Push notification when rider is ~10 min away (etaMinutes supplied by rider client)
+    const etaMinutes = req.body.etaMinutes ? Number(req.body.etaMinutes) : null;
+    const prevKey = `rider_10min_notified:${id}`;
+    if (etaMinutes !== null && etaMinutes <= 10) {
+      const alreadySent = await redisClient.get(prevKey);
+      if (!alreadySent) {
+        sendPush(String(order.customer_id),
+          '🛵 Rider ~10 minutes away!',
+          'Get ready — your fresh produce is almost there.',
+          { orderId: id, url: `/?order=${id}` }
+        ).catch(() => {});
+        await redisClient.set(prevKey, '1', 'EX', 3600);
+      }
+    }
 
     return res.json({ ok: true });
   } catch (err) {
