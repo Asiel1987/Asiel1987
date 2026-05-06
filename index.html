@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="sw">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- viewport-fit=cover lets content extend under iOS notch/Dynamic Island -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, viewport-fit=cover" />
+    <meta name="description" content="Asiel Farm Shop — Farm-to-Fork marketplace Tanzania &amp; Kenya" />
+
+    <!-- ── Security headers (belt-and-braces; real headers should also be set server-side) ── -->
+    <!-- Referrer: send origin only on cross-origin requests — prevents URL leaking session params -->
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+    <!-- CSP: style-src includes unsafe-inline because all CSS is injected via React's
+         template-literal stylesheet pattern; migrate to external CSS before full launch -->
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self';
+                   script-src 'self' 'wasm-unsafe-eval'
+                              https://accounts.google.com
+                              https://appleid.cdn-apple.com;
+                   style-src 'self' 'unsafe-inline'
+                             https://fonts.googleapis.com
+                             https://accounts.google.com;
+                   font-src 'self' https://fonts.gstatic.com;
+                   img-src 'self' data: blob: https:;
+                   connect-src 'self'
+                               https://fonts.googleapis.com
+                               https://fonts.gstatic.com
+                               https://oauth2.googleapis.com
+                               https://appleid.apple.com
+                               https://accounts.google.com;
+                   frame-src https://accounts.google.com;
+                   worker-src 'self';
+                   frame-ancestors 'none';" />
+
+    <!-- ── SEO / Open Graph ── -->
+    <meta property="og:type"        content="website" />
+    <meta property="og:url"         content="https://asiel.farm/" />
+    <meta property="og:title"       content="Asiel Farm Shop — Farm-to-Fork Tanzania &amp; Kenya" />
+    <meta property="og:description" content="Buy fresh produce directly from verified farmers in Tanzania and Kenya. Organic, hub-ready, fast delivery." />
+    <meta property="og:image"       content="https://asiel.farm/icon-512.png" />
+    <meta property="og:locale"      content="sw_TZ" />
+    <meta property="og:locale:alternate" content="en_KE" />
+    <!-- Twitter Card -->
+    <meta name="twitter:card"        content="summary_large_image" />
+    <meta name="twitter:title"       content="Asiel Farm Shop" />
+    <meta name="twitter:description" content="Farm-to-Fork marketplace · Tanzania &amp; Kenya" />
+    <meta name="twitter:image"       content="https://asiel.farm/icon-512.png" />
+    <!-- Canonical -->
+    <link rel="canonical" href="https://asiel.farm/" />
+
+    <!-- ── iOS PWA ── -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Asiel Farm" />
+    <!-- Prevent iOS from auto-linking phone numbers / addresses -->
+    <meta name="format-detection" content="telephone=no, address=no, email=no" />
+
+    <!-- ── Android / Chrome PWA ── -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <!-- theme-color for Android Chrome address bar; separate dark entry respected by Chrome 93+ -->
+    <meta name="theme-color" content="#2d6a4f" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1a3a2a" media="(prefers-color-scheme: dark)" />
+
+    <!-- ── Icons ── -->
+    <!-- Apple touch icon: iOS uses this for the home-screen bookmark -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- ── Splash screens — iOS shows these during launch in standalone mode ── -->
+    <!-- iPhone SE / 6 / 7 / 8 -->
+    <link rel="apple-touch-startup-image"
+          media="(device-width:375px) and (device-height:667px) and (-webkit-device-pixel-ratio:2)"
+          href="/splash/splash-750x1334.png" />
+    <!-- iPhone X / XS / 11 Pro -->
+    <link rel="apple-touch-startup-image"
+          media="(device-width:375px) and (device-height:812px) and (-webkit-device-pixel-ratio:3)"
+          href="/splash/splash-1125x2436.png" />
+    <!-- iPhone 12 / 13 / 14 -->
+    <link rel="apple-touch-startup-image"
+          media="(device-width:390px) and (device-height:844px) and (-webkit-device-pixel-ratio:3)"
+          href="/splash/splash-1170x2532.png" />
+    <!-- iPhone 14 Pro / 15 -->
+    <link rel="apple-touch-startup-image"
+          media="(device-width:393px) and (device-height:852px) and (-webkit-device-pixel-ratio:3)"
+          href="/splash/splash-1179x2556.png" />
+    <!-- iPhone Plus / Max -->
+    <link rel="apple-touch-startup-image"
+          media="(device-width:414px) and (device-height:896px) and (-webkit-device-pixel-ratio:3)"
+          href="/splash/splash-1242x2688.png" />
+    <!-- iPad 9.7" -->
+    <link rel="apple-touch-startup-image"
+          media="(device-width:768px) and (device-height:1024px) and (-webkit-device-pixel-ratio:2)"
+          href="/splash/splash-1536x2048.png" />
+
+    <!-- ── Manifest ── -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    <!-- ── Performance: preconnect to Google Fonts CDN ── -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <title>Asiel Farm Shop</title>
+  </head>
+  <body>
+    <noscript>Asiel Farm Shop requires JavaScript. Please enable it in your browser.</noscript>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
