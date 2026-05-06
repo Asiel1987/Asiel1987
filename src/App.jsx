@@ -178,15 +178,15 @@ return withPlus; // return clean form; display grouping can be CSS-level
 
 // ─── Static data ────────────────────────────────────────────────────────────────────
 const PRODUCTS = [
-{ id:1, emoji:"🥑", name:"Hass Avocados",  tzsPrice:7500,  unit:"KG",    farmer:"Mama Zawadi",   farm:"Kilifi Farm, Kilifi County",   dist:"34 km",  rating:4.8, sales:240, organic:true,  verified:true,  harvest:"2 days ago", country:"KE", stockQty:48,  bio:"Third-generation avocado farmer tending 2 acres along the Kilifi coast. KEPHIS-certified, zero-pesticide cultivation.", traceability:"KE-KLF-2026-0041" },
-{ id:2, emoji:"🍅", name:"Roma Tomatoes",  tzsPrice:25800, unit:"KG",    farmer:"Baba Juma",     farm:"Morogoro Farm, Morogoro",       dist:"88 km",  rating:4.6, sales:512, organic:false, verified:true,  harvest:"Yesterday",  country:"TZ", stockQty:120, bio:"Baba Juma runs a 5-acre plot in the fertile Morogoro foothills. Harvested twice weekly at the Ubungo hub by 6 AM.", traceability:"TZ-MRG-2026-0117" },
-{ id:3, emoji:"🥬", name:"Sukuma Wiki",    tzsPrice:17200, unit:"Bunch", farmer:"Grace Ndungu",  farm:"Limuru Farm, Kiambu",           dist:"12 km",  rating:4.9, sales:890, organic:true,  verified:true,  harvest:"Today",      country:"KE", stockQty:4,   bio:"Grace began farming collard greens 8 years ago. Now supplies 6 restaurants and 120 households weekly from her peri-urban plot near Limuru.", traceability:"KE-KMB-2026-0203" },
-{ id:4, emoji:"🌽", name:"Sweet Maize",    tzsPrice:53700, unit:"Crate", farmer:"John Otieno",   farm:"Kisumu Farm, Kisumu",           dist:"56 km",  rating:4.5, sales:134, organic:false, verified:false, harvest:"3 days ago", country:"KE", stockQty:0,   bio:"John is a first-generation commercial farmer growing sweet maize for the Nairobi market. Awaiting KEPHIS certification.", traceability:"KE-KSM-2026-0088" },
-{ id:5, emoji:"🧅", name:"Red Onions",     tzsPrice:38700, unit:"KG",    farmer:"Fatuma Hassan", farm:"Arusha Farm, Arusha",           dist:"120 km", rating:4.7, sales:305, organic:false, verified:true,  harvest:"4 days ago", country:"TZ", stockQty:300, bio:"Fatuma's family farm near Mount Meru has supplied Arusha markets for two decades. TBS-certified.", traceability:"TZ-ARU-2026-0066" },
-{ id:6, emoji:"🍠", name:"Sweet Potato",   tzsPrice:20400, unit:"KG",    farmer:"Peter Mwangi",  farm:"Nakuru Farm, Nakuru",           dist:"28 km",  rating:4.4, sales:178, organic:true,  verified:true,  harvest:"2 days ago", country:"KE", stockQty:2,   bio:"Peter intercropped sweet potatoes with beans using regenerative methods. Certified organic by KOAN.", traceability:"KE-NKR-2026-0154" },
-{ id:7, emoji:"🥦", name:"Broccoli",       tzsPrice:14500, unit:"KG",    farmer:"Amina Mtui",    farm:"Kilimanjaro Farm, Moshi",       dist:"45 km",  rating:4.6, sales:203, organic:true,  verified:true,  harvest:"Today",      country:"TZ", stockQty:85,  bio:"Amina grows highland broccoli on the cool slopes of Kilimanjaro at 1,600 m. Certified organic by TOAM. Harvested pre-dawn and delivered same day.", traceability:"TZ-MSH-2026-0201" },
-{ id:8, emoji:"🧄", name:"Garlic",         tzsPrice:31200, unit:"KG",    farmer:"Hassan Mkwawa",  farm:"Iringa Farm, Iringa",          dist:"67 km",  rating:4.5, sales:167, organic:false, verified:true,  harvest:"3 days ago", country:"TZ", stockQty:167, bio:"Hassan's family has farmed garlic in the Iringa highlands for three generations. TBS-certified, sun-dried post-harvest for extended shelf life.", traceability:"TZ-IRG-2026-0089" },
-{ id:9, emoji:"🍋", name:"Limons (Limes)", tzsPrice:9800,  unit:"KG",    farmer:"Zaina Hamisi",  farm:"Zanzibar Farm, Unguja",         dist:"22 km",  rating:4.8, sales:421, organic:true,  verified:true,  harvest:"Yesterday",  country:"TZ", stockQty:3,   bio:"Zaina tends a spice-and-citrus smallholding on Unguja island. Her Persian limes are hand-picked and washed in fresh well water — zero chemical use.", traceability:"TZ-ZNZ-2026-0312" },
+{ id:1, emoji:"🥑", name:"Hass Avocados",  tzsPrice:7500,  unit:"KG",    farmer:"Mama Zawadi",   farm:"Kilifi Farm, Kilifi County",   dist:"34 km",  rating:4.8, sales:240, organic:true,  verified:true,  harvest:"2 days ago", country:"KE", stockQty:48,  bio:"Third-generation avocado farmer tending 2 acres along the Kilifi coast. KEPHIS-certified, zero-pesticide cultivation.", traceability:"KE-KLF-2026-0041", farmerPhone:"+254712001001", wholesale:[{minQty:10,price:6800},{minQty:50,price:6200}] },
+{ id:2, emoji:"🍅", name:"Roma Tomatoes",  tzsPrice:25800, unit:"KG",    farmer:"Baba Juma",     farm:"Morogoro Farm, Morogoro",       dist:"88 km",  rating:4.6, sales:512, organic:false, verified:true,  harvest:"Yesterday",  country:"TZ", stockQty:120, bio:"Baba Juma runs a 5-acre plot in the fertile Morogoro foothills. Harvested twice weekly at the Ubungo hub by 6 AM.", traceability:"TZ-MRG-2026-0117", farmerPhone:"+255712002002", wholesale:[{minQty:20,price:23000},{minQty:100,price:20000}] },
+{ id:3, emoji:"🥬", name:"Sukuma Wiki",    tzsPrice:17200, unit:"Bunch", farmer:"Grace Ndungu",  farm:"Limuru Farm, Kiambu",           dist:"12 km",  rating:4.9, sales:890, organic:true,  verified:true,  harvest:"Today",      country:"KE", stockQty:4,   bio:"Grace began farming collard greens 8 years ago. Now supplies 6 restaurants and 120 households weekly from her peri-urban plot near Limuru.", traceability:"KE-KMB-2026-0203", farmerPhone:"+254722003003" },
+{ id:4, emoji:"🌽", name:"Sweet Maize",    tzsPrice:53700, unit:"Crate", farmer:"John Otieno",   farm:"Kisumu Farm, Kisumu",           dist:"56 km",  rating:4.5, sales:134, organic:false, verified:false, harvest:"3 days ago", country:"KE", stockQty:0,   bio:"John is a first-generation commercial farmer growing sweet maize for the Nairobi market. Awaiting KEPHIS certification.", traceability:"KE-KSM-2026-0088", farmerPhone:"+254733004004", wholesale:[{minQty:5,price:50000},{minQty:20,price:46000}] },
+{ id:5, emoji:"🧅", name:"Red Onions",     tzsPrice:38700, unit:"KG",    farmer:"Fatuma Hassan", farm:"Arusha Farm, Arusha",           dist:"120 km", rating:4.7, sales:305, organic:false, verified:true,  harvest:"4 days ago", country:"TZ", stockQty:300, bio:"Fatuma's family farm near Mount Meru has supplied Arusha markets for two decades. TBS-certified.", traceability:"TZ-ARU-2026-0066", farmerPhone:"+255765005005", wholesale:[{minQty:25,price:35000},{minQty:100,price:31000}] },
+{ id:6, emoji:"🍠", name:"Sweet Potato",   tzsPrice:20400, unit:"KG",    farmer:"Peter Mwangi",  farm:"Nakuru Farm, Nakuru",           dist:"28 km",  rating:4.4, sales:178, organic:true,  verified:true,  harvest:"2 days ago", country:"KE", stockQty:2,   bio:"Peter intercropped sweet potatoes with beans using regenerative methods. Certified organic by KOAN.", traceability:"KE-NKR-2026-0154", farmerPhone:"+254722006006" },
+{ id:7, emoji:"🥦", name:"Broccoli",       tzsPrice:14500, unit:"KG",    farmer:"Amina Mtui",    farm:"Kilimanjaro Farm, Moshi",       dist:"45 km",  rating:4.6, sales:203, organic:true,  verified:true,  harvest:"Today",      country:"TZ", stockQty:85,  bio:"Amina grows highland broccoli on the cool slopes of Kilimanjaro at 1,600 m. Certified organic by TOAM. Harvested pre-dawn and delivered same day.", traceability:"TZ-MSH-2026-0201", farmerPhone:"+255783007007", wholesale:[{minQty:10,price:13000},{minQty:50,price:11500}] },
+{ id:8, emoji:"🧄", name:"Garlic",         tzsPrice:31200, unit:"KG",    farmer:"Hassan Mkwawa",  farm:"Iringa Farm, Iringa",          dist:"67 km",  rating:4.5, sales:167, organic:false, verified:true,  harvest:"3 days ago", country:"TZ", stockQty:167, bio:"Hassan's family has farmed garlic in the Iringa highlands for three generations. TBS-certified, sun-dried post-harvest for extended shelf life.", traceability:"TZ-IRG-2026-0089", farmerPhone:"+255712008008", wholesale:[{minQty:10,price:28500},{minQty:50,price:25000}] },
+{ id:9, emoji:"🍋", name:"Limons (Limes)", tzsPrice:9800,  unit:"KG",    farmer:"Zaina Hamisi",  farm:"Zanzibar Farm, Unguja",         dist:"22 km",  rating:4.8, sales:421, organic:true,  verified:true,  harvest:"Yesterday",  country:"TZ", stockQty:3,   bio:"Zaina tends a spice-and-citrus smallholding on Unguja island. Her Persian limes are hand-picked and washed in fresh well water — zero chemical use.", traceability:"TZ-ZNZ-2026-0312", farmerPhone:"+255765009009" },
 ];
 
 const SHIPS_INIT = [
@@ -228,7 +228,7 @@ cancelled:  { label:"Cancelled",  cls:"ds-cancelled", icon:"❌" },
 };
 
 // Product filter chips — static, module-level (was inside App() re-creating on every render)
-const PRODUCT_FILTERS = ["All", "Organic", "Verified", "< 30 km", "< 60 km", "❤️ Saved"];
+const PRODUCT_FILTERS = ["All", "Organic", "Verified", "< 30 km", "< 60 km", "❤️ Saved", "Wholesale"];
 
 const NAV_TABS = [
 { id:"market",    icon:"🛒", label:"Market"    },
@@ -1227,7 +1227,7 @@ es.onerror = () => {
   handlers.onDisconnected?.();
   // EventSource auto-reconnects — no manual retry needed
 };
-const SSE_ALLOWED_TYPES = new Set(["order_update","rider_update","shipment_update","ping"]);
+const SSE_ALLOWED_TYPES = new Set(["order_update","rider_update","shipment_update","rider_location","ping"]);
 es.onmessage = e => {
   try {
     const data = JSON.parse(e.data);
@@ -1242,6 +1242,8 @@ es.onmessage = e => {
       handlers.onRiderUpdate?.({ id: data.payload.id, lat: Number(data.payload.lat), lng: Number(data.payload.lng), status: data.payload.status });
     if (data.type === "shipment_update" && data.payload?.id)
       handlers.onShipmentUpdate?.({ id: data.payload.id, status: data.payload.status });
+    if (data.type === "rider_location" && data.payload?.orderId)
+      handlers.onRiderLocation?.({ orderId: data.payload.orderId, lat: Number(data.payload.lat), lng: Number(data.payload.lng) });
   } catch (err) { console.error("[SSE] Parse error:", err.message); }
 };
 
@@ -3222,7 +3224,67 @@ cursor:pointer; transition:all .18s; background:white;
 .dark .ob-review-list,.dark .ob-status-card,.dark .ob-step-checklist,.dark .ob-location-set{background:var(--card);border-color:#444}
 .dark .ob-nav{background:var(--card);border-color:#444}
 .dark .ob-crop-chip{background:var(--card);border-color:#444}
+
+/* ── Farmer Tour ──────────────────────────────────────────────────────────── */
+.ftour-overlay{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;justify-content:center}
+.ftour-sheet{background:var(--card,#fff);border-radius:24px 24px 0 0;width:100%;max-width:540px;padding:28px 24px 40px;animation:slideUp .35s ease}
+.ftour-progress{display:flex;gap:6px;justify-content:center;margin-bottom:24px}
+.ftour-dot{width:8px;height:8px;border-radius:50%;background:var(--sand,#e0e0e0);transition:background .2s}
+.ftour-dot.active{background:var(--forest,#1a5c36);width:24px;border-radius:4px}
+.ftour-emoji{font-size:52px;text-align:center;margin-bottom:12px}
+.ftour-title{font-family:var(--font-head);font-size:22px;color:var(--forest,#1a5c36);text-align:center;margin-bottom:8px}
+.ftour-desc{font-size:14px;color:#666;line-height:1.65;text-align:center;margin-bottom:24px}
+.ftour-actions{display:flex;gap:12px}
+.ftour-skip{flex:0 0 auto;background:none;border:2px solid var(--sand,#e0e0e0);color:#888;border-radius:12px;padding:13px 18px;font-size:13px;font-weight:700;font-family:var(--font-body);cursor:pointer}
+.ftour-next{flex:1;background:var(--forest,#1a5c36);color:#fff;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;font-family:var(--font-body);cursor:pointer}
+.ftour-next:hover{background:var(--leaf,#52b788)}
+
+/* ── Live Tracking Map ────────────────────────────────────────────────────── */
+.track-overlay{position:fixed;inset:0;z-index:8500;background:rgba(0,0,0,.6);display:flex;align-items:flex-end;justify-content:center}
+.track-sheet{background:var(--card,#fff);border-radius:24px 24px 0 0;width:100%;max-width:540px;animation:slideUp .35s ease;overflow:hidden}
+.track-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 12px}
+.track-header h3{font-family:var(--font-head);font-size:18px;color:var(--forest,#1a5c36);margin:0}
+.track-close{background:none;border:none;font-size:22px;cursor:pointer;color:#aaa;padding:0}
+.track-map-wrap{width:100%;height:260px;background:#e8f4ea;position:relative;overflow:hidden}
+.track-map-canvas{width:100%;height:100%}
+.track-demo-map{width:100%;height:100%;background:linear-gradient(135deg,#d4edda 0%,#c3e6cb 50%,#b8dacc 100%);position:relative;display:flex;align-items:center;justify-content:center}
+.track-road-h{position:absolute;left:0;right:0;top:50%;height:6px;background:rgba(255,255,255,.7);transform:translateY(-50%)}
+.track-road-v{position:absolute;top:0;bottom:0;left:45%;width:6px;background:rgba(255,255,255,.7)}
+.track-rider-pin{position:absolute;font-size:28px;transform:translate(-50%,-50%);transition:left .8s ease,top .8s ease;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4))}
+.track-dest-pin{position:absolute;font-size:24px;transform:translate(-50%,-100%)}
+.track-info{padding:14px 20px 24px}
+.track-eta{font-family:var(--font-head);font-size:20px;color:var(--forest,#1a5c36);margin-bottom:4px}
+.track-addr{font-size:13px;color:#888;margin-bottom:12px}
+.track-rider-row{display:flex;align-items:center;gap:12px;background:var(--mist,#f8f9fa);border-radius:12px;padding:10px 14px}
+.track-rider-av{font-size:28px}
+.track-rider-name{font-weight:700;font-size:14px;color:var(--text)}
+.track-rider-vehicle{font-size:12px;color:#888}
+.track-call-btn{margin-left:auto;background:var(--forest,#1a5c36);color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:700;font-family:var(--font-body);cursor:pointer}
+
+/* ── WhatsApp button ──────────────────────────────────────────────────────── */
+.wa-btn{display:inline-flex;align-items:center;gap:5px;background:#25D366;color:#fff;border:none;border-radius:10px;padding:7px 13px;font-size:12px;font-weight:700;font-family:var(--font-body);cursor:pointer;text-decoration:none;white-space:nowrap}
+.wa-btn:hover{background:#20ba58}
+.wa-btn svg{flex-shrink:0}
+.card-wa-row{padding:0 12px 10px;display:flex;justify-content:flex-end}
+
+/* ── Voice input (VoiceMic) ───────────────────────────────────────────────── */
+.voice-btn{background:none;border:none;cursor:pointer;padding:6px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#aaa;transition:color .2s,background .2s}
+.voice-btn:hover{background:rgba(0,0,0,.06);color:var(--forest,#1a5c36)}
+.voice-btn.listening{color:var(--tomato,#e63946);animation:voicePulse 1s ease infinite}
+.voice-btn.unsupported{opacity:.3;cursor:not-allowed}
+@keyframes voicePulse{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
+
+/* ── Wholesale pricing ────────────────────────────────────────────────────── */
+.badge-bulk{position:absolute;bottom:6px;left:6px;background:#1a3a2a;color:#fff;font-size:9px;font-weight:800;border-radius:5px;padding:2px 6px;letter-spacing:.5px}
+.wholesale-section{margin-top:14px}
+.wholesale-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#bbb;margin-bottom:8px}
+.wholesale-table{width:100%;border-collapse:collapse;font-size:13px}
+.wholesale-table th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#aaa;padding:4px 0;border-bottom:1px solid var(--sand,#e0e0e0)}
+.wholesale-table td{padding:7px 0;border-bottom:1px solid var(--sand,#f0f0f0);color:var(--text)}
+.wholesale-table tr:last-child td{border-bottom:none}
+.wt-save{color:var(--leaf,#52b788);font-weight:700;font-size:12px}
 `;
+
 
 // ─── useFocusTrap hook — WCAG 2.1 SC 2.1.2 keyboard focus containment ─────────────────
 // Traps Tab/Shift+Tab inside a modal ref while isActive is true.
@@ -4648,7 +4710,7 @@ return (
 //   cur      — display currency
 //   onReview — (order) => void — opens ReviewModal for that order
 //
-function OrderHistory({ country, cur, onReview }) {
+function OrderHistory({ country, cur, onReview, onTrack }) {
 const { data: history, loading } = useApi(
 () => apiService.getOrderHistory(country),
 [country]
@@ -4656,6 +4718,8 @@ const { data: history, loading } = useApi(
 
 if (loading) return null; // silent — no shimmer for history section
 if (!history || history.length === 0) return null;
+
+const ACTIVE_STATUSES = new Set(["assigned", "picked-up"]);
 
 return (
 <div className="order-hist" style={{padding:"0 4px"}}>
@@ -4676,6 +4740,12 @@ return (
 <span>💰 {fmt(o.total, cur)}</span>
 <span>🕐 {o.placed}</span>
 </div>
+{ACTIVE_STATUSES.has(o.status) && (
+<button className="oh-review-btn" style={{background:"var(--forest)",color:"#fff"}}
+        onClick={() => onTrack?.(o)}>
+  🗺️ Track Order
+</button>
+)}
 {o.status === "delivered" && (
 <button className="oh-review-btn" onClick={() => onReview(o)}>
 ⭐ Leave a review
@@ -6487,6 +6557,184 @@ return (
 });
 ShimmerGrid.displayName = "ShimmerGrid";
 
+// ─── useVoice hook — Web Speech API with Swahili / English support ────────────────────
+// lang: BCP-47 tag e.g. "sw-TZ" or "en-KE". Returns { listening, supported, start, stop }.
+// onResult(transcript) is called once recognition produces a final result.
+function useVoice(lang, onResult) {
+  const [listening, setListening] = React.useState(false);
+  const srRef = React.useRef(null);
+  const supported = typeof window !== "undefined" &&
+    ("SpeechRecognition" in window || "webkitSpeechRecognition" in window);
+
+  const start = React.useCallback(() => {
+    if (!supported || listening) return;
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    const sr = new SR();
+    sr.lang = lang;
+    sr.continuous = false;
+    sr.interimResults = false;
+    sr.onstart  = () => setListening(true);
+    sr.onend    = () => setListening(false);
+    sr.onerror  = () => setListening(false);
+    sr.onresult = e => {
+      const transcript = Array.from(e.results)
+        .map(r => r[0].transcript).join(" ").trim();
+      if (transcript) onResult(transcript);
+    };
+    srRef.current = sr;
+    sr.start();
+  }, [lang, listening, onResult, supported]);
+
+  const stop = React.useCallback(() => {
+    srRef.current?.stop();
+    setListening(false);
+  }, []);
+
+  // Cleanup on unmount
+  React.useEffect(() => () => { srRef.current?.stop(); }, []);
+
+  return { listening, supported, start, stop };
+}
+
+// ─── VoiceMic — mic button that toggles listening ─────────────────────────────────────
+function VoiceMic({ lang, onResult, title }) {
+  const { listening, supported, start, stop } = useVoice(lang, onResult);
+  return (
+    <button
+      type="button"
+      className={`voice-btn${listening ? " listening" : ""}${!supported ? " unsupported" : ""}`}
+      aria-label={listening ? "Stop voice input" : (title || "Start voice input")}
+      aria-pressed={listening}
+      title={!supported ? "Voice input not supported in this browser" : (title || "Voice input")}
+      onClick={listening ? stop : start}
+      disabled={!supported}
+    >
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+        <line x1="12" y1="19" x2="12" y2="23"/>
+        <line x1="8" y1="23" x2="16" y2="23"/>
+      </svg>
+    </button>
+  );
+}
+
+// ─── FarmerTour — 3-screen first-time walkthrough for new farmers ─────────────────────
+const TOUR_SLIDES = [
+  {
+    emoji: "🌾",
+    title: "Welcome to Asiel AgriPass",
+    desc: "Your digital farming identity card — stores your certification, farm location, and payment details. Show it at any partner hub for instant drop-off.",
+  },
+  {
+    emoji: "📋",
+    title: "Listing Your Produce",
+    desc: "Tap the Farmer tab → Post My Harvest. Add photos, set your price in TZS (we convert automatically), and choose a pickup hub. Listings go live after QC approval.",
+  },
+  {
+    emoji: "💰",
+    title: "How Payouts Work",
+    desc: "Once your order is delivered, M-Pesa / Tigo Pesa payout lands in your wallet within 2 hours. TRA VFD receipts are auto-generated — zero paperwork for you.",
+  },
+];
+function FarmerTour({ onDone }) {
+  const [step, setStep] = React.useState(0);
+  const slide = TOUR_SLIDES[step];
+  const isLast = step === TOUR_SLIDES.length - 1;
+
+  return (
+    <div className="ftour-overlay" role="dialog" aria-modal="true" aria-label="Farmer orientation tour">
+      <div className="ftour-sheet">
+        <div className="ftour-progress">
+          {TOUR_SLIDES.map((_, i) => (
+            <div key={i} className={`ftour-dot${i === step ? " active" : ""}`}/>
+          ))}
+        </div>
+        <div className="ftour-emoji">{slide.emoji}</div>
+        <div className="ftour-title">{slide.title}</div>
+        <div className="ftour-desc">{slide.desc}</div>
+        <div className="ftour-actions">
+          <button className="ftour-skip" onClick={onDone}>Skip</button>
+          <button className="ftour-next" onClick={() => isLast ? onDone() : setStep(s => s + 1)}>
+            {isLast ? "Get Started 🚀" : "Next →"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── LiveTrackingMap — real-time rider position for in-progress orders ────────────────
+// Uses a CSS-drawn demo map with animated rider pin; in production, rider coordinates
+// come via SSE rider_location events and could be rendered on a real Leaflet map.
+const DEMO_RIDER_PATH = [
+  { left: "20%", top: "70%" },
+  { left: "35%", top: "55%" },
+  { left: "45%", top: "45%" },
+  { left: "55%", top: "38%" },
+  { left: "68%", top: "30%" },
+  { left: "75%", top: "25%" },
+];
+
+function LiveTrackingMap({ order, riderData, onClose }) {
+  const [pathIdx, setPathIdx] = React.useState(0);
+  const destPct = { left: "78%", top: "22%" };
+
+  // Simulate rider moving along path every 5 s in demo mode
+  React.useEffect(() => {
+    if (!API_BASE) {
+      const t = setInterval(() => {
+        setPathIdx(i => (i + 1 < DEMO_RIDER_PATH.length ? i + 1 : i));
+      }, 5000);
+      return () => clearInterval(t);
+    }
+  }, []);
+
+  const pos = DEMO_RIDER_PATH[pathIdx];
+  const stepsLeft = DEMO_RIDER_PATH.length - 1 - pathIdx;
+  const etaMins = stepsLeft * 3 + 2;
+  const rider = riderData || { name: "Juma Mwangi", vehicle: "Motorbike", phone: "+255 712 001 234" };
+
+  return (
+    <div className="track-overlay" role="dialog" aria-modal="true" aria-label="Order tracking">
+      <div className="track-sheet">
+        <div className="track-header">
+          <h3>📦 Live Order Tracking</h3>
+          <button className="track-close" onClick={onClose} aria-label="Close tracking">✕</button>
+        </div>
+        <div className="track-map-wrap">
+          <div className="track-demo-map">
+            <div className="track-road-h"/>
+            <div className="track-road-v"/>
+            {/* Destination pin */}
+            <span className="track-dest-pin" style={destPct}>📍</span>
+            {/* Rider pin — animates via CSS transition */}
+            <span className="track-rider-pin" style={{ left: pos.left, top: pos.top }}>🛵</span>
+          </div>
+        </div>
+        <div className="track-info">
+          <div className="track-eta">
+            {stepsLeft === 0
+              ? "🎉 Arriving now!"
+              : `ETA ~${etaMins} min${etaMins !== 1 ? "s" : ""}`}
+          </div>
+          <div className="track-addr">
+            📍 {order?.address || "Your delivery address"} · {order?.id}
+          </div>
+          <div className="track-rider-row">
+            <span className="track-rider-av">🚴</span>
+            <div>
+              <div className="track-rider-name">{rider.name}</div>
+              <div className="track-rider-vehicle">{rider.vehicle}</div>
+            </div>
+            <a href={`tel:${rider.phone}`} className="track-call-btn">📞 Call</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main App ───────────────────────────────────────────────────────────────────────
 // AppInner holds all state and UI. Wrapped by the ErrorBoundary export below so any
 // uncaught render error shows the fallback screen rather than a blank page.
@@ -6497,12 +6745,16 @@ ShimmerGrid.displayName = "ShimmerGrid";
 const ProductCard = React.memo(function ProductCard({
   p, isFav, inCart: alreadyInCart, stock, cur, onSelect, onToggleFav, onAddToCart,
 }) {
+  const waMsg = encodeURIComponent(`Habari! Nataka kununua ${p.name} kutoka ${p.farm}. Je, una stock?`);
+  const waHref = `https://wa.me/${p.farmerPhone?.replace(/\D/g,"")}?text=${waMsg}`;
+
   return (
     <div className="card" onClick={() => onSelect(p)}>
       <div className="card-img">
         {p.emoji}
         {p.organic  && <span className="badge-org">Organic</span>}
         {p.verified && <span className="badge-ver">★ Verified</span>}
+        {p.wholesale?.length > 0 && <span className="badge-bulk">Bulk ↓</span>}
         <button
           className={`fav-btn${isFav ? " fav-active" : ""}`}
           aria-label={isFav ? "Remove from saved" : "Save product"}
@@ -6528,6 +6780,21 @@ const ProductCard = React.memo(function ProductCard({
         </div>
         <div className="card-dist">📍 {p.dist} · ⭐ {p.rating} ({p.reviews})</div>
       </div>
+      {p.farmerPhone && (
+        <div className="card-wa-row">
+          <a
+            href={waHref}
+            className="wa-btn"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Chat with ${p.farmer} on WhatsApp`}
+            onClick={e => e.stopPropagation()}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.570-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+            WhatsApp
+          </a>
+        </div>
+      )}
     </div>
   );
 });
@@ -6570,6 +6837,19 @@ const handleFarmerApproved = useCallback(() => {
   try { localStorage.setItem("asf_farmer_status", "approved"); } catch { /* quota */ }
   setFarmerOnboarded(true);
 }, []);
+
+// ── Farmer first-time tour ──────────────────────────────────────────────────
+const [farmerTourSeen, setFarmerTourSeen] = useState(() => {
+  try { return localStorage.getItem("asf_farmer_tour_seen") === "1"; }
+  catch { return false; }
+});
+const dismissFarmerTour = useCallback(() => {
+  try { localStorage.setItem("asf_farmer_tour_seen", "1"); } catch { /* quota */ }
+  setFarmerTourSeen(true);
+}, []);
+
+// ── Live order tracking map ─────────────────────────────────────────────────
+const [mapOrder, setMapOrder] = useState(null);
 // ── Sprint 3: Scroll position memory ── each tab remembers where you left off
 const scrollPositions = useRef({});          // { [tabId]: scrollTop }
 const switchTab = useCallback((newTab) => {
@@ -6715,6 +6995,10 @@ showToast(`📦 ${patch.id} → ${patch.status}`);
 onRiderUpdate:    patch => updateRider(patch.id, patch),
 onShipmentUpdate: patch => { updateShip(patch.id, patch); },
 onStockUpdate:    updates => syncStock(updates), // { [productId]: newQty }
+onRiderLocation:  ({ orderId, lat, lng }) => {
+  // Update the live map if it's open for this order (lat/lng stored for future Leaflet use)
+  setMapOrder(prev => prev?.id === orderId ? { ...prev, _lat: lat, _lng: lng } : prev);
+},
 });
 
 // Sync SSE connection status into state for the UI indicator
@@ -6767,6 +7051,7 @@ if (filter === "Verified" && !p.verified)             return false;
 if (filter === "< 30 km"  && parseInt(p.dist, 10) >= 30) return false;
 if (filter === "< 60 km"  && parseInt(p.dist, 10) >= 60) return false;
 if (filter === "❤️ Saved" && !favorites.has(p.id)) return false;
+if (filter === "Wholesale" && !(p.wholesale?.length > 0)) return false;
 return true;
 }), [allProducts, search, filter, favorites]);
 
@@ -7089,6 +7374,7 @@ return (
                      placeholder={t("hero.search.placeholder")}
                      value={search} onChange={e => setSearch(e.target.value)}/>
               {search && <button className="search-clear" aria-label="Clear search" onClick={() => setSearch("")}>✕</button>}
+              <VoiceMic lang={lang === "sw" ? "sw-TZ" : "en-KE"} onResult={t => setSearch(t)} title="Search by voice"/>
             </div>
             <button>Search</button>
           </div>
@@ -7140,6 +7426,7 @@ return (
             country={country}
             cur={cur}
             onReview={order => setReviewPrompt(order)}
+            onTrack={order => setMapOrder(order)}
           />
         )}
       </main>
@@ -7196,9 +7483,13 @@ return (
               <h3>📋 Listing Details</h3>
               <div className="fg">
                 <label htmlFor="f-crop">Crop Name *</label>
-                <input id="f-crop" className={formErr.crop?"err":""} placeholder="e.g. Roma Tomatoes"
-                       aria-invalid={!!formErr.crop} aria-describedby={formErr.crop?"err-crop":undefined}
-                       value={form.crop} onChange={e=>{setForm(f=>({...f,crop:e.target.value}));setFormErr(fe=>({...fe,crop:""}));}}/>
+                <div style={{display:"flex",alignItems:"center",gap:6}}>
+                  <input id="f-crop" className={formErr.crop?"err":""} placeholder="e.g. Roma Tomatoes"
+                         aria-invalid={!!formErr.crop} aria-describedby={formErr.crop?"err-crop":undefined}
+                         value={form.crop} onChange={e=>{setForm(f=>({...f,crop:e.target.value}));setFormErr(fe=>({...fe,crop:""}));}}
+                         style={{flex:1}}/>
+                  <VoiceMic lang={lang === "sw" ? "sw-TZ" : "en-KE"} onResult={t => { setForm(f=>({...f,crop:t})); setFormErr(fe=>({...fe,crop:""})); }} title="Say crop name"/>
+                </div>
                 {formErr.crop && <div id="err-crop" className="field-err" role="alert">⚠ {formErr.crop}</div>}
               </div>
               <div className="frow">
@@ -7553,6 +7844,60 @@ return (
               <div className="qr-text"><strong>Full Traceability</strong><br/>Scan bag QR to verify farm origin.<br/>Code: <strong>{selected.traceability}</strong></div>
             </div>
 
+            {/* ── WhatsApp contact ── */}
+            {selected.farmerPhone && (() => {
+              const msg = encodeURIComponent(`Habari ${selected.farmer}! Ninaomba ${selected.name} kutoka ${selected.farm}. Je, una bei ya jumla?`);
+              return (
+                <div style={{marginTop:14,display:"flex",alignItems:"center",gap:10}}>
+                  <a
+                    href={`https://wa.me/${selected.farmerPhone.replace(/\D/g,"")}?text=${msg}`}
+                    className="wa-btn"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={`Chat with ${selected.farmer} on WhatsApp`}
+                    style={{flex:1,justifyContent:"center",fontSize:13,padding:"10px"}}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.570-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+                    Chat with Farmer on WhatsApp
+                  </a>
+                </div>
+              );
+            })()}
+
+            {/* ── Wholesale pricing tiers ── */}
+            {selected.wholesale?.length > 0 && (
+              <div className="wholesale-section">
+                <div className="divider"/>
+                <div className="wholesale-label">📦 Bulk / Wholesale Pricing</div>
+                <table className="wholesale-table" aria-label="Wholesale pricing tiers">
+                  <thead>
+                    <tr>
+                      <th>Min Qty</th>
+                      <th>Price / {selected.unit}</th>
+                      <th>Saving</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>1+ {selected.unit}</td>
+                      <td>{fmt(selected.tzsPrice, cur)}</td>
+                      <td style={{color:"#aaa"}}>—</td>
+                    </tr>
+                    {selected.wholesale.map((tier, i) => {
+                      const savePct = Math.round((1 - tier.price / selected.tzsPrice) * 100);
+                      return (
+                        <tr key={i}>
+                          <td>{tier.minQty}+ {selected.unit}</td>
+                          <td><strong>{fmt(tier.price, cur)}</strong></td>
+                          <td className="wt-save">−{savePct}%</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
             {/* ── Customer Reviews ── */}
             {(() => {
               const productReviews = reviews.filter(r => r.product === selected.name || r.farmerName === selected.farmer);
@@ -7784,6 +8129,23 @@ return (
         }}
       />
     )}
+
+    {/* FARMER TOUR — shown once after first approval */}
+    {userRole === "farmer" && farmerOnboarded && !farmerTourSeen && (
+      <FarmerTour onDone={dismissFarmerTour}/>
+    )}
+
+    {/* LIVE TRACKING MAP */}
+    {mapOrder && (() => {
+      const rider = riders.find(r => r.id === mapOrder.riderId);
+      return (
+        <LiveTrackingMap
+          order={mapOrder}
+          riderData={rider ? { name: rider.name, vehicle: rider.vehicle, phone: rider.phone } : null}
+          onClose={() => setMapOrder(null)}
+        />
+      );
+    })()}
 
     {/* TOAST — aria-live so screen readers announce status changes */}
     <div role="status" aria-live="polite" aria-atomic="true"

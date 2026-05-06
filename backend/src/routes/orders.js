@@ -6,8 +6,10 @@ const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
 const db = require('../db');
+const redisClient = require('../redis');
 const logger = require('../logger');
 const { requireAuth } = require('../middleware/auth');
+const { broadcast } = require('./events');
 
 // ── Validation schemas ────────────────────────────────────────────────────────
 
@@ -347,6 +349,80 @@ router.get('/:id', requireAuth, async (req, res, next) => {
     );
 
     return res.json({ ...order, items: itemsResult.rows });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── PUT /api/orders/:id/rider-location ─────────────────────────────────────
+// Called by the rider app (or demo simulator) to update their GPS position.
+// Stores in Redis with a 10-minute TTL and broadcasts SSE to the customer.
+const riderLocationSchema = Joi.object({
+  lat: Joi.number().min(-90).max(90).required(),
+  lng: Joi.number().min(-180).max(180).required(),
+});
+
+router.put('/:id/rider-location', requireAuth, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { error, value } = riderLocationSchema.validate(req.body);
+    if (error) return res.status(400).json({ error: error.details[0].message });
+
+    // Only the assigned rider or an admin may update
+    const { rows } = await db.query(
+      'SELECT customer_id, rider_id, status FROM orders WHERE id = $1',
+      [id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Order not found' });
+    const order = rows[0];
+    const isRider = String(order.rider_id) === String(req.session.userId);
+    const isAdmin = req.session.role === 'admin';
+    if (!isRider && !isAdmin) return res.status(403).json({ error: 'Forbidden' });
+
+    if (!['assigned', 'picked-up'].includes(order.status)) {
+      return res.status(409).json({ error: 'Order is not in transit' });
+    }
+
+    const key = `rider_loc:${id}`;
+    await redisClient.set(key, JSON.stringify({ lat: value.lat, lng: value.lng }), 'EX', 600);
+
+    // Notify the customer via SSE
+    broadcast(String(order.customer_id), 'rider_location', {
+      orderId: id,
+      lat: value.lat,
+      lng: value.lng,
+    });
+
+    return res.json({ ok: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── GET /api/orders/:id/rider-location ─────────────────────────────────────
+// Returns the last known rider position for an in-transit order.
+router.get('/:id/rider-location', requireAuth, async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    // Only customer, assigned rider, or admin may read
+    const { rows } = await db.query(
+      'SELECT customer_id, rider_id FROM orders WHERE id = $1',
+      [id]
+    );
+    if (!rows.length) return res.status(404).json({ error: 'Order not found' });
+    const order = rows[0];
+    const userId = String(req.session.userId);
+    const allowed =
+      userId === String(order.customer_id) ||
+      userId === String(order.rider_id) ||
+      req.session.role === 'admin';
+    if (!allowed) return res.status(403).json({ error: 'Forbidden' });
+
+    const raw = await redisClient.get(`rider_loc:${id}`);
+    if (!raw) return res.status(404).json({ error: 'No location data yet' });
+
+    return res.json(JSON.parse(raw));
   } catch (err) {
     next(err);
   }
