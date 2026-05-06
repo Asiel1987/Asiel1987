@@ -28,6 +28,7 @@
     "rate-limit-redis": "^4.2.0",
     "stripe": "^16.2.0",
     "uuid": "^10.0.0",
+    "web-push": "^3.6.7",
     "winston": "^3.13.0"
   },
   "devDependencies": {
