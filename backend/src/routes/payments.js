@@ -199,7 +199,11 @@ function verifySelcomCallback(req) {
   const signature = req.headers['x-selcom-signature'] || req.headers['authorization'] || '';
   const bodyStr = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
   const expected = crypto.createHmac('sha256', secret).update(bodyStr).digest('hex');
-  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+  const sigBuf = Buffer.from(signature);
+  const expBuf = Buffer.from(expected);
+  // timingSafeEqual requires identical lengths; unequal length is an automatic mismatch
+  if (sigBuf.length !== expBuf.length) return false;
+  return crypto.timingSafeEqual(sigBuf, expBuf);
 }
 
 // POST /api/payments/selcom/callback — Selcom TZ push result
