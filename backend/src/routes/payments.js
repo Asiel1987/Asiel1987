@@ -5,11 +5,25 @@ const Joi             = require('joi');
 const crypto          = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const db              = require('../db');
+const redis           = require('../redis');
 const logger          = require('../logger');
 const { requireAuth, requireRole } = require('../middleware/auth');
 const stripeService   = require('../services/stripe');
 const selcomService   = require('../services/selcom');
 const mpesaKEService  = require('../services/mpesaKenya');
+
+const SEED_KES_RATE = 0.0465; // fallback TZS → KES if Redis cache is cold
+
+async function tzsToKes(amountTzs) {
+  try {
+    const raw = await redis.get('fx:rates');
+    if (raw) {
+      const { rates } = JSON.parse(raw);
+      if (rates?.KES) return Math.round(amountTzs * rates.KES);
+    }
+  } catch { /* fall through to seed rate */ }
+  return Math.round(amountTzs * SEED_KES_RATE);
+}
 
 const router = express.Router();
 
@@ -30,7 +44,7 @@ router.post('/initiate', requireAuth, async (req, res, next) => {
 
     // Fetch the order to get the authoritative amount — never trust client-supplied amount
     const orderResult = await db.query(
-      'SELECT total_tzs, status FROM orders WHERE id = $1 AND customer_id = $2',
+      'SELECT total_tzs, charged_tzs, status FROM orders WHERE id = $1 AND customer_id = $2',
       [value.orderId, req.session.userId]
     );
     if (!orderResult.rows.length) {
@@ -40,7 +54,8 @@ router.post('/initiate', requireAuth, async (req, res, next) => {
     if (order.status !== 'pending') {
       return res.status(400).json({ error: 'Order is not in a payable state' });
     }
-    const amount = order.total_tzs;
+    // Use charged_tzs (post-loyalty-discount) as the authoritative payment amount
+    const amount = order.charged_tzs ?? order.total_tzs;
 
     // Idempotency: reject if a non-failed payment already exists for this order
     const existing = await db.query(
@@ -58,7 +73,9 @@ router.post('/initiate', requireAuth, async (req, res, next) => {
       const pi = await stripeService.createPaymentIntent(amount, 'tzs', value.orderId);
       providerRef = pi.id;
     } else if (value.method === 'mpesa' && value.country === 'KE') {
-      const result = await mpesaKEService.initiateSTKPush(value.phone, amount, value.orderId);
+      const amountKes = await tzsToKes(amount);
+      logger.info('M-Pesa KE currency conversion', { amountTzs: amount, amountKes });
+      const result = await mpesaKEService.initiateSTKPush(value.phone, amountKes, value.orderId);
       providerRef = result.CheckoutRequestID;
     } else if (['mpesa','tigopesa','selcom','airtel'].includes(value.method)) {
       const result = await selcomService.initiatePush(value.phone, amount, value.orderId, value.method);
