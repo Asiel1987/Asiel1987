@@ -3,7 +3,7 @@
 const express = require('express');
 const Joi     = require('joi');
 const crypto  = require('crypto');
-const axios   = require('axios');
+const { OAuth2Client } = require('google-auth-library');
 const { v4: uuidv4 } = require('uuid');
 
 const router = express.Router();
@@ -15,22 +15,22 @@ const { otpSendLimiter, otpVerifyLimiter } = require('../middleware/rateLimit');
 
 // ── Social auth helpers ───────────────────────────────────────────────────────
 
+// OAuth2Client caches Google's JWKS locally — no per-request HTTP call to Google
+const _googleClient = new OAuth2Client();
+
 async function verifyGoogleToken(credential) {
-  const { data } = await axios.get('https://oauth2.googleapis.com/tokeninfo', {
-    params: { id_token: credential },
-    timeout: 8000,
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const ticket = await _googleClient.verifyIdToken({
+    idToken:  credential,
+    audience: clientId,
   });
-  if (data.aud !== process.env.GOOGLE_CLIENT_ID) {
-    throw new Error('Google token audience mismatch');
-  }
-  if (parseInt(data.exp, 10) < Math.floor(Date.now() / 1000)) {
-    throw new Error('Google token expired');
-  }
+  const payload = ticket.getPayload();
+  if (!payload) throw new Error('Empty Google token payload');
   return {
-    googleId:      data.sub,
-    email:         data.email || null,
-    emailVerified: data.email_verified === 'true',
-    name:          data.name  || null,
+    googleId:      payload.sub,
+    email:         payload.email || null,
+    emailVerified: payload.email_verified === true,
+    name:          payload.name  || null,
   };
 }
 

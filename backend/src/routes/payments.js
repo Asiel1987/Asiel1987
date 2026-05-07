@@ -67,11 +67,13 @@ router.post('/initiate', requireAuth, async (req, res, next) => {
     }
 
     const ref = uuidv4();
-    let providerRef = null;
+    let providerRef  = null;
+    let clientSecret = null;
 
     if (value.method === 'card') {
       const pi = await stripeService.createPaymentIntent(amount, 'tzs', value.orderId);
-      providerRef = pi.id;
+      providerRef  = pi.paymentIntentId;   // was pi.id — undefined; broke webhook lookups
+      clientSecret = pi.clientSecret;
     } else if (value.method === 'mpesa' && value.country === 'KE') {
       const amountKes = await tzsToKes(amount);
       logger.info('M-Pesa KE currency conversion', { amountTzs: amount, amountKes });
@@ -90,7 +92,9 @@ router.post('/initiate', requireAuth, async (req, res, next) => {
     );
 
     logger.info('Payment initiated', { ref, method: value.method, country: value.country });
-    res.json({ ref });
+    // clientSecret is only present for card payments; frontend needs it to call
+    // stripe.confirmCardPayment() and complete the charge.
+    res.json({ ref, ...(clientSecret && { clientSecret }) });
   } catch (err) {
     next(err);
   }

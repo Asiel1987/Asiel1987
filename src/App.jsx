@@ -973,7 +973,7 @@ return apiFetch("/api/agripass", { method: "POST", body: JSON.stringify(data) })
 },
 
 // ── Payments ──────────────────────────────────────────────────────────────────────
-async initiatePayment({ method, phone, amount, currency, orderId, country }) {
+async initiatePayment({ method, phone, paymentMethodId, amount, currency, orderId, country }) {
 if (!API_BASE) {
 // Mock: simulate a 2.4 s processing delay then success
 await new Promise(r => setTimeout(r, PAYMENT_DEMO_DELAY_MS));
@@ -981,7 +981,7 @@ return { status: "success", ref: secureId("SF") };
 }
 return apiFetch("/api/payments/initiate", {
 method: "POST",
-body: JSON.stringify({ method, phone, amount, currency, orderId, country }),
+body: JSON.stringify({ method, phone, paymentMethodId, amount, currency, orderId, country }),
 });
 },
 
@@ -5740,15 +5740,22 @@ if (method === "card") {
     const { paymentMethod, error } = await stripe.createPaymentMethod({ type: "card", card: cardEl });
     if (error) { setStage("choose"); setCardError(error.message); return; }
     setCardError("");
-    // paymentMethod.id (not raw PAN) is sent to the backend
+    // Send paymentMethod.id to backend; backend creates PaymentIntent and returns clientSecret
     try {
-      const { ref } = await apiService.initiatePayment({ method: "card", paymentMethodId: paymentMethod.id, amount: totalTZS, currency: "tzs", orderId: refNum, country });
+      const { ref, clientSecret } = await apiService.initiatePayment({ method: "card", paymentMethodId: paymentMethod.id, amount: totalTZS, currency: "tzs", orderId: refNum, country });
+      // Confirm the charge client-side — without this the PaymentIntent stays in requires_confirmation
+      if (clientSecret) {
+        const { error: confirmError } = await stripe.confirmCardPayment(clientSecret, {
+          payment_method: paymentMethod.id,
+        });
+        if (confirmError) { setStage("choose"); setCardError(confirmError.message); return; }
+      }
       clearInterval(pollRef.current);
       let attempts = 0;
       pollRef.current = setInterval(async () => {
         attempts++;
         const status = await apiService.pollPaymentStatus(ref);
-        if (status.status === "success") { clearInterval(pollRef.current); setStage("success"); }
+        if (status.status === "completed") { clearInterval(pollRef.current); setStage("success"); }
         if (status.status === "failed" || attempts > 40) { clearInterval(pollRef.current); setStage("choose"); alert("Payment failed. Please try again."); }
       }, 3000);
     } catch (err) { setStage("choose"); alert("Payment error: " + err.message); }

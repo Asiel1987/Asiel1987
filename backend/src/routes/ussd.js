@@ -23,6 +23,35 @@ const router = express.Router();
 const db = require('../db');
 const logger = require('../logger');
 
+// Africa's Talking published IP ranges (https://developers.africastalking.com/docs/ussd)
+// Override or extend via AT_ALLOWED_IPS env var (comma-separated CIDRs / IPs)
+const DEFAULT_AT_IPS = ['196.201.214.0/23', '196.201.216.0/23'];
+
+function parseCidr(cidr) {
+  const [ip, bits] = cidr.split('/');
+  const mask = bits ? ~((1 << (32 - parseInt(bits, 10))) - 1) >>> 0 : 0xffffffff;
+  const base = ip.split('.').reduce((a, o) => (a << 8) | parseInt(o, 10), 0) >>> 0;
+  return { base: base & mask, mask };
+}
+function ipToInt(ip) {
+  return ip.split('.').reduce((a, o) => (a << 8) | parseInt(o, 10), 0) >>> 0;
+}
+
+const allowedRanges = (process.env.AT_ALLOWED_IPS || DEFAULT_AT_IPS.join(','))
+  .split(',').map(s => s.trim()).filter(Boolean).map(parseCidr);
+
+function ussdIpGuard(req, res, next) {
+  if (process.env.NODE_ENV !== 'production') return next();
+  const raw = req.ip || '';
+  const v4  = raw.startsWith('::ffff:') ? raw.slice(7) : raw;
+  try {
+    const n = ipToInt(v4);
+    if (allowedRanges.some(({ base, mask }) => (n & mask) === base)) return next();
+  } catch { /* fall through to reject */ }
+  logger.warn('USSD request from unlisted IP — rejected', { ip: req.ip });
+  return res.status(403).send('END Forbidden');
+}
+
 // Detect country from phone prefix
 function countryFromPhone(phone) {
   if (!phone) return 'TZ';
@@ -80,7 +109,7 @@ async function getFarmerBalance(phone) {
 
 // ── POST /api/ussd ────────────────────────────────────────────────────────────
 // Africa's Talking sends application/x-www-form-urlencoded
-router.post('/', express.urlencoded({ extended: false }), async (req, res) => {
+router.post('/', ussdIpGuard, express.urlencoded({ extended: false }), async (req, res) => {
   const { sessionId, phoneNumber, text = '' } = req.body;
   const country = countryFromPhone(phoneNumber);
   const parts   = text.split('*').filter(Boolean);

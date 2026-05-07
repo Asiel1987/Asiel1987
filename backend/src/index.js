@@ -172,13 +172,56 @@ app.use((_req, res) => res.status(404).json({ error: 'Route not found' }));
 // ── Global error handler (must be registered last) ───────────────────────────
 app.use(errorHandler);
 
+// ── Migration version check ───────────────────────────────────────────────────
+// Counts migration files on disk and compares to applied DB migrations.
+// Logs a warning (does not block startup) so ops can act without downtime.
+const fs   = require('fs');
+const path = require('path');
+
+async function checkMigrations() {
+  try {
+    const migrationDir = path.join(__dirname, '..', 'migrations');
+    const fileCount = fs.readdirSync(migrationDir)
+      .filter(f => f.endsWith('.sql')).length;
+
+    // If schema_migrations table exists use it, else fall back to a column probe
+    const { rows } = await db.query(`
+      SELECT COUNT(*) AS applied
+        FROM information_schema.tables
+       WHERE table_name = 'schema_migrations'`);
+
+    const hasTracker = parseInt(rows[0].applied, 10) > 0;
+    if (!hasTracker) {
+      logger.warn('Migration tracker table missing — run migrations manually', { fileCount });
+      return;
+    }
+
+    const { rows: applied } = await db.query(
+      'SELECT COUNT(*) AS cnt FROM schema_migrations'
+    );
+    const appliedCount = parseInt(applied[0].cnt, 10);
+    if (appliedCount < fileCount) {
+      logger.warn('Unapplied migrations detected — run psql migrations before serving traffic', {
+        fileCount,
+        appliedCount,
+        pending: fileCount - appliedCount,
+      });
+    } else {
+      logger.info('Migrations up to date', { applied: appliedCount });
+    }
+  } catch (err) {
+    logger.warn('Could not verify migration state', { error: err.message });
+  }
+}
+
 // ── Start server ──────────────────────────────────────────────────────────────
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, async () => {
   logger.info('Asiel Farm Shop API started', {
     port: PORT,
     env: process.env.NODE_ENV || 'development',
     pid: process.pid,
   });
+  await checkMigrations();
 });
 
 // ── Graceful shutdown ─────────────────────────────────────────────────────────
