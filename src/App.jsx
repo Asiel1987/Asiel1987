@@ -3652,6 +3652,41 @@ body.dark .afl-machine-card,body.dark .afl-row-card,body.dark .afl-summary,body.
 body.dark .afl-body{background:transparent}
 body.dark .afl-declaration-box{background:#0d2015}
 body.dark .afl-total-display{background:#1e2b22;color:#52b788}
+
+/* ══════════ Repayment Schedule styles ══════════ */
+.sched-wrap{min-height:100dvh;background:var(--bg,#fafaf8);padding-bottom:80px}
+.sched-header{background:var(--forest);color:white;padding:12px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:20}
+.sched-form{padding:16px;display:flex;flex-direction:column;gap:12px}
+.sched-section{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--forest);border-bottom:2px solid var(--leaf,#52b788);padding-bottom:3px;margin-top:4px}
+.sched-note{font-size:12px;border-radius:8px;padding:8px 12px;line-height:1.4}
+.sched-note.warn{background:#fffbeb;border:1px solid #f59e0b;color:#92400e}
+.sched-note.info{background:#eff6ff;border:1px solid #bfdbfe;color:#1e3a8a}
+.sched-results{padding:0 0 60px}
+.sched-summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--sand,#eee);border-top:1px solid var(--sand,#eee);border-bottom:1px solid var(--sand,#eee)}
+.sched-card{background:white;padding:10px 8px;text-align:center}
+.sched-card span{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.5px;color:#aaa;margin-bottom:3px}
+.sched-card strong{display:block;font-size:12px;font-weight:800;color:var(--forest)}
+.sched-card.bullet strong{color:#059669}
+.sched-card.interest strong{color:#dc2626}
+.sched-export-row{display:flex;gap:10px;padding:12px 16px}
+.sched-pdf-btn{flex:1;background:#1e40af;color:white;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:700;cursor:pointer}
+.sched-wa-btn{flex:1;background:#25D366;color:white;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:700;cursor:pointer}
+.sched-legend{display:flex;flex-wrap:wrap;gap:8px;padding:4px 16px 8px;font-size:10px;color:#666}
+.sched-leg-item{font-weight:600}
+.sched-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.sched-table{width:100%;min-width:620px;border-collapse:collapse;font-size:11px}
+.sched-table th{background:var(--forest);color:white;padding:7px 5px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap}
+.sched-table th:nth-child(n+4){text-align:right}
+.sched-table td{padding:6px 5px;border-bottom:1px solid #f0f0f0;font-variant-numeric:tabular-nums;vertical-align:middle}
+.sched-table td.num{text-align:right;font-variant-numeric:tabular-nums}
+.sched-table td.sched-pay{font-weight:700;color:var(--forest)}
+.sched-totals-row{background:var(--forest) !important;color:white !important}
+.sched-totals-row td{color:white !important;font-weight:700 !important;padding:8px 5px}
+.sched-totals-row .num{text-align:right}
+body.dark .sched-card{background:#1e2b22}
+body.dark .sched-summary-grid{background:#2d4a35}
+body.dark .sched-table td{border-color:#2d4a35}
+@media(max-width:400px){.sched-summary-grid{grid-template-columns:repeat(2,1fr)}}
 `;
 
 
@@ -7675,6 +7710,561 @@ function LiveTrackingMap({ order, riderData, onClose }) {
   );
 }
 
+// ─── AF Lease — Repayment Schedule Engine & UI ──────────────────────────────────────
+
+// ── Core schedule engine ──────────────────────────────────────────────────────────────
+function addPeriods(date, n, frequency) {
+  const d = new Date(date);
+  const months = { monthly:1, quarterly:3, 'bi-annual':6, annual:12 }[frequency] || 1;
+  d.setMonth(d.getMonth() + n * months);
+  return d;
+}
+function round2(n) { return Math.round(n * 100) / 100; }
+function isoDate(d)  { return d instanceof Date ? d.toISOString().slice(0,10) : d; }
+
+function generateRepaymentSchedule({
+  assetPrice, downPayment = 0,
+  interestMethod = 'reducing',     // 'reducing' | 'flat'
+  annualRate, termMonths,
+  frequency = 'monthly',           // 'monthly' | 'quarterly' | 'bi-annual' | 'annual'
+  holidayMonths = 0,
+  holidayType = 'interest_only',   // 'interest_only' | 'capitalize' | 'defer'
+  bulletType = 'none',             // 'none' | 'fixed_pct' | 'residual'
+  bulletPct = 0,
+  bulletResidual = 0,
+  startDate,
+}) {
+  const freqMonths = { monthly:1, quarterly:3, 'bi-annual':6, annual:12 }[frequency] || 1;
+  const periodsPerYear = 12 / freqMonths;
+  const rPeriod = annualRate / 100 / periodsPerYear;
+  const totalPeriods = Math.round(termMonths / freqMonths);
+  const holidayPeriods = Math.round(holidayMonths / freqMonths);
+  const payingPeriods  = totalPeriods - holidayPeriods;
+
+  const financedAmt = round2(assetPrice - downPayment);
+
+  // Bullet amount
+  let bulletAmt = 0;
+  if (bulletType === 'fixed_pct')  bulletAmt = round2(financedAmt * bulletPct / 100);
+  if (bulletType === 'residual')   bulletAmt = round2(bulletResidual);
+  const amortPrincipal = round2(financedAmt - bulletAmt);
+
+  // Regular installment
+  let regInstallment = 0, flatIntPerPeriod = 0;
+  if (interestMethod === 'reducing') {
+    if (rPeriod === 0 || payingPeriods === 0) {
+      regInstallment = payingPeriods > 0 ? round2(amortPrincipal / payingPeriods) : 0;
+    } else {
+      const factor = Math.pow(1 + rPeriod, payingPeriods);
+      regInstallment = round2(amortPrincipal * rPeriod * factor / (factor - 1));
+    }
+  } else {
+    const totalInt = round2(amortPrincipal * annualRate / 100 * (termMonths / 12));
+    flatIntPerPeriod = payingPeriods > 0 ? round2(totalInt / payingPeriods) : 0;
+    regInstallment   = payingPeriods > 0 ? round2(amortPrincipal / payingPeriods + flatIntPerPeriod) : 0;
+  }
+
+  const rows = [];
+  let balance = financedAmt;
+  let deferred = 0;
+  let p = 0;
+
+  // Row 0 — Down payment
+  if (downPayment > 0) {
+    rows.push({
+      period: 0, date: isoDate(startDate),
+      rowType: 'dp',
+      openBal: round2(assetPrice), interest: 0,
+      principal: round2(downPayment), payment: round2(downPayment),
+      closeBal: round2(financedAmt), note: 'Malipo ya Awali (DP)',
+    });
+  }
+
+  // Holiday periods
+  for (let h = 0; h < holidayPeriods; h++) {
+    p++;
+    const open = balance;
+    const interest = round2(open * rPeriod);
+    let paid = 0, closeBal = balance, note = '';
+    if (holidayType === 'interest_only') {
+      paid = interest; closeBal = open;
+      note = 'Mapumziko — Faida tu';
+    } else if (holidayType === 'capitalize') {
+      closeBal = round2(open + interest); balance = closeBal;
+      note = 'Mapumziko — Faida inajumlika kwenye deni';
+    } else {
+      deferred = round2(deferred + interest); closeBal = open;
+      note = 'Mapumziko — Hakuna malipo (faida inaahirishwa)';
+    }
+    rows.push({
+      period: p, date: isoDate(addPeriods(startDate, p, frequency)),
+      rowType: holidayType === 'interest_only' ? 'holiday_int' : 'holiday_full',
+      openBal: round2(open), interest,
+      principal: 0, payment: round2(paid),
+      closeBal: round2(closeBal), note,
+    });
+  }
+
+  // Repayment periods
+  let flatRunning = amortPrincipal;
+  for (let i = 1; i <= payingPeriods; i++) {
+    p++;
+    const open   = balance;
+    const isLast = (i === payingPeriods);
+    let interest = 0, princ = 0, payment = 0;
+
+    if (interestMethod === 'reducing') {
+      interest = round2(open * rPeriod);
+      if (isLast) {
+        // Clear remaining amortised balance exactly
+        princ   = round2(open - (bulletType !== 'none' ? bulletAmt : 0));
+        payment = round2(interest + princ);
+      } else {
+        princ   = round2(regInstallment - interest);
+        payment = round2(regInstallment);
+      }
+    } else {
+      interest = flatIntPerPeriod;
+      if (isLast) {
+        princ   = round2(flatRunning - (bulletType !== 'none' ? bulletAmt : 0));
+      } else {
+        princ   = round2(amortPrincipal / payingPeriods);
+      }
+      flatRunning = round2(flatRunning - princ);
+      payment = round2(interest + princ);
+    }
+
+    balance = round2(open - princ);
+    rows.push({
+      period: p, date: isoDate(addPeriods(startDate, p, frequency)),
+      rowType: isLast && bulletType !== 'none' ? 'last_before_bullet' : 'installment',
+      openBal: round2(open), interest: round2(interest),
+      principal: round2(princ), payment: round2(payment),
+      closeBal: round2(balance), note: '',
+    });
+  }
+
+  // Deferred interest row
+  if (deferred > 0) {
+    p++;
+    rows.push({
+      period: p, date: isoDate(addPeriods(startDate, p, frequency)),
+      rowType: 'deferred',
+      openBal: round2(balance), interest: round2(deferred),
+      principal: 0, payment: round2(deferred),
+      closeBal: round2(balance), note: 'Faida iliyoahirishwa kutoka mapumziko',
+    });
+  }
+
+  // Bullet / balloon
+  if (bulletType !== 'none' && bulletAmt > 0) {
+    p++;
+    const open = round2(balance);
+    rows.push({
+      period: p, date: isoDate(addPeriods(startDate, p, frequency)),
+      rowType: 'bullet',
+      openBal: open, interest: 0,
+      principal: open, payment: open,
+      closeBal: 0,
+      note: bulletType === 'fixed_pct'
+        ? `Malipo ya Mkupuo (Bullet ${bulletPct}% ya deni)`
+        : 'Malipo ya Mwisho (Residual)',
+    });
+  }
+
+  // Totals
+  const totals = rows.reduce((acc, r) => ({
+    totalInt:   round2(acc.totalInt   + r.interest),
+    totalPrinc: round2(acc.totalPrinc + r.principal),
+    totalPaid:  round2(acc.totalPaid  + r.payment),
+  }), { totalInt:0, totalPrinc:0, totalPaid:0 });
+
+  const effectiveAnnualRate = totals.totalInt > 0 && financedAmt > 0
+    ? round2(totals.totalInt / financedAmt / (termMonths / 12) * 100) : 0;
+
+  return { rows, totals, financedAmt, regInstallment, bulletAmt, effectiveAnnualRate };
+}
+
+// ── PDF export for repayment schedule ────────────────────────────────────────────────
+function generateSchedulePDF(schedResult, params, applicantName) {
+  const { rows, totals, financedAmt, regInstallment, bulletAmt } = schedResult;
+  const canvas = document.createElement('canvas');
+  const W = 595, H = Math.max(842, 180 + rows.length * 18 + 100);
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, W, H);
+
+  // Header
+  ctx.fillStyle = '#1a3a2a'; ctx.fillRect(0, 0, W, 54);
+  ctx.fillStyle = '#ffffff'; ctx.font = 'bold 16px Arial';
+  ctx.fillText('AF LEASE — RATIBA YA MALIPO', 16, 22);
+  ctx.font = '10px Arial';
+  ctx.fillText(`Mkopaji: ${applicantName || '—'}   |   Tarehe: ${new Date().toLocaleDateString('sw-TZ')}`, 16, 40);
+
+  // Summary row
+  let y = 70;
+  ctx.fillStyle = '#f0faf4'; ctx.fillRect(0, y-12, W, 30);
+  ctx.fillStyle = '#1a3a2a'; ctx.font = 'bold 10px Arial';
+  const summCols = [
+    ['Gharama ya Rasilimali', `TZS ${Number(params.assetPrice||0).toLocaleString()}`],
+    ['Malipo ya Awali (DP)', `TZS ${Number(params.downPayment||0).toLocaleString()}`],
+    ['Deni', `TZS ${Number(financedAmt).toLocaleString()}`],
+    ['Kiwango cha riba', `${params.annualRate}% ${params.interestMethod==='flat'?'(flat)':'(reducing)'}`],
+    ['Muda', `${params.termMonths} miezi`],
+    ['Awamu ya kawaida', `TZS ${Number(regInstallment).toLocaleString()}`],
+  ];
+  summCols.forEach(([label, val], i) => {
+    const x = 8 + (i % 3) * 196;
+    if (i % 3 === 0) { y += (i > 0 ? 18 : 0); }
+    ctx.fillStyle = '#888'; ctx.font = '8px Arial';
+    ctx.fillText(label, x, y - 2);
+    ctx.fillStyle = '#1a3a2a'; ctx.font = 'bold 10px Arial';
+    ctx.fillText(val, x, y + 9);
+  });
+  y += 24;
+
+  // Table header
+  const cols = ['#', 'Tarehe', 'Aina', 'Deni Wazi', 'Riba', 'Mtaji', 'Malipo', 'Deni Baki'];
+  const cw   = [20, 68, 100, 68, 58, 58, 68, 68];
+  ctx.fillStyle = '#1a3a2a'; ctx.fillRect(0, y, W, 16);
+  ctx.fillStyle = '#ffffff'; ctx.font = 'bold 8px Arial';
+  let cx = 4;
+  cols.forEach((c, i) => { ctx.fillText(c, cx, y + 11); cx += cw[i]; });
+  y += 16;
+
+  const typeColor = { dp:'#2563eb', holiday_int:'#d97706', holiday_full:'#dc2626',
+                      installment:'#000', deferred:'#7c3aed', bullet:'#059669',
+                      last_before_bullet:'#000', };
+  const typeLabel = { dp:'DP', holiday_int:'Mapumziko (F)', holiday_full:'Mapumziko',
+                      installment:'Awamu', deferred:'Faida Iliyoahirishwa',
+                      bullet:'Bullet', last_before_bullet:'Awamu (Mwisho)', };
+
+  rows.forEach((r, idx) => {
+    const bg = idx % 2 === 0 ? '#fafaf8' : '#ffffff';
+    ctx.fillStyle = bg; ctx.fillRect(0, y, W, 16);
+    ctx.fillStyle = typeColor[r.rowType] || '#000';
+    ctx.font = '8px Arial';
+    cx = 4;
+    const cells = [
+      String(r.period),
+      r.date,
+      typeLabel[r.rowType] || r.rowType,
+      r.openBal.toLocaleString(),
+      r.interest.toLocaleString(),
+      r.principal.toLocaleString(),
+      r.payment.toLocaleString(),
+      r.closeBal.toLocaleString(),
+    ];
+    cells.forEach((c, i) => {
+      ctx.fillText(c.slice(0,16), cx, y + 11);
+      cx += cw[i];
+    });
+    // Border bottom
+    ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 0.3;
+    ctx.beginPath(); ctx.moveTo(0, y+16); ctx.lineTo(W, y+16); ctx.stroke();
+    y += 16;
+  });
+
+  // Totals row
+  y += 4;
+  ctx.fillStyle = '#1a3a2a'; ctx.fillRect(0, y, W, 18);
+  ctx.fillStyle = '#ffffff'; ctx.font = 'bold 9px Arial';
+  const totLabels = [
+    `Jumla ya Riba: TZS ${totals.totalInt.toLocaleString()}`,
+    `Jumla ya Mtaji: TZS ${totals.totalPrinc.toLocaleString()}`,
+    `Jumla Yote: TZS ${totals.totalPaid.toLocaleString()}`,
+  ];
+  totLabels.forEach((t, i) => ctx.fillText(t, 8 + i * 196, y + 12));
+
+  // Footer
+  y += 30;
+  ctx.fillStyle = '#888'; ctx.font = '8px Arial';
+  ctx.fillText('Fomu hii imetolewa na mfumo wa AF Lease. Ratiba inaweza kubadilika kulingana na tarehe halisi ya malipo.', 8, y);
+
+  return canvas.toDataURL('image/png');
+}
+
+// ── RepaymentScheduleGen — main UI ────────────────────────────────────────────────────
+function RepaymentScheduleGen({ showToast, onClose, prefill }) {
+  const today = new Date().toISOString().slice(0, 10);
+
+  const [params, setParams] = React.useState({
+    applicantName: prefill?.applicantName || '',
+    assetPrice:    prefill?.assetPrice    || '',
+    downPayment:   prefill?.downPayment   || '',
+    interestMethod:'reducing',
+    annualRate:    prefill?.annualRate    || '',
+    termMonths:    prefill?.termMonths    || 24,
+    frequency:     'monthly',
+    holidayMonths: 0,
+    holidayType:   'interest_only',
+    bulletType:    'none',
+    bulletPct:     '',
+    bulletResidual:'',
+    startDate:     today,
+  });
+  const [result, setResult] = React.useState(null);
+  const [loading, setLoading] = React.useState(false);
+  const [pdfUrl, setPdfUrl]   = React.useState('');
+
+  const set = (k, v) => setParams(p => ({ ...p, [k]: v }));
+
+  const compute = () => {
+    setLoading(true);
+    setPdfUrl('');
+    try {
+      const r = generateRepaymentSchedule({
+        assetPrice:     Number(params.assetPrice),
+        downPayment:    Number(params.downPayment) || 0,
+        interestMethod: params.interestMethod,
+        annualRate:     Number(params.annualRate),
+        termMonths:     Number(params.termMonths),
+        frequency:      params.frequency,
+        holidayMonths:  Number(params.holidayMonths) || 0,
+        holidayType:    params.holidayType,
+        bulletType:     params.bulletType,
+        bulletPct:      Number(params.bulletPct) || 0,
+        bulletResidual: Number(params.bulletResidual) || 0,
+        startDate:      params.startDate,
+      });
+      setResult(r);
+    } catch (e) {
+      showToast('Hitilafu: ' + e.message);
+    }
+    setLoading(false);
+  };
+
+  const exportPDF = () => {
+    if (!result) return;
+    const dataUrl = generateSchedulePDF(result, params, params.applicantName);
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = `AF-Lease-Ratiba-${(params.applicantName||'client').replace(/\s+/g,'-')}.png`;
+    a.click();
+    showToast('Ratiba imepakuliwa!');
+  };
+
+  const shareWhatsApp = () => {
+    if (!result) return;
+    const { rows, totals, regInstallment, financedAmt } = result;
+    const txt = [
+      `*AF LEASE — Ratiba ya Malipo*`,
+      `Mkopaji: ${params.applicantName || '—'}`,
+      `Deni: TZS ${Number(financedAmt).toLocaleString()}`,
+      `Awamu ya kawaida: TZS ${Number(regInstallment).toLocaleString()} / ${params.frequency}`,
+      `Awamu: ${params.termMonths} miezi`,
+      `Riba: ${params.annualRate}% (${params.interestMethod === 'flat' ? 'flat' : 'kupungua'})`,
+      params.holidayMonths > 0 ? `Mapumziko: miezi ${params.holidayMonths}` : '',
+      params.bulletType !== 'none' ? `Bullet: TZS ${Number(result.bulletAmt).toLocaleString()}` : '',
+      `---`,
+      `Jumla ya Riba: TZS ${totals.totalInt.toLocaleString()}`,
+      `Jumla Yote: TZS ${totals.totalPaid.toLocaleString()}`,
+    ].filter(Boolean).join('\n');
+    window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`, '_blank');
+  };
+
+  // Row type styling
+  const rowStyle = {
+    dp:                 { background:'#eff6ff', color:'#1d4ed8', fontWeight:'700' },
+    holiday_int:        { background:'#fffbeb', color:'#b45309' },
+    holiday_full:       { background:'#fef2f2', color:'#dc2626' },
+    installment:        { background:'inherit', color:'inherit' },
+    last_before_bullet: { background:'inherit', color:'inherit' },
+    deferred:           { background:'#faf5ff', color:'#7c3aed' },
+    bullet:             { background:'#ecfdf5', color:'#065f46', fontWeight:'700' },
+  };
+  const rowLabel = {
+    dp:'DP', holiday_int:'Mapumziko (Faida)', holiday_full:'Mapumziko (Kamili)',
+    installment:'Awamu', last_before_bullet:'Awamu (Mwisho)',
+    deferred:'Faida Iliyoahirishwa', bullet:'Bullet',
+  };
+
+  const canCompute = params.assetPrice && params.annualRate && params.termMonths;
+
+  return (
+    <div className="sched-wrap">
+      <div className="sched-header">
+        <button className="afl-back" onClick={onClose}>←</button>
+        <div>
+          <div className="afl-brand">AF Lease</div>
+          <div className="afl-step-title">Ratiba ya Malipo</div>
+        </div>
+      </div>
+
+      <div className="sched-form">
+        {/* Applicant */}
+        <div className="sched-section">Taarifa za Offer</div>
+        <label className="herd-label">Jina la Mkopaji</label>
+        <input className="herd-input" placeholder="k.m. Juma Rashid" value={params.applicantName} onChange={e=>set('applicantName',e.target.value)}/>
+
+        <div className="herd-2col">
+          <div>
+            <label className="herd-label">Gharama ya Rasilimali (TZS) *</label>
+            <input type="number" className="herd-input" min="0" placeholder="k.m. 5000000" value={params.assetPrice} onChange={e=>set('assetPrice',e.target.value)}/>
+          </div>
+          <div>
+            <label className="herd-label">Malipo ya Awali / DP (TZS)</label>
+            <input type="number" className="herd-input" min="0" placeholder="0" value={params.downPayment} onChange={e=>set('downPayment',e.target.value)}/>
+          </div>
+        </div>
+
+        {/* Interest */}
+        <div className="sched-section" style={{marginTop:4}}>Riba</div>
+        <label className="herd-label">Njia ya Mahesabu ya Riba</label>
+        <div className="herd-row">
+          {[['reducing','Kupungua (Reducing Balance)'],['flat','Kiwango Tamuu (Flat Rate)']].map(([v,l])=>(
+            <button key={v} type="button" className={`herd-chip${params.interestMethod===v?' active':''}`} onClick={()=>set('interestMethod',v)}>{l}</button>
+          ))}
+        </div>
+        <div className="herd-2col">
+          <div>
+            <label className="herd-label">Kiwango cha Riba (% kwa mwaka) *</label>
+            <input type="number" className="herd-input" min="0" max="100" step="0.1" placeholder="k.m. 18" value={params.annualRate} onChange={e=>set('annualRate',e.target.value)}/>
+          </div>
+          <div>
+            <label className="herd-label">Muda wa Mkopo (miezi) *</label>
+            <input type="number" className="herd-input" min="1" max="360" value={params.termMonths} onChange={e=>set('termMonths',e.target.value)}/>
+          </div>
+        </div>
+
+        {/* Frequency */}
+        <label className="herd-label">Marudio ya Malipo</label>
+        <div className="herd-row">
+          {[['monthly','Kila Mwezi'],['quarterly','Kila Robo'],['bi-annual','Miezi 6'],['annual','Kila Mwaka']].map(([v,l])=>(
+            <button key={v} type="button" className={`herd-chip${params.frequency===v?' active':''}`} onClick={()=>set('frequency',v)}>{l}</button>
+          ))}
+        </div>
+
+        {/* First payment date */}
+        <label className="herd-label">Tarehe ya Awamu ya Kwanza</label>
+        <input type="date" className="herd-input" value={params.startDate} onChange={e=>set('startDate',e.target.value)}/>
+
+        {/* Holiday */}
+        <div className="sched-section" style={{marginTop:4}}>Mapumziko ya Malipo</div>
+        <div className="herd-2col">
+          <div>
+            <label className="herd-label">Miezi ya Mapumziko</label>
+            <input type="number" className="herd-input" min="0" max="24" value={params.holidayMonths} onChange={e=>set('holidayMonths',e.target.value)}/>
+          </div>
+          <div>
+            <label className="herd-label">Aina ya Mapumziko</label>
+            <select className="herd-input" value={params.holidayType} onChange={e=>set('holidayType',e.target.value)} disabled={!Number(params.holidayMonths)}>
+              <option value="interest_only">Faida tu (Mtaji unasimama)</option>
+              <option value="capitalize">Hakuna malipo — Faida inajumlika</option>
+              <option value="defer">Hakuna malipo — Faida inaahirishwa</option>
+            </select>
+          </div>
+        </div>
+        {params.holidayType === 'capitalize' && Number(params.holidayMonths) > 0 && (
+          <div className="sched-note warn">⚠ Faida inayojumlika itaongeza deni lako. Deni litakuwa kubwa kuliko awali baada ya mapumziko.</div>
+        )}
+        {params.holidayType === 'defer' && Number(params.holidayMonths) > 0 && (
+          <div className="sched-note warn">⚠ Faida iliyoahirishwa itaongezwa kama awamu ya ziada mwishoni mwa ratiba.</div>
+        )}
+
+        {/* Bullet */}
+        <div className="sched-section" style={{marginTop:4}}>Malipo ya Mkupuo (Bullet)</div>
+        <label className="herd-label">Aina ya Bullet</label>
+        <div className="herd-row">
+          {[['none','Hakuna'],['fixed_pct','Asilimia ya Deni'],['residual','Kiasi Maalum (Balloon)']].map(([v,l])=>(
+            <button key={v} type="button" className={`herd-chip${params.bulletType===v?' active':''}`} onClick={()=>set('bulletType',v)}>{l}</button>
+          ))}
+        </div>
+        {params.bulletType === 'fixed_pct' && (
+          <div>
+            <label className="herd-label">Asilimia ya Bullet (% ya deni)</label>
+            <input type="number" className="herd-input" min="1" max="90" placeholder="k.m. 30" value={params.bulletPct} onChange={e=>set('bulletPct',e.target.value)}/>
+            {params.bulletPct && params.assetPrice && params.downPayment !== undefined && (
+              <div className="sched-note info">
+                Bullet = TZS {Math.round((Number(params.assetPrice)-Number(params.downPayment||0)) * Number(params.bulletPct) / 100).toLocaleString()}
+              </div>
+            )}
+          </div>
+        )}
+        {params.bulletType === 'residual' && (
+          <div>
+            <label className="herd-label">Kiasi cha Bullet Mwishoni (TZS)</label>
+            <input type="number" className="herd-input" min="0" placeholder="k.m. 1000000" value={params.bulletResidual} onChange={e=>set('bulletResidual',e.target.value)}/>
+          </div>
+        )}
+
+        <button className="herd-save-btn" style={{marginTop:8}} disabled={loading||!canCompute} onClick={compute}>
+          {loading ? '⏳ Inakokotoa…' : '📊 Tengeneza Ratiba'}
+        </button>
+      </div>
+
+      {/* ── RESULTS ─────────────────────────────────────────────────────────────── */}
+      {result && (() => {
+        const { rows, totals, financedAmt, regInstallment, bulletAmt, effectiveAnnualRate } = result;
+        return (
+          <div className="sched-results">
+            {/* Summary cards */}
+            <div className="sched-summary-grid">
+              <div className="sched-card"><span>Deni (Financed)</span><strong>TZS {Number(financedAmt).toLocaleString()}</strong></div>
+              <div className="sched-card"><span>Awamu ya kawaida</span><strong>TZS {Number(regInstallment).toLocaleString()}</strong></div>
+              {bulletAmt > 0 && <div className="sched-card bullet"><span>Malipo ya Bullet</span><strong>TZS {Number(bulletAmt).toLocaleString()}</strong></div>}
+              <div className="sched-card interest"><span>Jumla ya Riba</span><strong>TZS {totals.totalInt.toLocaleString()}</strong></div>
+              <div className="sched-card"><span>Gharama Yote</span><strong>TZS {totals.totalPaid.toLocaleString()}</strong></div>
+              <div className="sched-card"><span>Kiwango Halisi (APR)</span><strong>{effectiveAnnualRate}%</strong></div>
+            </div>
+
+            {/* Export buttons */}
+            <div className="sched-export-row">
+              <button className="sched-pdf-btn" onClick={exportPDF}>📥 Pakua PDF</button>
+              <button className="sched-wa-btn" onClick={shareWhatsApp}>📲 Tuma WhatsApp</button>
+            </div>
+
+            {/* Legend */}
+            <div className="sched-legend">
+              {[['dp','DP'],['holiday_int','Mapumziko (Faida)'],['holiday_full','Mapumziko (Kamili)'],
+                ['installment','Awamu'],['deferred','Faida Iliyoahirishwa'],['bullet','Bullet']].map(([k,l])=>(
+                <span key={k} className="sched-leg-item" style={{color:(rowStyle[k]||{}).color||'#444'}}>■ {l}</span>
+              ))}
+            </div>
+
+            {/* Schedule table */}
+            <div className="sched-table-wrap">
+              <table className="sched-table">
+                <thead>
+                  <tr>
+                    {['#','Tarehe','Aina','Deni Wazi','Riba','Mtaji','Malipo','Deni Baki'].map(h=>(
+                      <th key={h}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r,i) => (
+                    <tr key={i} style={rowStyle[r.rowType]||{}}>
+                      <td>{r.period}</td>
+                      <td>{r.date}</td>
+                      <td>{rowLabel[r.rowType]||r.rowType}</td>
+                      <td className="num">{r.openBal.toLocaleString()}</td>
+                      <td className="num">{r.interest.toLocaleString()}</td>
+                      <td className="num">{r.principal.toLocaleString()}</td>
+                      <td className="num sched-pay">{r.payment.toLocaleString()}</td>
+                      <td className="num">{r.closeBal.toLocaleString()}</td>
+                    </tr>
+                  ))}
+                  {/* Totals row */}
+                  <tr className="sched-totals-row">
+                    <td colSpan={3}>JUMLA</td>
+                    <td/>
+                    <td className="num">{totals.totalInt.toLocaleString()}</td>
+                    <td className="num">{totals.totalPrinc.toLocaleString()}</td>
+                    <td className="num">{totals.totalPaid.toLocaleString()}</td>
+                    <td/>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
 // ─── AF Lease Application — KYC + Business Appraisal + Referee Link ────────────────
 
 const AFL_DOCS_REQUIRED = [
@@ -8799,6 +9389,7 @@ function HerdTab({ userRole, country, showToast, cur }) {
   const [syncBadge, setSyncBadge] = React.useState('idle'); // idle|syncing|ok|error
   const [form, setForm]           = React.useState({});
   const [aflView, setAflView]     = React.useState(false); // show AFLeaseApplication overlay
+  const [schedView, setSchedView] = React.useState(null);  // null | prefill object
 
   React.useEffect(() => {
     (async () => {
@@ -8923,6 +9514,9 @@ function HerdTab({ userRole, country, showToast, cur }) {
   // ── Render ─────────────────────────────────────────────────────────────────────────
   if (!dbReady) return <div className="herd-loading"><span>🐄</span><p>Loading herd records…</p></div>;
 
+  // ── Repayment schedule overlay ────────────────────────────────────────────────
+  if (schedView !== null) return <RepaymentScheduleGen showToast={showToast} onClose={() => setSchedView(null)} prefill={schedView}/>;
+
   // ── AF Lease application overlay ──────────────────────────────────────────────
   if (aflView) return <AFLeaseApplication showToast={showToast} onClose={() => setAflView(false)}/>;
 
@@ -8945,6 +9539,9 @@ function HerdTab({ userRole, country, showToast, cur }) {
           </button>
           <button className="afl-apply-btn" onClick={() => setAflView(true)}>
             📋 Omba AF Lease
+          </button>
+          <button className="afl-apply-btn" style={{background:'#1d4ed8'}} onClick={() => setSchedView({})}>
+            📊 Ratiba ya Malipo
           </button>
         </div>
       </div>
@@ -9364,7 +9961,19 @@ function HerdTab({ userRole, country, showToast, cur }) {
                       <div className="herd-lease-lender">{lease.lenderName}</div>
                       <div className="herd-lease-dates">{lease.startDate} · {lease.frequency}</div>
                     </div>
+                    <div style={{display:'flex',gap:6}}>
                     <button className="herd-edit-btn" onClick={() => { setForm({...lease}); setView('addLease'); }}>Edit</button>
+                    <button className="herd-edit-btn" style={{background:'#eff6ff',color:'#1d4ed8'}}
+                      onClick={() => setSchedView({
+                        applicantName: selected.name || selected.tagNumber,
+                        assetPrice: lease.principalTzs,
+                        downPayment: 0,
+                        annualRate: lease.interestRate || '',
+                        termMonths: (lease.totalInstalments || 24) * ({ monthly:1, quarterly:3, 'bi-annual':6, annual:12 }[lease.frequency]||1),
+                      })}>
+                      📊 Ratiba
+                    </button>
+                  </div>
                   </div>
                   <div className="herd-progress-bar">
                     <div className="herd-progress-fill" style={{width:`${ls.progress}%`}}/>
