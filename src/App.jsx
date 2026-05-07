@@ -239,15 +239,16 @@ const NAV_TABS = [
 { id:"rider",     icon:"🚴", label:"Rider"     },
 { id:"agripass",  icon:"🔬", label:"AgriPass"  },
 { id:"analytics", icon:"📊", label:"Analytics" },
+{ id:"herd",      icon:"🐄", label:"HerdPass"  },
 ];
 
 // ─── Role-based access control ──────────────────────────────────────────────────────
 const ROLES = {
-customer:  { label:"Customer",    icon:"🛒", tabs:["market","agripass"],                        color:"#2d6a4f" },
-farmer:    { label:"Farmer",      icon:"🌱", tabs:["market","portal","agripass"],               color:"#1a5c36" },
-rider:     { label:"Rider",       icon:"🚴", tabs:["market","rider"],                           color:"#0c5460" },
-inspector: { label:"Inspector",   icon:"🔬", tabs:["market","agripass","hub"],                  color:"#5c3d1e" },
-admin:     { label:"Admin",       icon:"🛠️", tabs:["market","portal","hub","rider","agripass","analytics"], color:"#1a3a2a" },
+customer:  { label:"Customer",    icon:"🛒", tabs:["market","agripass"],                                  color:"#2d6a4f" },
+farmer:    { label:"Farmer",      icon:"🌱", tabs:["market","portal","agripass","herd"],                   color:"#1a5c36" },
+rider:     { label:"Rider",       icon:"🚴", tabs:["market","rider"],                                      color:"#0c5460" },
+inspector: { label:"Inspector",   icon:"🔬", tabs:["market","agripass","hub"],                             color:"#5c3d1e" },
+admin:     { label:"Admin",       icon:"🛠️", tabs:["market","portal","hub","rider","agripass","analytics","herd"], color:"#1a3a2a" },
 };
 
 // ─── Analytics — self-contained event bus (no external libraries) ────────────────────
@@ -3486,7 +3487,123 @@ cursor:pointer; transition:all .18s; background:white;
 .wholesale-table td{padding:7px 0;border-bottom:1px solid var(--sand,#f0f0f0);color:var(--text)}
 .wholesale-table tr:last-child td{border-bottom:none}
 .wt-save{color:var(--leaf,#52b788);font-weight:700;font-size:12px}
+
+/* ══════════ HerdPass styles ══════════ */
+.herd-wrap{padding:0 0 90px}
+.herd-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;gap:16px;color:#888}
+.herd-loading span{font-size:64px}
+.herd-header{display:flex;align-items:flex-start;justify-content:space-between;padding:16px 16px 8px;gap:12px}
+.herd-title{font-size:22px;font-weight:800;color:var(--forest)}
+.herd-subtitle{font-size:12px;color:#888;margin-top:2px;display:flex;align-items:center;gap:6px}
+.herd-sync{font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;background:#f0f0f0;color:#888}
+.herd-sync.ok{background:#e6f7ed;color:#2d6a4f}
+.herd-sync.err{background:#fff0ee;color:#c62828}
+.herd-add-btn{background:var(--forest);color:white;border:none;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.herd-chips{display:flex;gap:8px;padding:4px 16px 12px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.herd-chips::-webkit-scrollbar{display:none}
+.herd-chip{background:var(--mist,#f5f5f5);border:1.5px solid transparent;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;color:var(--text,#222);transition:all .15s}
+.herd-chip.active{background:var(--forest);color:white;border-color:var(--forest)}
+.herd-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:0 12px}
+.herd-card{background:white;border-radius:14px;padding:12px;box-shadow:var(--shadow-sm,0 1px 6px rgba(0,0,0,.07));cursor:pointer;transition:transform .15s}
+.herd-card:active{transform:scale(.97)}
+.herd-card-top{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
+.herd-species-icon{font-size:28px;line-height:1;flex-shrink:0}
+.herd-card-name{font-size:14px;font-weight:700;color:var(--forest);line-height:1.2;word-break:break-word}
+.herd-card-tag{font-size:10px;color:#aaa;margin-top:2px}
+.herd-status-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.herd-card-meta{font-size:11px;color:#888;margin-bottom:8px;line-height:1.4}
+.herd-card-footer{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.herd-status-pill{font-size:10px;font-weight:700;border-radius:6px;padding:2px 7px}
+.herd-last-ev{font-size:10px;color:#aaa;margin-left:auto}
+.herd-lease-tag{font-size:10px;color:#8B7355;font-weight:700}
+.herd-empty{display:flex;flex-direction:column;align-items:center;text-align:center;padding:48px 24px;gap:12px;color:#888}
+.herd-empty h3{font-size:17px;font-weight:700;color:var(--text,#222)}
+.herd-empty p{font-size:13px;line-height:1.5}
+.herd-empty-sm{padding:20px 0;text-align:center;font-size:13px;color:#aaa}
+
+/* Nav back bar */
+.herd-nav-back{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--sand,#eee);background:white;position:sticky;top:0;z-index:10}
+.herd-nav-back button{background:none;border:none;color:var(--forest);font-size:14px;font-weight:700;cursor:pointer;padding:4px 0}
+.herd-nav-back span{font-size:14px;font-weight:700;color:var(--text)}
+.herd-edit-btn{background:var(--mist,#f5f5f5);border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;color:var(--forest)}
+.herd-del-btn{background:#fff0ee;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;color:#c62828}
+
+/* Detail hero */
+.herd-detail-hero{background:var(--forest);color:white;padding:16px;display:flex;gap:14px;align-items:flex-start}
+.herd-detail-name{font-size:20px;font-weight:800;line-height:1.2}
+
+/* Stats row */
+.herd-stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--sand,#eee);border-bottom:1px solid var(--sand,#eee)}
+.herd-stat{background:white;padding:10px 6px;text-align:center}
+.herd-stat span{display:block;font-size:16px;font-weight:800;color:var(--forest)}
+.herd-stat label{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:#aaa;margin-top:2px}
+
+/* Section tabs */
+.herd-sec-tabs{display:flex;overflow-x:auto;background:white;border-bottom:2px solid var(--sand,#eee);padding:0 12px;gap:2px;scrollbar-width:none}
+.herd-sec-tabs::-webkit-scrollbar{display:none}
+.herd-sec-tab{background:none;border:none;padding:10px 12px;font-size:13px;font-weight:600;color:#888;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;margin-bottom:-2px}
+.herd-sec-tab.active{color:var(--forest);border-bottom-color:var(--forest)}
+
+/* Sections */
+.herd-section{padding:12px 16px}
+.herd-section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;font-size:13px;font-weight:700;color:var(--text,#222)}
+.herd-add-ev-btn{background:var(--mist,#f5f5f5);border:1.5px solid var(--leaf,#52b788);color:var(--forest);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer}
+.herd-reminder-box{background:#fff9e6;border:1.5px solid #f5a623;border-radius:10px;padding:10px 14px;font-size:12px;color:#7a5c00;margin-bottom:12px}
+.herd-repro-summary{background:#f0faf4;border:1.5px solid var(--leaf,#52b788);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.7;margin-bottom:12px;color:var(--forest)}
+
+/* Timeline */
+.herd-timeline{display:flex;flex-direction:column;gap:0}
+.herd-ev-row{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--sand,#f0f0f0)}
+.herd-ev-row:last-child{border-bottom:none}
+.herd-ev-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.herd-ev-body{flex:1;min-width:0}
+.herd-ev-title{font-size:13px;font-weight:600;color:var(--text,#222)}
+.herd-ev-meta{font-size:11px;color:#aaa;margin-top:2px}
+.herd-ev-notes{font-size:12px;color:#666;margin-top:4px;font-style:italic}
+
+/* Lease card */
+.herd-lease-card{background:white;border-radius:14px;padding:14px;box-shadow:var(--shadow-sm,0 1px 6px rgba(0,0,0,.07));border:1.5px solid var(--sand,#eee)}
+.herd-lease-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px}
+.herd-lease-lender{font-size:16px;font-weight:800;color:var(--forest)}
+.herd-lease-dates{font-size:11px;color:#aaa;margin-top:2px}
+.herd-progress-bar{height:8px;background:var(--sand,#eee);border-radius:4px;margin-bottom:12px;overflow:hidden}
+.herd-progress-fill{height:100%;background:var(--leaf,#52b788);border-radius:4px;transition:width .4s}
+.herd-lease-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px 16px;font-size:12px}
+.herd-lease-stats div{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--sand,#f5f5f5);padding:4px 0}
+.herd-lease-stats span{color:#888}
+.herd-lease-done{background:#e6f7ed;color:#2d6a4f;font-weight:700;font-size:13px;border-radius:8px;padding:10px;text-align:center;margin-top:12px}
+
+/* Form */
+.herd-form{padding:16px;display:flex;flex-direction:column;gap:12px}
+.herd-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:#888;margin-bottom:-4px}
+.herd-input{width:100%;background:var(--mist,#f5f5f5);border:1.5px solid transparent;border-radius:10px;padding:10px 12px;font-size:14px;font-family:var(--font-body,sans-serif);color:var(--text,#222);outline:none;transition:border-color .15s}
+.herd-input:focus{border-color:var(--leaf,#52b788)}
+.herd-species-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.herd-species-btn{background:var(--mist,#f5f5f5);border:1.5px solid transparent;border-radius:10px;padding:10px 4px;font-size:11px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--text,#222);transition:all .15s}
+.herd-species-btn .icon{font-size:24px}
+.herd-species-btn.active{background:#e6f7ed;border-color:var(--leaf,#52b788);color:var(--forest)}
+.herd-row{display:flex;flex-wrap:wrap;gap:6px}
+.herd-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.herd-save-btn{background:var(--forest);color:white;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px;width:100%}
+.herd-save-btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* Dark mode */
+body.dark .herd-card{background:#1e2b22;color:white}
+body.dark .herd-detail-hero{background:#0d2015}
+body.dark .herd-stat{background:#1a2f20}
+body.dark .herd-sec-tab{color:#aaa}
+body.dark .herd-sec-tab.active{color:#52b788}
+body.dark .herd-section-header{color:white}
+body.dark .herd-ev-title{color:white}
+body.dark .herd-form{background:transparent}
+body.dark .herd-input{background:#1e2b22;color:white;border-color:#2d4a35}
+body.dark .herd-lease-card{background:#1e2b22}
+body.dark .herd-nav-back{background:#0d2015;border-color:#2d4a35}
+
+/* Mobile: single column grid on very small screens */
+@media(max-width:360px){.herd-grid{grid-template-columns:1fr}.herd-stats-row{grid-template-columns:repeat(2,1fr)}}
 `;
+
 
 
 // ─── useFocusTrap hook — WCAG 2.1 SC 2.1.2 keyboard focus containment ─────────────────
@@ -7508,6 +7625,1045 @@ function LiveTrackingMap({ order, riderData, onClose }) {
   );
 }
 
+// ─── HerdPass — Livestock Management Module ─────────────────────────────────────────
+
+const HERD_SPECIES = [
+  { id:'cow',   label:'Cattle', icon:'🐄', types:['dairy','beef','dual'] },
+  { id:'goat',  label:'Goats',  icon:'🐐', types:['dairy','meat','dual'] },
+  { id:'sheep', label:'Sheep',  icon:'🐑', types:['meat','wool','dual']  },
+  { id:'fish',  label:'Fish',   icon:'🐟', types:['aquaculture']          },
+];
+
+const AFRICAN_BREEDS = {
+  cow: [
+    'Friesian (Holstein)','Jersey','Guernsey','Ayrshire','Red Poll',
+    'Sahiwal','Mpwapwa','Tanzania Shorthorn Zebu (TSZ)',
+    'Boran','Ankole-Watusi','Nguni','Bonsmara','Beefmaster',
+    'Crossbreed Friesian×Sahiwal','Crossbreed Boran×Simmental','Other',
+  ],
+  goat: [
+    'Galla','Small East African (SEA)','Boer','Toggenburg','Saanen',
+    'Nubian / Anglo-Nubian','Kiko','Crossbreed Galla×Boer','Other',
+  ],
+  sheep: [
+    'Dorper','Red Masai','Blackhead Persian','East African Blackhead',
+    'Merino','Suffolk','Hampshire','Crossbreed Dorper×Masai','Other',
+  ],
+  fish: [
+    'Nile Tilapia (Oreochromis niloticus)','African Catfish (Clarias)','Rainbow Trout',
+    'Common Carp (Cyprinus carpio)','Pangasius','Other',
+  ],
+};
+
+const HERD_STATUSES = [
+  {id:'active',    label:'Active',    color:'#2d6a4f'},
+  {id:'dry',       label:'Dry',       color:'#8B7355'},
+  {id:'pregnant',  label:'Pregnant',  color:'#6B8E23'},
+  {id:'empty',     label:'Empty',     color:'#CD853F'},
+  {id:'sold',      label:'Sold',      color:'#708090'},
+  {id:'culled',    label:'Culled',    color:'#8B0000'},
+];
+
+const HEALTH_VACCINES = ['FMD','Brucellosis','Blackleg / Clostridial','Anthrax',
+  'CBPP (Cattle)','Lumpy Skin Disease','Rabies','PPR (Goats & Sheep)','CCPP (Goats)',
+  'Newcastle (Poultry)','Other'];
+const HEALTH_TREATMENTS = ['Deworming (anthelmintic)','Tick / Flea control','Antibiotic course',
+  'Anti-inflammatory (NSAID)','Wound dressing','Mastitis treatment','Foot rot treatment',
+  'Bloat relief','Vitamin / mineral supplement','Other'];
+const HEALTH_CHECKUPS = ['Routine vet check','Body condition score','Pregnancy diagnosis',
+  'Milk quality / somatic cell count','Faecal egg count','Blood test','Other'];
+
+const REPRO_EVENTS = ['Heat detected','AI performed','Natural service','Bull turned in',
+  'Pregnancy confirmed','Pregnancy negative (open)','Expected calving / kidding date set',
+  'Calving / Kidding','Abortion / Miscarriage','Stillbirth','Weaning','Drying off'];
+
+// ── IndexedDB helpers ─────────────────────────────────────────────────────────────────
+const HERD_DB_NAME    = 'asiel-herd';
+const HERD_DB_VERSION = 1;
+let _herdDbInstance   = null;
+
+function openHerdDB() {
+  if (_herdDbInstance) return Promise.resolve(_herdDbInstance);
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(HERD_DB_NAME, HERD_DB_VERSION);
+    req.onerror   = () => reject(req.error);
+    req.onsuccess = (e) => { _herdDbInstance = e.target.result; resolve(_herdDbInstance); };
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('animals')) {
+        const a = db.createObjectStore('animals', { keyPath:'id' });
+        a.createIndex('species','species',{unique:false});
+        a.createIndex('status','status',{unique:false});
+      }
+      if (!db.objectStoreNames.contains('events')) {
+        const ev = db.createObjectStore('events', { keyPath:'id' });
+        ev.createIndex('animalId','animalId',{unique:false});
+        ev.createIndex('type','type',{unique:false});
+        ev.createIndex('date','date',{unique:false});
+      }
+      if (!db.objectStoreNames.contains('leases')) {
+        const l = db.createObjectStore('leases', { keyPath:'id' });
+        l.createIndex('animalId','animalId',{unique:false});
+      }
+    };
+  });
+}
+
+async function herdAll(store, indexName, query) {
+  const db = await openHerdDB();
+  return new Promise((resolve, reject) => {
+    const tx  = db.transaction(store,'readonly');
+    const src = tx.objectStore(store);
+    const req = indexName ? src.index(indexName).getAll(query) : src.getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror   = () => reject(req.error);
+  });
+}
+
+async function herdPut(store, record) {
+  const db = await openHerdDB();
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(store,'readwrite').objectStore(store).put(record);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror   = () => reject(req.error);
+  });
+}
+
+async function herdDel(store, id) {
+  const db = await openHerdDB();
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(store,'readwrite').objectStore(store).delete(id);
+    req.onsuccess = () => resolve();
+    req.onerror   = () => reject(req.error);
+  });
+}
+
+// ── HerdPass main component ───────────────────────────────────────────────────────────
+function HerdTab({ userRole, country, showToast, cur }) {
+  const [animals,  setAnimals]  = React.useState([]);
+  const [events,   setEvents]   = React.useState([]);
+  const [leases,   setLeases]   = React.useState([]);
+  const [view,     setView]     = React.useState('list'); // list|addAnimal|detail|addEvent|addLease|addPay
+  const [selected, setSelected] = React.useState(null);   // current animal object
+  const [speciesF, setSpeciesF] = React.useState('all');
+  const [detailSec, setDetailSec] = React.useState('timeline'); // timeline|health|repro|production|lease
+  const [eventCat, setEventCat]   = React.useState('health');
+  const [saving, setSaving]       = React.useState(false);
+  const [dbReady, setDbReady]     = React.useState(false);
+  const [syncBadge, setSyncBadge] = React.useState('idle'); // idle|syncing|ok|error
+  const [form, setForm]           = React.useState({});
+
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const [a, ev, l] = await Promise.all([
+          herdAll('animals'), herdAll('events'), herdAll('leases'),
+        ]);
+        setAnimals(a.sort((x,y) => (y.updatedAt||0)-(x.updatedAt||0)));
+        setEvents(ev.sort((x,y) => (y.date||'')>(x.date||'')?-1:1));
+        setLeases(l);
+      } catch { /* IDB not available — still render */ }
+      setDbReady(true);
+    })();
+  }, []);
+
+  const saveAnimal = async (data) => {
+    setSaving(true);
+    const rec = {
+      ...data,
+      id:        data.id || secureId(),
+      updatedAt: Date.now(),
+      synced:    false,
+    };
+    await herdPut('animals', rec);
+    setAnimals(prev => {
+      const rest = prev.filter(a => a.id !== rec.id);
+      return [rec, ...rest];
+    });
+    if (selected?.id === rec.id) setSelected(rec);
+    setSaving(false);
+    showToast(data.id ? 'Animal record updated' : `${rec.name || rec.tagNumber} added to herd`);
+    syncHerd();
+    setView(data.id ? 'detail' : 'list');
+  };
+
+  const deleteAnimal = async (animal) => {
+    if (!window.confirm(`Remove ${animal.name || animal.tagNumber} from herd records? This cannot be undone.`)) return;
+    await herdDel('animals', animal.id);
+    setAnimals(prev => prev.filter(a => a.id !== animal.id));
+    setView('list');
+    showToast('Animal removed from herd');
+  };
+
+  const saveEvent = async (data) => {
+    setSaving(true);
+    const rec = { ...data, id: data.id || secureId(), animalId: selected.id, createdAt: Date.now(), synced: false };
+    await herdPut('events', rec);
+    setEvents(prev => [rec, ...prev.filter(e => e.id !== rec.id)]);
+    setSaving(false);
+    showToast('Event recorded');
+    syncHerd();
+    setView('detail');
+    setDetailSec('timeline');
+  };
+
+  const saveLease = async (data) => {
+    setSaving(true);
+    const rec = { ...data, id: data.id || secureId(), animalId: selected.id, payments: data.payments || [], synced: false };
+    await herdPut('leases', rec);
+    setLeases(prev => [rec, ...prev.filter(l => l.id !== rec.id)]);
+    setSaving(false);
+    showToast('Lease record saved');
+    syncHerd();
+    setView('detail');
+    setDetailSec('lease');
+  };
+
+  const addLeasePayment = async (lease, payData) => {
+    const updated = { ...lease, payments: [...(lease.payments||[]), { ...payData, id: secureId(), ts: Date.now() }], synced: false };
+    await herdPut('leases', updated);
+    setLeases(prev => prev.map(l => l.id === updated.id ? updated : l));
+    showToast('Payment recorded');
+    syncHerd();
+  };
+
+  const syncHerd = async () => {
+    const API = import.meta.env.VITE_API_BASE;
+    if (!API) return; // demo mode
+    setSyncBadge('syncing');
+    try {
+      const [unsyncedA, unsyncedE, unsyncedL] = await Promise.all([
+        herdAll('animals').then(r => r.filter(a => !a.synced)),
+        herdAll('events').then(r => r.filter(e => !e.synced)),
+        herdAll('leases').then(r => r.filter(l => !l.synced)),
+      ]);
+      const res = await fetch(`${API}/api/herd/sync`, {
+        method:'POST', credentials:'include',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ animals: unsyncedA, events: unsyncedE, leases: unsyncedL }),
+      });
+      if (res.ok) {
+        // mark everything synced locally
+        await Promise.all([
+          ...unsyncedA.map(a => herdPut('animals', { ...a, synced:true })),
+          ...unsyncedE.map(e => herdPut('events',  { ...e, synced:true })),
+          ...unsyncedL.map(l => herdPut('leases',  { ...l, synced:true })),
+        ]);
+        setSyncBadge('ok');
+      } else { setSyncBadge('error'); }
+    } catch { setSyncBadge('error'); }
+  };
+
+  // ── Computed ────────────────────────────────────────────────────────────────────────
+  const visible = speciesF === 'all' ? animals : animals.filter(a => a.species === speciesF);
+  const animalEvents = selected ? events.filter(e => e.animalId === selected.id) : [];
+  const animalLease  = selected ? leases.find(l => l.animalId === selected.id) : null;
+
+  const speciesIcon = (sp) => HERD_SPECIES.find(s => s.id === sp)?.icon || '🐾';
+  const statusMeta  = (st) => HERD_STATUSES.find(s => s.id === st) || { label: st, color:'#888' };
+
+  // ── Lease maths ────────────────────────────────────────────────────────────────────
+  function leaseStats(lease) {
+    if (!lease) return null;
+    const paid = (lease.payments||[]).reduce((s,p) => s + (Number(p.amountTzs)||0), 0);
+    const total = Number(lease.principalTzs)||0;
+    const remaining = Math.max(0, total - paid);
+    const paidInstalments = (lease.payments||[]).length;
+    const progress = total > 0 ? Math.min(100, Math.round(paid/total*100)) : 0;
+    return { paid, remaining, total, paidInstalments, progress };
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────────────
+  if (!dbReady) return <div className="herd-loading"><span>🐄</span><p>Loading herd records…</p></div>;
+
+  // ── LIST VIEW ─────────────────────────────────────────────────────────────────────
+  if (view === 'list') return (
+    <div className="herd-wrap">
+      <div className="herd-header">
+        <div>
+          <div className="herd-title">HerdPass</div>
+          <div className="herd-subtitle">
+            {animals.length} animals · {leases.length} leases
+            {syncBadge === 'ok'      && <span className="herd-sync ok">✓ synced</span>}
+            {syncBadge === 'syncing' && <span className="herd-sync">↻ syncing…</span>}
+            {syncBadge === 'error'   && <span className="herd-sync err">⚠ offline</span>}
+          </div>
+        </div>
+        <button className="herd-add-btn" onClick={() => { setForm({ species:'cow', category:'dairy', sex:'female', status:'active' }); setView('addAnimal'); }}>
+          + Add Animal
+        </button>
+      </div>
+
+      {/* Species filter chips */}
+      <div className="herd-chips">
+        <button className={`herd-chip${speciesF==='all'?' active':''}`} onClick={() => setSpeciesF('all')}>All ({animals.length})</button>
+        {HERD_SPECIES.map(sp => {
+          const n = animals.filter(a => a.species === sp.id).length;
+          return n > 0 ? (
+            <button key={sp.id} className={`herd-chip${speciesF===sp.id?' active':''}`} onClick={() => setSpeciesF(sp.id)}>
+              {sp.icon} {sp.label} ({n})
+            </button>
+          ) : null;
+        })}
+      </div>
+
+      {visible.length === 0 ? (
+        <div className="herd-empty">
+          <div style={{fontSize:64}}>🐾</div>
+          <h3>No animals yet</h3>
+          <p>Add your first animal to start tracking health, production, and finances.</p>
+          <button className="herd-add-btn" onClick={() => { setForm({ species:'cow', category:'dairy', sex:'female', status:'active' }); setView('addAnimal'); }}>
+            + Add First Animal
+          </button>
+        </div>
+      ) : (
+        <div className="herd-grid">
+          {visible.map(animal => {
+            const sm = statusMeta(animal.status);
+            const anEv = events.filter(e => e.animalId === animal.id);
+            const lastEv = anEv[0];
+            return (
+              <div key={animal.id} className="herd-card" onClick={() => { setSelected(animal); setDetailSec('timeline'); setView('detail'); }}>
+                <div className="herd-card-top">
+                  <span className="herd-species-icon">{speciesIcon(animal.species)}</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div className="herd-card-name">{animal.name || animal.tagNumber}</div>
+                    {animal.name && <div className="herd-card-tag">#{animal.tagNumber}</div>}
+                  </div>
+                  <span className="herd-status-dot" style={{background:sm.color}} title={sm.label}/>
+                </div>
+                <div className="herd-card-meta">
+                  <span>{animal.breed || animal.category}</span>
+                  {animal.sex && <span>· {animal.sex}</span>}
+                  {animal.dob && <span>· {(() => { const d = Math.floor((Date.now()-new Date(animal.dob))/86400000/365.25); return d < 1 ? '< 1 yr' : `${d} yr${d>1?'s':''}`; })()}</span>}
+                </div>
+                <div className="herd-card-footer">
+                  <span className="herd-status-pill" style={{background:sm.color+'22',color:sm.color}}>{sm.label}</span>
+                  {lastEv && <span className="herd-last-ev">Last: {lastEv.subtype || lastEv.type} {lastEv.date}</span>}
+                  {animalLease && <span className="herd-lease-tag">📋 Lease</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+
+  // ── ADD / EDIT ANIMAL ─────────────────────────────────────────────────────────────
+  if (view === 'addAnimal') {
+    const sp = HERD_SPECIES.find(s => s.id === (form.species||'cow'));
+    const breeds = AFRICAN_BREEDS[form.species||'cow'] || [];
+    return (
+      <div className="herd-wrap">
+        <div className="herd-nav-back">
+          <button onClick={() => setView(form.id ? 'detail' : 'list')}>← Back</button>
+          <span>{form.id ? 'Edit Animal' : 'Add New Animal'}</span>
+        </div>
+        <div className="herd-form">
+          {/* Species */}
+          <label className="herd-label">Species</label>
+          <div className="herd-species-row">
+            {HERD_SPECIES.map(s => (
+              <button key={s.id} type="button"
+                className={`herd-species-btn${form.species===s.id?' active':''}`}
+                onClick={() => setForm(f => ({ ...f, species:s.id, breed:'', category:s.types[0] }))}>
+                {s.icon} {s.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Category */}
+          <label className="herd-label">Category / Purpose</label>
+          <div className="herd-row">
+            {(sp?.types||[]).map(t => (
+              <button key={t} type="button"
+                className={`herd-chip${form.category===t?' active':''}`}
+                onClick={() => setForm(f => ({ ...f, category:t }))}>
+                {t}
+              </button>
+            ))}
+          </div>
+
+          {/* Tag & Name */}
+          <div className="herd-2col">
+            <div>
+              <label className="herd-label">Ear Tag / ID *</label>
+              <input className="herd-input" placeholder="e.g. TZ-001" value={form.tagNumber||''} onChange={e => setForm(f => ({...f,tagNumber:e.target.value}))}/>
+            </div>
+            <div>
+              <label className="herd-label">Name (optional)</label>
+              <input className="herd-input" placeholder="e.g. Zawadi" value={form.name||''} onChange={e => setForm(f => ({...f,name:e.target.value}))}/>
+            </div>
+          </div>
+
+          {/* Breed */}
+          <label className="herd-label">Breed</label>
+          <select className="herd-input" value={form.breed||''} onChange={e => setForm(f => ({...f,breed:e.target.value}))}>
+            <option value="">— select breed —</option>
+            {breeds.map(b => <option key={b} value={b}>{b}</option>)}
+          </select>
+
+          {/* Sex & DOB */}
+          <div className="herd-2col">
+            <div>
+              <label className="herd-label">Sex</label>
+              <select className="herd-input" value={form.sex||'female'} onChange={e => setForm(f => ({...f,sex:e.target.value}))}>
+                <option value="female">Female</option>
+                <option value="male">Male</option>
+                <option value="castrated">Castrated (steer)</option>
+              </select>
+            </div>
+            <div>
+              <label className="herd-label">Date of Birth</label>
+              <input type="date" className="herd-input" value={form.dob||''} onChange={e => setForm(f => ({...f,dob:e.target.value}))} max={new Date().toISOString().slice(0,10)}/>
+            </div>
+          </div>
+
+          {/* Entry */}
+          <div className="herd-2col">
+            <div>
+              <label className="herd-label">Entry Method</label>
+              <select className="herd-input" value={form.entryMethod||''} onChange={e => setForm(f => ({...f,entryMethod:e.target.value}))}>
+                <option value="">— select —</option>
+                <option value="born on farm">Born on farm</option>
+                <option value="purchased">Purchased</option>
+                <option value="leased (EFTA)">Leased (EFTA / HP)</option>
+                <option value="donated">Donated</option>
+                <option value="transferred">Transferred</option>
+              </select>
+            </div>
+            <div>
+              <label className="herd-label">Entry Date</label>
+              <input type="date" className="herd-input" value={form.entryDate||''} onChange={e => setForm(f => ({...f,entryDate:e.target.value}))} max={new Date().toISOString().slice(0,10)}/>
+            </div>
+          </div>
+
+          {/* Status */}
+          <label className="herd-label">Current Status</label>
+          <div className="herd-row">
+            {HERD_STATUSES.map(s => (
+              <button key={s.id} type="button"
+                className={`herd-chip${form.status===s.id?' active':''}`}
+                style={form.status===s.id?{background:s.color+'22',color:s.color,borderColor:s.color}:{}}
+                onClick={() => setForm(f => ({...f,status:s.id}))}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Lactation number (dairy only) */}
+          {(form.category === 'dairy' || form.category === 'dual') && form.sex === 'female' && (
+            <>
+              <label className="herd-label">Lactation Number</label>
+              <input type="number" className="herd-input" min="0" max="20" placeholder="0 = heifer" value={form.lactationNo||''} onChange={e => setForm(f => ({...f,lactationNo:e.target.value}))}/>
+            </>
+          )}
+
+          {/* Live weight */}
+          <div className="herd-2col">
+            <div>
+              <label className="herd-label">Live Weight (kg)</label>
+              <input type="number" className="herd-input" min="0" max="2000" placeholder="e.g. 320" value={form.weightKg||''} onChange={e => setForm(f => ({...f,weightKg:e.target.value}))}/>
+            </div>
+            <div>
+              <label className="herd-label">Colour / Markings</label>
+              <input className="herd-input" placeholder="e.g. Black & white" value={form.colour||''} onChange={e => setForm(f => ({...f,colour:e.target.value}))}/>
+            </div>
+          </div>
+
+          {/* Notes */}
+          <label className="herd-label">Notes</label>
+          <textarea className="herd-input" rows={3} placeholder="Any other details…" value={form.notes||''} onChange={e => setForm(f => ({...f,notes:e.target.value}))} style={{resize:'vertical'}}/>
+
+          <button className="herd-save-btn" disabled={saving || !form.tagNumber} onClick={() => saveAnimal(form)}>
+            {saving ? 'Saving…' : (form.id ? 'Update Animal' : 'Add to Herd')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── ANIMAL DETAIL ─────────────────────────────────────────────────────────────────
+  if (view === 'detail' && selected) {
+    const sm = statusMeta(selected.status);
+    const lease = animalLease;
+    const ls = leaseStats(lease);
+    const healthEv   = animalEvents.filter(e => e.type === 'health');
+    const reproEv    = animalEvents.filter(e => e.type === 'repro');
+    const prodEv     = animalEvents.filter(e => e.type === 'production');
+    const isDairy    = selected.category === 'dairy' || selected.category === 'dual';
+
+    return (
+      <div className="herd-wrap">
+        <div className="herd-nav-back">
+          <button onClick={() => setView('list')}>← Herd</button>
+          <div style={{display:'flex',gap:8}}>
+            <button className="herd-edit-btn" onClick={() => { setForm({...selected}); setView('addAnimal'); }}>Edit</button>
+            <button className="herd-del-btn" onClick={() => deleteAnimal(selected)}>Delete</button>
+          </div>
+        </div>
+
+        {/* Animal header card */}
+        <div className="herd-detail-hero">
+          <span className="herd-species-icon" style={{fontSize:48}}>{speciesIcon(selected.species)}</span>
+          <div style={{flex:1}}>
+            <div className="herd-detail-name">{selected.name || `#${selected.tagNumber}`}</div>
+            {selected.name && <div style={{color:'rgba(255,255,255,.7)',fontSize:13}}>Tag #{selected.tagNumber}</div>}
+            <div style={{display:'flex',gap:8,marginTop:8,flexWrap:'wrap'}}>
+              <span className="herd-status-pill" style={{background:'rgba(255,255,255,.2)',color:'white'}}>{sm.label}</span>
+              <span className="herd-status-pill" style={{background:'rgba(255,255,255,.15)',color:'white'}}>{selected.breed || selected.category}</span>
+              {selected.sex && <span className="herd-status-pill" style={{background:'rgba(255,255,255,.15)',color:'white'}}>{selected.sex}</span>}
+              {selected.weightKg && <span className="herd-status-pill" style={{background:'rgba(255,255,255,.15)',color:'white'}}>{selected.weightKg} kg</span>}
+            </div>
+          </div>
+        </div>
+
+        {/* Quick stats */}
+        {selected.dob && (() => {
+          const ageDays = Math.floor((Date.now()-new Date(selected.dob))/86400000);
+          const ageYrs  = Math.floor(ageDays/365.25);
+          const ageMos  = Math.floor((ageDays%365.25)/30.44);
+          return (
+            <div className="herd-stats-row">
+              <div className="herd-stat"><span>{ageYrs > 0 ? `${ageYrs}y ${ageMos}m` : `${ageMos}m`}</span><label>Age</label></div>
+              <div className="herd-stat"><span>{healthEv.length}</span><label>Health events</label></div>
+              <div className="herd-stat"><span>{reproEv.length}</span><label>Repro events</label></div>
+              {isDairy && <div className="herd-stat"><span>{prodEv.length}</span><label>Milk records</label></div>}
+              {ls && <div className="herd-stat"><span>{ls.progress}%</span><label>Lease paid</label></div>}
+            </div>
+          );
+        })()}
+
+        {/* Section tabs */}
+        <div className="herd-sec-tabs">
+          {[
+            {id:'timeline',  label:'Timeline'},
+            {id:'health',    label:'Health'},
+            {id:'repro',     label:'Repro', hide: selected.species === 'fish'},
+            {id:'production',label: isDairy ? 'Milk' : 'Weight'},
+            {id:'lease',     label:'Lease'},
+          ].filter(s => !s.hide).map(s => (
+            <button key={s.id} className={`herd-sec-tab${detailSec===s.id?' active':''}`} onClick={() => setDetailSec(s.id)}>
+              {s.label}
+            </button>
+          ))}
+        </div>
+
+        {/* ── Timeline ── */}
+        {detailSec === 'timeline' && (
+          <div className="herd-section">
+            <div className="herd-section-header">
+              <span>All Events ({animalEvents.length})</span>
+              <div style={{display:'flex',gap:6}}>
+                <button className="herd-add-ev-btn" onClick={() => { setForm({type:'health',subtype:'vaccination',vaccine:HEALTH_VACCINES[0],date:new Date().toISOString().slice(0,10)}); setView('addEvent'); }}>+ Health</button>
+                {selected.species !== 'fish' && <button className="herd-add-ev-btn" onClick={() => { setForm({type:'repro',subtype:'Heat detected',date:new Date().toISOString().slice(0,10)}); setView('addEvent'); }}>+ Repro</button>}
+                <button className="herd-add-ev-btn" onClick={() => { setForm({type:'production',subtype:isDairy?'milk':'weight',value:'',unit:isDairy?'litres':'kg',date:new Date().toISOString().slice(0,10)}); setView('addEvent'); }}>+ {isDairy?'Milk':'Weight'}</button>
+              </div>
+            </div>
+            {animalEvents.length === 0 ? (
+              <div className="herd-empty-sm">No events recorded yet. Use the buttons above to log health, reproduction, or production events.</div>
+            ) : (
+              <div className="herd-timeline">
+                {animalEvents.map(ev => (
+                  <div key={ev.id} className="herd-ev-row">
+                    <div className="herd-ev-dot" style={{background: ev.type==='health'?'#e63946':ev.type==='repro'?'#6B8E23':'#2d6a4f'}}/>
+                    <div className="herd-ev-body">
+                      <div className="herd-ev-title">{ev.subtype} {ev.value ? `— ${ev.value} ${ev.unit||''}` : ''}</div>
+                      <div className="herd-ev-meta">{ev.date} {ev.vet ? `· ${ev.vet}` : ''} {ev.cost ? `· TZS ${Number(ev.cost).toLocaleString()}` : ''}</div>
+                      {ev.notes && <div className="herd-ev-notes">{ev.notes}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Health ── */}
+        {detailSec === 'health' && (
+          <div className="herd-section">
+            <div className="herd-section-header">
+              <span>Health Events ({healthEv.length})</span>
+              <button className="herd-add-ev-btn" onClick={() => { setForm({type:'health',subtype:'vaccination',vaccine:HEALTH_VACCINES[0],date:new Date().toISOString().slice(0,10)}); setView('addEvent'); }}>+ Log Event</button>
+            </div>
+
+            {/* Upcoming vaccinations reminder */}
+            {healthEv.filter(e=>e.subtype==='vaccination'&&e.nextDue).length > 0 && (
+              <div className="herd-reminder-box">
+                📅 <strong>Due soon:</strong> {healthEv.filter(e=>e.subtype==='vaccination'&&e.nextDue).map(e=>`${e.vaccine} (${e.nextDue})`).join(', ')}
+              </div>
+            )}
+
+            {healthEv.length === 0 ? (
+              <div className="herd-empty-sm">No health events recorded.</div>
+            ) : (
+              <div className="herd-timeline">
+                {healthEv.map(ev => (
+                  <div key={ev.id} className="herd-ev-row">
+                    <div className="herd-ev-dot" style={{background:'#e63946'}}/>
+                    <div className="herd-ev-body">
+                      <div className="herd-ev-title">{ev.subtype === 'vaccination' ? `💉 ${ev.vaccine}` : ev.subtype === 'treatment' ? `💊 ${ev.drug||ev.subtype}` : `🩺 ${ev.subtype}`}</div>
+                      <div className="herd-ev-meta">{ev.date} {ev.vet?`· Dr. ${ev.vet}`:''} {ev.cost?`· TZS ${Number(ev.cost).toLocaleString()}`:''} {ev.nextDue?`· Next: ${ev.nextDue}`:''}</div>
+                      {ev.notes && <div className="herd-ev-notes">{ev.notes}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Reproduction ── */}
+        {detailSec === 'repro' && selected.species !== 'fish' && (
+          <div className="herd-section">
+            <div className="herd-section-header">
+              <span>Reproduction ({reproEv.length})</span>
+              <button className="herd-add-ev-btn" onClick={() => { setForm({type:'repro',subtype:'Heat detected',date:new Date().toISOString().slice(0,10)}); setView('addEvent'); }}>+ Log Event</button>
+            </div>
+            {(() => {
+              const lastCalving = reproEv.find(e => e.subtype === 'Calving / Kidding');
+              const pregnant    = reproEv.find(e => e.subtype === 'Pregnancy confirmed');
+              const expected    = reproEv.find(e => e.subtype === 'Expected calving / kidding date set');
+              return (pregnant || expected || lastCalving) ? (
+                <div className="herd-repro-summary">
+                  {pregnant   && <div>✅ <strong>Pregnant</strong> (confirmed {pregnant.date})</div>}
+                  {expected   && <div>📅 Expected: <strong>{expected.expectedDate || expected.notes}</strong></div>}
+                  {lastCalving&& <div>🐣 Last calving: <strong>{lastCalving.date}</strong></div>}
+                  {selected.lactationNo && <div>🥛 Lactation #<strong>{selected.lactationNo}</strong></div>}
+                </div>
+              ) : null;
+            })()}
+            {reproEv.length === 0 ? (
+              <div className="herd-empty-sm">No reproduction events recorded.</div>
+            ) : (
+              <div className="herd-timeline">
+                {reproEv.map(ev => (
+                  <div key={ev.id} className="herd-ev-row">
+                    <div className="herd-ev-dot" style={{background:'#6B8E23'}}/>
+                    <div className="herd-ev-body">
+                      <div className="herd-ev-title">{ev.subtype} {ev.bullId?`· Bull/Sire: ${ev.bullId}`:''} {ev.bullSemen?`· ${ev.bullSemen}`:''}</div>
+                      <div className="herd-ev-meta">{ev.date} {ev.vet?`· ${ev.vet}`:''} {ev.cost?`· TZS ${Number(ev.cost).toLocaleString()}`:''}</div>
+                      {ev.notes && <div className="herd-ev-notes">{ev.notes}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Production (Milk / Weight) ── */}
+        {detailSec === 'production' && (
+          <div className="herd-section">
+            <div className="herd-section-header">
+              <span>{isDairy ? 'Milk Records' : 'Weight Records'} ({prodEv.length})</span>
+              <button className="herd-add-ev-btn" onClick={() => { setForm({type:'production',subtype:isDairy?'milk':'weight',value:'',unit:isDairy?'litres':'kg',date:new Date().toISOString().slice(0,10)}); setView('addEvent'); }}>+ Log {isDairy?'Milk':'Weight'}</button>
+            </div>
+            {prodEv.length === 0 ? (
+              <div className="herd-empty-sm">No {isDairy?'milk':'weight'} records yet.</div>
+            ) : (() => {
+              // Simple 7-day rolling average for milk
+              const recent7 = prodEv.slice(0,7);
+              const avg = recent7.length > 0 ? (recent7.reduce((s,e)=>s+(Number(e.value)||0),0)/recent7.length).toFixed(1) : null;
+              const best = Math.max(...prodEv.map(e=>Number(e.value)||0));
+              return (
+                <>
+                  <div className="herd-stats-row">
+                    {isDairy && avg !== null && <div className="herd-stat"><span>{avg}</span><label>Avg litres (7d)</label></div>}
+                    <div className="herd-stat"><span>{best}</span><label>Best {isDairy?'litres':'kg'}</label></div>
+                    <div className="herd-stat"><span>{prodEv.length}</span><label>Records</label></div>
+                  </div>
+                  <div className="herd-timeline">
+                    {prodEv.map(ev => (
+                      <div key={ev.id} className="herd-ev-row">
+                        <div className="herd-ev-dot" style={{background:'#2d6a4f'}}/>
+                        <div className="herd-ev-body">
+                          <div className="herd-ev-title">{isDairy?'🥛':'⚖️'} {ev.value} {ev.unit} {isDairy&&ev.session?`(${ev.session})`:''}</div>
+                          <div className="herd-ev-meta">{ev.date} {ev.milkQuality?`· Quality: ${ev.milkQuality}`:''}</div>
+                          {ev.notes && <div className="herd-ev-notes">{ev.notes}</div>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* ── Lease / EFTA Finance ── */}
+        {detailSec === 'lease' && (
+          <div className="herd-section">
+            <div className="herd-section-header">
+              <span>Lease / Hire-Purchase</span>
+              {!lease && <button className="herd-add-ev-btn" onClick={() => { setForm({type:'lease',lenderName:'EFTA',frequency:'monthly',startDate:new Date().toISOString().slice(0,10)}); setView('addLease'); }}>+ Add Lease</button>}
+            </div>
+            {!lease ? (
+              <div className="herd-empty-sm">No lease linked to this animal. If this animal was acquired through EFTA or another hire-purchase scheme, add the lease details above.</div>
+            ) : (
+              <>
+                <div className="herd-lease-card">
+                  <div className="herd-lease-header">
+                    <div>
+                      <div className="herd-lease-lender">{lease.lenderName}</div>
+                      <div className="herd-lease-dates">{lease.startDate} · {lease.frequency}</div>
+                    </div>
+                    <button className="herd-edit-btn" onClick={() => { setForm({...lease}); setView('addLease'); }}>Edit</button>
+                  </div>
+                  <div className="herd-progress-bar">
+                    <div className="herd-progress-fill" style={{width:`${ls.progress}%`}}/>
+                  </div>
+                  <div className="herd-lease-stats">
+                    <div><span>Principal</span><strong>TZS {Number(lease.principalTzs).toLocaleString()}</strong></div>
+                    <div><span>Paid</span><strong style={{color:'#2d6a4f'}}>TZS {ls.paid.toLocaleString()}</strong></div>
+                    <div><span>Remaining</span><strong style={{color:ls.remaining>0?'#c62828':'#2d6a4f'}}>TZS {ls.remaining.toLocaleString()}</strong></div>
+                    <div><span>Instalment</span><strong>TZS {Number(lease.instalmentAmountTzs||0).toLocaleString()}</strong></div>
+                    <div><span>Instalments paid</span><strong>{ls.paidInstalments} / {lease.totalInstalments||'—'}</strong></div>
+                    <div><span>Progress</span><strong>{ls.progress}%</strong></div>
+                  </div>
+                  {ls.remaining <= 0 && <div className="herd-lease-done">✅ Lease fully paid — animal ownership transferred</div>}
+                </div>
+
+                {/* Payment history */}
+                <div className="herd-section-header" style={{marginTop:16}}>
+                  <span>Payments ({(lease.payments||[]).length})</span>
+                  {ls.remaining > 0 && <button className="herd-add-ev-btn" onClick={() => { setForm({amountTzs:'',ref:'',payDate:new Date().toISOString().slice(0,10),notes:'',leaseId:lease.id}); setView('addPay'); }}>+ Record Payment</button>}
+                </div>
+                {(lease.payments||[]).length === 0 ? (
+                  <div className="herd-empty-sm">No payments recorded yet.</div>
+                ) : (
+                  <div className="herd-timeline">
+                    {[...(lease.payments||[])].reverse().map(p => (
+                      <div key={p.id} className="herd-ev-row">
+                        <div className="herd-ev-dot" style={{background:'#2d6a4f'}}/>
+                        <div className="herd-ev-body">
+                          <div className="herd-ev-title">💰 TZS {Number(p.amountTzs).toLocaleString()} {p.method?`via ${p.method}`:''}</div>
+                          <div className="herd-ev-meta">{p.payDate} {p.ref?`· Ref: ${p.ref}`:''}</div>
+                          {p.notes && <div className="herd-ev-notes">{p.notes}</div>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── ADD EVENT ─────────────────────────────────────────────────────────────────────
+  if (view === 'addEvent' && selected) {
+    const isDairy = selected.category === 'dairy' || selected.category === 'dual';
+    const isMilk  = form.type === 'production' && (form.subtype === 'milk' || isDairy);
+
+    return (
+      <div className="herd-wrap">
+        <div className="herd-nav-back">
+          <button onClick={() => setView('detail')}>← {selected.name || `#${selected.tagNumber}`}</button>
+          <span>{form.type === 'health' ? 'Log Health Event' : form.type === 'repro' ? 'Log Reproduction Event' : isMilk ? 'Log Milk Record' : 'Log Weight'}</span>
+        </div>
+        <div className="herd-form">
+
+          {/* ── Health event ── */}
+          {form.type === 'health' && (
+            <>
+              <label className="herd-label">Event Category</label>
+              <div className="herd-row">
+                {['vaccination','treatment','checkup'].map(c => (
+                  <button key={c} type="button"
+                    className={`herd-chip${form.subtype===c?' active':''}`}
+                    onClick={() => setForm(f => ({...f,subtype:c,vaccine:HEALTH_VACCINES[0],drug:''}))}>
+                    {c === 'vaccination' ? '💉 Vaccine' : c === 'treatment' ? '💊 Treatment' : '🩺 Check-up'}
+                  </button>
+                ))}
+              </div>
+
+              {form.subtype === 'vaccination' && (
+                <>
+                  <label className="herd-label">Vaccine *</label>
+                  <select className="herd-input" value={form.vaccine||''} onChange={e => setForm(f => ({...f,vaccine:e.target.value}))}>
+                    {HEALTH_VACCINES.map(v => <option key={v} value={v}>{v}</option>)}
+                  </select>
+                  <label className="herd-label">Next Due Date</label>
+                  <input type="date" className="herd-input" value={form.nextDue||''} onChange={e => setForm(f => ({...f,nextDue:e.target.value}))}/>
+                </>
+              )}
+              {form.subtype === 'treatment' && (
+                <>
+                  <label className="herd-label">Treatment Type *</label>
+                  <select className="herd-input" value={form.drug||''} onChange={e => setForm(f => ({...f,drug:e.target.value}))}>
+                    <option value="">— select —</option>
+                    {HEALTH_TREATMENTS.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <label className="herd-label">Drug / Product</label>
+                  <input className="herd-input" placeholder="e.g. Oxytetracycline" value={form.drugName||''} onChange={e => setForm(f => ({...f,drugName:e.target.value}))}/>
+                </>
+              )}
+              {form.subtype === 'checkup' && (
+                <>
+                  <label className="herd-label">Check-up Type</label>
+                  <select className="herd-input" value={form.checkupType||''} onChange={e => setForm(f => ({...f,checkupType:e.target.value}))}>
+                    <option value="">— select —</option>
+                    {HEALTH_CHECKUPS.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </>
+              )}
+
+              <div className="herd-2col">
+                <div>
+                  <label className="herd-label">Date *</label>
+                  <input type="date" className="herd-input" value={form.date||''} onChange={e => setForm(f => ({...f,date:e.target.value}))} max={new Date().toISOString().slice(0,10)}/>
+                </div>
+                <div>
+                  <label className="herd-label">Cost (TZS)</label>
+                  <input type="number" className="herd-input" min="0" value={form.cost||''} onChange={e => setForm(f => ({...f,cost:e.target.value}))} placeholder="0"/>
+                </div>
+              </div>
+              <label className="herd-label">Vet / Officer Name</label>
+              <input className="herd-input" placeholder="e.g. Dr. Ally" value={form.vet||''} onChange={e => setForm(f => ({...f,vet:e.target.value}))}/>
+            </>
+          )}
+
+          {/* ── Reproduction event ── */}
+          {form.type === 'repro' && (
+            <>
+              <label className="herd-label">Event Type *</label>
+              <select className="herd-input" value={form.subtype||''} onChange={e => setForm(f => ({...f,subtype:e.target.value}))}>
+                {REPRO_EVENTS.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+              {(form.subtype === 'AI performed' || form.subtype === 'Natural service') && (
+                <>
+                  <label className="herd-label">{form.subtype === 'AI performed' ? 'Semen / Bull Sire ID' : 'Bull Tag / Name'}</label>
+                  <input className="herd-input" placeholder="e.g. BULL-042 / Sahiwal Elite" value={form.bullSemen||''} onChange={e => setForm(f => ({...f,bullSemen:e.target.value}))}/>
+                </>
+              )}
+              {form.subtype === 'Expected calving / kidding date set' && (
+                <>
+                  <label className="herd-label">Expected Date *</label>
+                  <input type="date" className="herd-input" value={form.expectedDate||''} onChange={e => setForm(f => ({...f,expectedDate:e.target.value}))}/>
+                </>
+              )}
+              {form.subtype === 'Calving / Kidding' && (
+                <>
+                  <div className="herd-2col">
+                    <div>
+                      <label className="herd-label">Number of offspring</label>
+                      <input type="number" className="herd-input" min="0" max="10" value={form.offspringCount||1} onChange={e => setForm(f => ({...f,offspringCount:e.target.value}))}/>
+                    </div>
+                    <div>
+                      <label className="herd-label">Outcome</label>
+                      <select className="herd-input" value={form.calvingOutcome||''} onChange={e => setForm(f => ({...f,calvingOutcome:e.target.value}))}>
+                        <option value="">— select —</option>
+                        <option value="Normal birth">Normal birth</option>
+                        <option value="Assisted birth">Assisted birth</option>
+                        <option value="Stillbirth">Stillbirth</option>
+                        <option value="Dam died">Dam died</option>
+                      </select>
+                    </div>
+                  </div>
+                </>
+              )}
+              <div className="herd-2col">
+                <div>
+                  <label className="herd-label">Date *</label>
+                  <input type="date" className="herd-input" value={form.date||''} onChange={e => setForm(f => ({...f,date:e.target.value}))} max={new Date().toISOString().slice(0,10)}/>
+                </div>
+                <div>
+                  <label className="herd-label">Cost (TZS)</label>
+                  <input type="number" className="herd-input" min="0" value={form.cost||''} onChange={e => setForm(f => ({...f,cost:e.target.value}))} placeholder="0"/>
+                </div>
+              </div>
+              <label className="herd-label">Vet / AI Technician</label>
+              <input className="herd-input" placeholder="e.g. AI Tech Musa" value={form.vet||''} onChange={e => setForm(f => ({...f,vet:e.target.value}))}/>
+            </>
+          )}
+
+          {/* ── Production event ── */}
+          {form.type === 'production' && (
+            <>
+              <label className="herd-label">{isDairy ? 'Milk Yield *' : 'Live Weight *'}</label>
+              <div className="herd-2col">
+                <input type="number" className="herd-input" min="0" step="0.1" placeholder={isDairy?'e.g. 8.5':'e.g. 320'} value={form.value||''} onChange={e => setForm(f => ({...f,value:e.target.value}))}/>
+                <select className="herd-input" value={form.unit||'litres'} onChange={e => setForm(f => ({...f,unit:e.target.value}))}>
+                  {isDairy ? ['litres','kg'].map(u=><option key={u} value={u}>{u}</option>) : ['kg','lbs'].map(u=><option key={u} value={u}>{u}</option>)}
+                </select>
+              </div>
+              {isDairy && (
+                <>
+                  <label className="herd-label">Session</label>
+                  <div className="herd-row">
+                    {['AM','PM','Total (day)'].map(s => (
+                      <button key={s} type="button"
+                        className={`herd-chip${form.session===s?' active':''}`}
+                        onClick={() => setForm(f => ({...f,session:s}))}>
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                  <label className="herd-label">Milk Quality</label>
+                  <select className="herd-input" value={form.milkQuality||''} onChange={e => setForm(f => ({...f,milkQuality:e.target.value}))}>
+                    <option value="">— optional —</option>
+                    <option value="Normal">Normal</option>
+                    <option value="Mastitis (watery)">Mastitis (watery)</option>
+                    <option value="Bloody">Bloody</option>
+                    <option value="Off-colour">Off-colour</option>
+                  </select>
+                </>
+              )}
+              <div className="herd-2col">
+                <div>
+                  <label className="herd-label">Date *</label>
+                  <input type="date" className="herd-input" value={form.date||''} onChange={e => setForm(f => ({...f,date:e.target.value}))} max={new Date().toISOString().slice(0,10)}/>
+                </div>
+                {!isDairy && (
+                  <div>
+                    <label className="herd-label">Body Condition Score (1-9)</label>
+                    <input type="number" className="herd-input" min="1" max="9" step="0.5" placeholder="e.g. 5" value={form.bcs||''} onChange={e => setForm(f => ({...f,bcs:e.target.value}))}/>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Shared notes */}
+          <label className="herd-label">Notes</label>
+          <textarea className="herd-input" rows={2} placeholder="Any observations…" value={form.notes||''} onChange={e => setForm(f => ({...f,notes:e.target.value}))} style={{resize:'vertical'}}/>
+
+          <button className="herd-save-btn"
+            disabled={saving || !form.date || (form.type==='production'&&!form.value)}
+            onClick={() => saveEvent(form)}>
+            {saving ? 'Saving…' : 'Save Event'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── ADD LEASE ─────────────────────────────────────────────────────────────────────
+  if (view === 'addLease' && selected) {
+    return (
+      <div className="herd-wrap">
+        <div className="herd-nav-back">
+          <button onClick={() => { setView('detail'); setDetailSec('lease'); }}>← Lease</button>
+          <span>{form.id ? 'Edit Lease' : 'Add Lease / HP'}</span>
+        </div>
+        <div className="herd-form">
+          <label className="herd-label">Lender Name *</label>
+          <input className="herd-input" placeholder="e.g. EFTA, KCB, CRDB" value={form.lenderName||''} onChange={e => setForm(f => ({...f,lenderName:e.target.value}))}/>
+
+          <div className="herd-2col">
+            <div>
+              <label className="herd-label">Principal (TZS) *</label>
+              <input type="number" className="herd-input" min="0" placeholder="e.g. 2500000" value={form.principalTzs||''} onChange={e => setForm(f => ({...f,principalTzs:e.target.value}))}/>
+            </div>
+            <div>
+              <label className="herd-label">Interest Rate (% p.a.)</label>
+              <input type="number" className="herd-input" min="0" max="100" step="0.1" placeholder="e.g. 18" value={form.interestRate||''} onChange={e => setForm(f => ({...f,interestRate:e.target.value}))}/>
+            </div>
+          </div>
+
+          <div className="herd-2col">
+            <div>
+              <label className="herd-label">Total Instalments</label>
+              <input type="number" className="herd-input" min="1" max="120" placeholder="e.g. 24" value={form.totalInstalments||''} onChange={e => setForm(f => ({...f,totalInstalments:e.target.value}))}/>
+            </div>
+            <div>
+              <label className="herd-label">Instalment Amount (TZS)</label>
+              <input type="number" className="herd-input" min="0" placeholder="e.g. 125000" value={form.instalmentAmountTzs||''} onChange={e => setForm(f => ({...f,instalmentAmountTzs:e.target.value}))}/>
+            </div>
+          </div>
+
+          <div className="herd-2col">
+            <div>
+              <label className="herd-label">Start Date</label>
+              <input type="date" className="herd-input" value={form.startDate||''} onChange={e => setForm(f => ({...f,startDate:e.target.value}))}/>
+            </div>
+            <div>
+              <label className="herd-label">Frequency</label>
+              <select className="herd-input" value={form.frequency||'monthly'} onChange={e => setForm(f => ({...f,frequency:e.target.value}))}>
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="bi-annual">Bi-annual</option>
+                <option value="annual">Annual</option>
+              </select>
+            </div>
+          </div>
+
+          <label className="herd-label">Contract / Reference Number</label>
+          <input className="herd-input" placeholder="e.g. EFTA-2024-00123" value={form.contractRef||''} onChange={e => setForm(f => ({...f,contractRef:e.target.value}))}/>
+
+          <label className="herd-label">Notes</label>
+          <textarea className="herd-input" rows={2} value={form.notes||''} onChange={e => setForm(f => ({...f,notes:e.target.value}))} style={{resize:'vertical'}}/>
+
+          <button className="herd-save-btn"
+            disabled={saving || !form.lenderName || !form.principalTzs}
+            onClick={() => saveLease(form)}>
+            {saving ? 'Saving…' : (form.id ? 'Update Lease' : 'Save Lease')}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── RECORD LEASE PAYMENT ──────────────────────────────────────────────────────────
+  if (view === 'addPay' && selected) {
+    const lease = leases.find(l => l.animalId === selected.id);
+    return (
+      <div className="herd-wrap">
+        <div className="herd-nav-back">
+          <button onClick={() => { setView('detail'); setDetailSec('lease'); }}>← Lease</button>
+          <span>Record Payment</span>
+        </div>
+        <div className="herd-form">
+          <label className="herd-label">Amount Paid (TZS) *</label>
+          <input type="number" className="herd-input" min="0" placeholder={`e.g. ${Number(lease?.instalmentAmountTzs||0).toLocaleString()}`} value={form.amountTzs||''} onChange={e => setForm(f => ({...f,amountTzs:e.target.value}))}/>
+
+          <div className="herd-2col">
+            <div>
+              <label className="herd-label">Payment Date *</label>
+              <input type="date" className="herd-input" value={form.payDate||''} onChange={e => setForm(f => ({...f,payDate:e.target.value}))} max={new Date().toISOString().slice(0,10)}/>
+            </div>
+            <div>
+              <label className="herd-label">Payment Method</label>
+              <select className="herd-input" value={form.method||''} onChange={e => setForm(f => ({...f,method:e.target.value}))}>
+                <option value="">— select —</option>
+                <option value="M-Pesa">M-Pesa</option>
+                <option value="Tigo Pesa">Tigo Pesa</option>
+                <option value="Airtel Money">Airtel Money</option>
+                <option value="Bank transfer">Bank transfer</option>
+                <option value="Cash">Cash</option>
+              </select>
+            </div>
+          </div>
+
+          <label className="herd-label">Reference / Receipt No.</label>
+          <input className="herd-input" placeholder="e.g. MP240521001" value={form.ref||''} onChange={e => setForm(f => ({...f,ref:e.target.value}))}/>
+
+          <label className="herd-label">Notes</label>
+          <textarea className="herd-input" rows={2} value={form.notes||''} onChange={e => setForm(f => ({...f,notes:e.target.value}))} style={{resize:'vertical'}}/>
+
+          <button className="herd-save-btn"
+            disabled={saving || !form.amountTzs || !form.payDate}
+            onClick={async () => {
+              setSaving(true);
+              await addLeasePayment(lease, { amountTzs: Number(form.amountTzs), payDate: form.payDate, method: form.method, ref: form.ref, notes: form.notes });
+              setSaving(false);
+              setView('detail');
+              setDetailSec('lease');
+            }}>
+            {saving ? 'Saving…' : 'Record Payment'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
 // ─── Main App ───────────────────────────────────────────────────────────────────────
 // AppInner holds all state and UI. Wrapped by the ErrorBoundary export below so any
 // uncaught render error shows the fallback screen rather than a blank page.
@@ -8613,6 +9769,16 @@ return (
         submissions={apSubmissions}
         setSubmissions={setApSubmissions}
         country={country}
+      />
+    )}
+
+    {/* ══════════ HERDPASS ══════════ */}
+    {tab === "herd" && (
+      <HerdTab
+        userRole={userRole}
+        country={country}
+        showToast={showToast}
+        cur={cur}
       />
     )}
 

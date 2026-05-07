@@ -30,6 +30,7 @@ const pushRouter      = require('./routes/push');
 const referralsRouter = require('./routes/referrals');
 const addressesRouter = require('./routes/addresses');
 const ussdRouter      = require('./routes/ussd');
+const herdRouter      = require('./routes/herd');
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '3001', 10);
@@ -162,6 +163,7 @@ app.use('/api/push',      pushRouter);
 app.use('/api/referrals', referralsRouter);
 app.use('/api/addresses', addressesRouter);
 app.use('/api/ussd',      ussdRouter);
+app.use('/api/herd',      herdRouter);
 
 // ── CSRF error handler (before global error handler) ─────────────────────────
 app.use(csrfErrorHandler);
