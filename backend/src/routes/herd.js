@@ -257,7 +257,7 @@ router.get('/animals/:id/events', requireAuth, async (req, res, next) => {
 });
 
 // ── GET /api/herd/admin/portfolio ─────────────────────────────────────────────────
-// Returns all active EFTA leases with payment progress — for lender dashboard
+// Returns all active AF Lease hire-purchase records with payment progress — for lender dashboard
 router.get('/admin/portfolio', requireAuth, requireAdmin, async (req, res, next) => {
   try {
     const { rows } = await db.query(

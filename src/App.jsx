@@ -8028,7 +8028,7 @@ function HerdTab({ userRole, country, showToast, cur }) {
                 <option value="">— select —</option>
                 <option value="born on farm">Born on farm</option>
                 <option value="purchased">Purchased</option>
-                <option value="leased (EFTA)">Leased (EFTA / HP)</option>
+                <option value="leased (AF lease)">Leased (AF Lease / HP)</option>
                 <option value="donated">Donated</option>
                 <option value="transferred">Transferred</option>
               </select>
@@ -8292,15 +8292,15 @@ function HerdTab({ userRole, country, showToast, cur }) {
           </div>
         )}
 
-        {/* ── Lease / EFTA Finance ── */}
+        {/* ── Lease / AF Lease Finance ── */}
         {detailSec === 'lease' && (
           <div className="herd-section">
             <div className="herd-section-header">
               <span>Lease / Hire-Purchase</span>
-              {!lease && <button className="herd-add-ev-btn" onClick={() => { setForm({type:'lease',lenderName:'EFTA',frequency:'monthly',startDate:new Date().toISOString().slice(0,10)}); setView('addLease'); }}>+ Add Lease</button>}
+              {!lease && <button className="herd-add-ev-btn" onClick={() => { setForm({type:'lease',lenderName:'AF Lease',frequency:'monthly',startDate:new Date().toISOString().slice(0,10)}); setView('addLease'); }}>+ Add Lease</button>}
             </div>
             {!lease ? (
-              <div className="herd-empty-sm">No lease linked to this animal. If this animal was acquired through EFTA or another hire-purchase scheme, add the lease details above.</div>
+              <div className="herd-empty-sm">No lease linked to this animal. If this animal was acquired through AF Lease or another hire-purchase scheme, add the lease details above.</div>
             ) : (
               <>
                 <div className="herd-lease-card">
@@ -8552,7 +8552,7 @@ function HerdTab({ userRole, country, showToast, cur }) {
         </div>
         <div className="herd-form">
           <label className="herd-label">Lender Name *</label>
-          <input className="herd-input" placeholder="e.g. EFTA, KCB, CRDB" value={form.lenderName||''} onChange={e => setForm(f => ({...f,lenderName:e.target.value}))}/>
+          <input className="herd-input" placeholder="e.g. AF Lease, KCB, CRDB" value={form.lenderName||''} onChange={e => setForm(f => ({...f,lenderName:e.target.value}))}/>
 
           <div className="herd-2col">
             <div>
@@ -8593,7 +8593,7 @@ function HerdTab({ userRole, country, showToast, cur }) {
           </div>
 
           <label className="herd-label">Contract / Reference Number</label>
-          <input className="herd-input" placeholder="e.g. EFTA-2024-00123" value={form.contractRef||''} onChange={e => setForm(f => ({...f,contractRef:e.target.value}))}/>
+          <input className="herd-input" placeholder="e.g. AFL-2024-00123" value={form.contractRef||''} onChange={e => setForm(f => ({...f,contractRef:e.target.value}))}/>
 
           <label className="herd-label">Notes</label>
           <textarea className="herd-input" rows={2} value={form.notes||''} onChange={e => setForm(f => ({...f,notes:e.target.value}))} style={{resize:'vertical'}}/>
