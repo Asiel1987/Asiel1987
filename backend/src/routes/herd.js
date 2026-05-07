@@ -256,6 +256,69 @@ router.get('/animals/:id/events', requireAuth, async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ── POST /api/herd/apply ──────────────────────────────────────────────────────────
+// Accepts a full AF Lease application submitted from the multi-step form.
+// Stores it in afl_applications. No auth required (applicant may not yet have account).
+router.post('/apply', async (req, res, next) => {
+  try {
+    const body = req.body || {};
+    const appId = body.id;
+    if (!appId || typeof appId !== 'string' || appId.length < 8) {
+      return res.status(400).json({ error: 'Invalid application id' });
+    }
+    // Rate-limit: one record per id (upsert)
+    await db.query(
+      `INSERT INTO afl_applications (id, referee_token, data, submitted_at)
+       VALUES ($1, $2, $3, NOW())
+       ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()`,
+      [appId, body.refereeToken || null, JSON.stringify(body)]
+    );
+    logger.info('AFL application received', { appId });
+    return res.json({ ok: true, id: appId });
+  } catch (err) { next(err); }
+});
+
+// ── POST /api/herd/referee ────────────────────────────────────────────────────────
+// Receives a completed referee/guarantor form (no auth needed — opened via public link).
+router.post('/referee', async (req, res, next) => {
+  try {
+    const body = req.body || {};
+    if (!body.token || !body.jinaKamili) {
+      return res.status(400).json({ error: 'token and jinaKamili are required' });
+    }
+    await db.query(
+      `INSERT INTO afl_referees (id, app_token, data, submitted_at)
+       VALUES ($1, $2, $3, NOW())`,
+      [body.id || require('crypto').randomUUID(), body.token, JSON.stringify(body)]
+    );
+    // Link back to application
+    await db.query(
+      `UPDATE afl_applications SET referee_count = COALESCE(referee_count,0)+1, updated_at = NOW()
+       WHERE referee_token = $1`,
+      [body.token]
+    );
+    logger.info('AFL referee form received', { token: body.token });
+    return res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
+// ── GET /api/herd/admin/applications ─────────────────────────────────────────────
+// Admin view of all loan applications
+router.get('/admin/applications', requireAuth, requireAdmin, async (req, res, next) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT id, referee_token, referee_count,
+              data->>'kyc'    AS kyc_json,
+              (data->'kyc'->>'jinaKwanzaKati') || ' ' || (data->'kyc'->>'jinalUkoo') AS applicant_name,
+              (data->'biz'->>'jinaBiashara') AS business_name,
+              submitted_at, updated_at
+         FROM afl_applications
+        ORDER BY submitted_at DESC NULLS LAST`
+    );
+    return res.json({ applications: rows });
+  } catch (err) { next(err); }
+});
+
 // ── GET /api/herd/admin/portfolio ─────────────────────────────────────────────────
 // Returns all active AF Lease hire-purchase records with payment progress — for lender dashboard
 router.get('/admin/portfolio', requireAuth, requireAdmin, async (req, res, next) => {
