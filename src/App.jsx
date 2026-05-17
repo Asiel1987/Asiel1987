@@ -7776,7 +7776,7 @@ function generateRepaymentSchedule({
       rowType: 'dp',
       openBal: round2(assetPrice), interest: 0,
       principal: round2(downPayment), payment: round2(downPayment),
-      closeBal: round2(financedAmt), note: 'Malipo ya Awali (DP)',
+      closeBal: round2(financedAmt), note: 'Down Payment (DP)',
     });
   }
 
@@ -7788,13 +7788,13 @@ function generateRepaymentSchedule({
     let paid = 0, closeBal = balance, note = '';
     if (holidayType === 'interest_only') {
       paid = interest; closeBal = open;
-      note = 'Mapumziko — Faida tu';
+      note = 'Holiday — Interest only';
     } else if (holidayType === 'capitalize') {
       closeBal = round2(open + interest); balance = closeBal;
-      note = 'Mapumziko — Faida inajumlika kwenye deni';
+      note = 'Holiday — Interest capitalised';
     } else {
       deferred = round2(deferred + interest); closeBal = open;
-      note = 'Mapumziko — Hakuna malipo (faida inaahirishwa)';
+      note = 'Holiday — No payment (interest deferred)';
     }
     rows.push({
       period: p, date: isoDate(addPeriods(startDate, p, frequency)),
@@ -7852,7 +7852,7 @@ function generateRepaymentSchedule({
       rowType: 'deferred',
       openBal: round2(balance), interest: round2(deferred),
       principal: 0, payment: round2(deferred),
-      closeBal: round2(balance), note: 'Faida iliyoahirishwa kutoka mapumziko',
+      closeBal: round2(balance), note: 'Deferred interest from holiday period',
     });
   }
 
@@ -7867,8 +7867,8 @@ function generateRepaymentSchedule({
       principal: open, payment: open,
       closeBal: 0,
       note: bulletType === 'fixed_pct'
-        ? `Malipo ya Mkupuo (Bullet ${bulletPct}% ya deni)`
-        : 'Malipo ya Mwisho (Residual)',
+        ? `Bullet payment (${bulletPct}% of principal)`
+        : 'Residual balloon payment',
     });
   }
 
@@ -7898,21 +7898,21 @@ function generateSchedulePDF(schedResult, params, applicantName) {
   // Header
   ctx.fillStyle = '#1a3a2a'; ctx.fillRect(0, 0, W, 54);
   ctx.fillStyle = '#ffffff'; ctx.font = 'bold 16px Arial';
-  ctx.fillText('AF LEASE — RATIBA YA MALIPO', 16, 22);
+  ctx.fillText('AF LEASE — REPAYMENT SCHEDULE', 16, 22);
   ctx.font = '10px Arial';
-  ctx.fillText(`Mkopaji: ${applicantName || '—'}   |   Tarehe: ${new Date().toLocaleDateString('sw-TZ')}`, 16, 40);
+  ctx.fillText(`Client: ${applicantName || '—'}   |   Date: ${new Date().toLocaleDateString('en-GB')}`, 16, 40);
 
   // Summary row
   let y = 70;
   ctx.fillStyle = '#f0faf4'; ctx.fillRect(0, y-12, W, 30);
   ctx.fillStyle = '#1a3a2a'; ctx.font = 'bold 10px Arial';
   const summCols = [
-    ['Gharama ya Rasilimali', `TZS ${Number(params.assetPrice||0).toLocaleString()}`],
-    ['Malipo ya Awali (DP)', `TZS ${Number(params.downPayment||0).toLocaleString()}`],
-    ['Deni', `TZS ${Number(financedAmt).toLocaleString()}`],
-    ['Kiwango cha riba', `${params.annualRate}% ${params.interestMethod==='flat'?'(flat)':'(reducing)'}`],
-    ['Muda', `${params.termMonths} miezi`],
-    ['Awamu ya kawaida', `TZS ${Number(regInstallment).toLocaleString()}`],
+    ['Asset Cost', `TZS ${Number(params.assetPrice||0).toLocaleString()}`],
+    ['Down Payment (DP)', `TZS ${Number(params.downPayment||0).toLocaleString()}`],
+    ['Amount Financed', `TZS ${Number(financedAmt).toLocaleString()}`],
+    ['Interest Rate', `${params.annualRate}% ${params.interestMethod==='flat'?'(flat)':'(reducing)'}`],
+    ['Term', `${params.termMonths} months`],
+    ['Regular Instalment', `TZS ${Number(regInstallment).toLocaleString()}`],
   ];
   summCols.forEach(([label, val], i) => {
     const x = 8 + (i % 3) * 196;
@@ -7925,7 +7925,7 @@ function generateSchedulePDF(schedResult, params, applicantName) {
   y += 24;
 
   // Table header
-  const cols = ['#', 'Tarehe', 'Aina', 'Deni Wazi', 'Riba', 'Mtaji', 'Malipo', 'Deni Baki'];
+  const cols = ['#', 'Date', 'Type', 'Open Bal', 'Interest', 'Principal', 'Payment', 'Close Bal'];
   const cw   = [20, 68, 100, 68, 58, 58, 68, 68];
   ctx.fillStyle = '#1a3a2a'; ctx.fillRect(0, y, W, 16);
   ctx.fillStyle = '#ffffff'; ctx.font = 'bold 8px Arial';
@@ -7936,9 +7936,9 @@ function generateSchedulePDF(schedResult, params, applicantName) {
   const typeColor = { dp:'#2563eb', holiday_int:'#d97706', holiday_full:'#dc2626',
                       installment:'#000', deferred:'#7c3aed', bullet:'#059669',
                       last_before_bullet:'#000', };
-  const typeLabel = { dp:'DP', holiday_int:'Mapumziko (F)', holiday_full:'Mapumziko',
-                      installment:'Awamu', deferred:'Faida Iliyoahirishwa',
-                      bullet:'Bullet', last_before_bullet:'Awamu (Mwisho)', };
+  const typeLabel = { dp:'DP', holiday_int:'Holiday(I)', holiday_full:'Holiday',
+                      installment:'Instal.', deferred:'Deferred Int',
+                      bullet:'Bullet', last_before_bullet:'Instal.', };
 
   rows.forEach((r, idx) => {
     const bg = idx % 2 === 0 ? '#fafaf8' : '#ffffff';
@@ -7971,16 +7971,16 @@ function generateSchedulePDF(schedResult, params, applicantName) {
   ctx.fillStyle = '#1a3a2a'; ctx.fillRect(0, y, W, 18);
   ctx.fillStyle = '#ffffff'; ctx.font = 'bold 9px Arial';
   const totLabels = [
-    `Jumla ya Riba: TZS ${totals.totalInt.toLocaleString()}`,
-    `Jumla ya Mtaji: TZS ${totals.totalPrinc.toLocaleString()}`,
-    `Jumla Yote: TZS ${totals.totalPaid.toLocaleString()}`,
+    `Total Interest: TZS ${totals.totalInt.toLocaleString()}`,
+    `Total Principal: TZS ${totals.totalPrinc.toLocaleString()}`,
+    `Total Cost: TZS ${totals.totalPaid.toLocaleString()}`,
   ];
   totLabels.forEach((t, i) => ctx.fillText(t, 8 + i * 196, y + 12));
 
   // Footer
   y += 30;
   ctx.fillStyle = '#888'; ctx.font = '8px Arial';
-  ctx.fillText('Fomu hii imetolewa na mfumo wa AF Lease. Ratiba inaweza kubadilika kulingana na tarehe halisi ya malipo.', 8, y);
+  ctx.fillText('Generated by AF Lease. Schedule is indicative and may change based on actual payment dates.', 8, y);
 
   return canvas.toDataURL('image/png');
 }
@@ -8030,7 +8030,7 @@ function RepaymentScheduleGen({ showToast, onClose, prefill }) {
       });
       setResult(r);
     } catch (e) {
-      showToast('Hitilafu: ' + e.message);
+      showToast('Error: ' + e.message);
     }
     setLoading(false);
   };
@@ -8040,26 +8040,26 @@ function RepaymentScheduleGen({ showToast, onClose, prefill }) {
     const dataUrl = generateSchedulePDF(result, params, params.applicantName);
     const a = document.createElement('a');
     a.href = dataUrl;
-    a.download = `AF-Lease-Ratiba-${(params.applicantName||'client').replace(/\s+/g,'-')}.png`;
+    a.download = `AF-Lease-Schedule-${(params.applicantName||'client').replace(/\s+/g,'-')}.png`;
     a.click();
-    showToast('Ratiba imepakuliwa!');
+    showToast('Schedule downloaded!');
   };
 
   const shareWhatsApp = () => {
     if (!result) return;
     const { rows, totals, regInstallment, financedAmt } = result;
     const txt = [
-      `*AF LEASE — Ratiba ya Malipo*`,
-      `Mkopaji: ${params.applicantName || '—'}`,
-      `Deni: TZS ${Number(financedAmt).toLocaleString()}`,
-      `Awamu ya kawaida: TZS ${Number(regInstallment).toLocaleString()} / ${params.frequency}`,
-      `Awamu: ${params.termMonths} miezi`,
-      `Riba: ${params.annualRate}% (${params.interestMethod === 'flat' ? 'flat' : 'kupungua'})`,
-      params.holidayMonths > 0 ? `Mapumziko: miezi ${params.holidayMonths}` : '',
+      `*AF LEASE — Repayment Schedule*`,
+      `Client: ${params.applicantName || '—'}`,
+      `Amount Financed: TZS ${Number(financedAmt).toLocaleString()}`,
+      `Regular Instalment: TZS ${Number(regInstallment).toLocaleString()} / ${params.frequency}`,
+      `Term: ${params.termMonths} months`,
+      `Interest: ${params.annualRate}% (${params.interestMethod === 'flat' ? 'flat rate' : 'reducing balance'})`,
+      params.holidayMonths > 0 ? `Payment holiday: ${params.holidayMonths} months` : '',
       params.bulletType !== 'none' ? `Bullet: TZS ${Number(result.bulletAmt).toLocaleString()}` : '',
       `---`,
-      `Jumla ya Riba: TZS ${totals.totalInt.toLocaleString()}`,
-      `Jumla Yote: TZS ${totals.totalPaid.toLocaleString()}`,
+      `Total Interest: TZS ${totals.totalInt.toLocaleString()}`,
+      `Total Cost: TZS ${totals.totalPaid.toLocaleString()}`,
     ].filter(Boolean).join('\n');
     window.open(`https://wa.me/?text=${encodeURIComponent(txt)}`, '_blank');
   };
@@ -8075,9 +8075,9 @@ function RepaymentScheduleGen({ showToast, onClose, prefill }) {
     bullet:             { background:'#ecfdf5', color:'#065f46', fontWeight:'700' },
   };
   const rowLabel = {
-    dp:'DP', holiday_int:'Mapumziko (Faida)', holiday_full:'Mapumziko (Kamili)',
-    installment:'Awamu', last_before_bullet:'Awamu (Mwisho)',
-    deferred:'Faida Iliyoahirishwa', bullet:'Bullet',
+    dp:'DP', holiday_int:'Holiday (Int)', holiday_full:'Holiday (Full)',
+    installment:'Instalment', last_before_bullet:'Instalment',
+    deferred:'Deferred Int', bullet:'Bullet',
   };
 
   const canCompute = params.assetPrice && params.annualRate && params.termMonths;
@@ -8088,93 +8088,93 @@ function RepaymentScheduleGen({ showToast, onClose, prefill }) {
         <button className="afl-back" onClick={onClose}>←</button>
         <div>
           <div className="afl-brand">AF Lease</div>
-          <div className="afl-step-title">Ratiba ya Malipo</div>
+          <div className="afl-step-title">Repayment Schedule</div>
         </div>
       </div>
 
       <div className="sched-form">
         {/* Applicant */}
-        <div className="sched-section">Taarifa za Offer</div>
-        <label className="herd-label">Jina la Mkopaji</label>
-        <input className="herd-input" placeholder="k.m. Juma Rashid" value={params.applicantName} onChange={e=>set('applicantName',e.target.value)}/>
+        <div className="sched-section">Offer Details</div>
+        <label className="herd-label">Client Name</label>
+        <input className="herd-input" placeholder="e.g. Juma Rashid" value={params.applicantName} onChange={e=>set('applicantName',e.target.value)}/>
 
         <div className="herd-2col">
           <div>
-            <label className="herd-label">Gharama ya Rasilimali (TZS) *</label>
-            <input type="number" className="herd-input" min="0" placeholder="k.m. 5000000" value={params.assetPrice} onChange={e=>set('assetPrice',e.target.value)}/>
+            <label className="herd-label">Asset Cost (TZS) *</label>
+            <input type="number" className="herd-input" min="0" placeholder="e.g. 5000000" value={params.assetPrice} onChange={e=>set('assetPrice',e.target.value)}/>
           </div>
           <div>
-            <label className="herd-label">Malipo ya Awali / DP (TZS)</label>
+            <label className="herd-label">Down Payment / DP (TZS)</label>
             <input type="number" className="herd-input" min="0" placeholder="0" value={params.downPayment} onChange={e=>set('downPayment',e.target.value)}/>
           </div>
         </div>
 
         {/* Interest */}
-        <div className="sched-section" style={{marginTop:4}}>Riba</div>
-        <label className="herd-label">Njia ya Mahesabu ya Riba</label>
+        <div className="sched-section" style={{marginTop:4}}>Interest</div>
+        <label className="herd-label">Interest Calculation Method</label>
         <div className="herd-row">
-          {[['reducing','Kupungua (Reducing Balance)'],['flat','Kiwango Tamuu (Flat Rate)']].map(([v,l])=>(
+          {[['reducing','Reducing Balance'],['flat','Flat Rate']].map(([v,l])=>(
             <button key={v} type="button" className={`herd-chip${params.interestMethod===v?' active':''}`} onClick={()=>set('interestMethod',v)}>{l}</button>
           ))}
         </div>
         <div className="herd-2col">
           <div>
-            <label className="herd-label">Kiwango cha Riba (% kwa mwaka) *</label>
-            <input type="number" className="herd-input" min="0" max="100" step="0.1" placeholder="k.m. 18" value={params.annualRate} onChange={e=>set('annualRate',e.target.value)}/>
+            <label className="herd-label">Annual Interest Rate (%) *</label>
+            <input type="number" className="herd-input" min="0" max="100" step="0.1" placeholder="e.g. 18" value={params.annualRate} onChange={e=>set('annualRate',e.target.value)}/>
           </div>
           <div>
-            <label className="herd-label">Muda wa Mkopo (miezi) *</label>
+            <label className="herd-label">Loan Term (months) *</label>
             <input type="number" className="herd-input" min="1" max="360" value={params.termMonths} onChange={e=>set('termMonths',e.target.value)}/>
           </div>
         </div>
 
         {/* Frequency */}
-        <label className="herd-label">Marudio ya Malipo</label>
+        <label className="herd-label">Payment Frequency</label>
         <div className="herd-row">
-          {[['monthly','Kila Mwezi'],['quarterly','Kila Robo'],['bi-annual','Miezi 6'],['annual','Kila Mwaka']].map(([v,l])=>(
+          {[['monthly','Monthly'],['quarterly','Quarterly'],['bi-annual','Every 6 months'],['annual','Annual']].map(([v,l])=>(
             <button key={v} type="button" className={`herd-chip${params.frequency===v?' active':''}`} onClick={()=>set('frequency',v)}>{l}</button>
           ))}
         </div>
 
         {/* First payment date */}
-        <label className="herd-label">Tarehe ya Awamu ya Kwanza</label>
+        <label className="herd-label">First Payment Date</label>
         <input type="date" className="herd-input" value={params.startDate} onChange={e=>set('startDate',e.target.value)}/>
 
         {/* Holiday */}
-        <div className="sched-section" style={{marginTop:4}}>Mapumziko ya Malipo</div>
+        <div className="sched-section" style={{marginTop:4}}>Payment Holiday</div>
         <div className="herd-2col">
           <div>
-            <label className="herd-label">Miezi ya Mapumziko</label>
+            <label className="herd-label">Holiday Months</label>
             <input type="number" className="herd-input" min="0" max="24" value={params.holidayMonths} onChange={e=>set('holidayMonths',e.target.value)}/>
           </div>
           <div>
-            <label className="herd-label">Aina ya Mapumziko</label>
+            <label className="herd-label">Holiday Type</label>
             <select className="herd-input" value={params.holidayType} onChange={e=>set('holidayType',e.target.value)} disabled={!Number(params.holidayMonths)}>
-              <option value="interest_only">Faida tu (Mtaji unasimama)</option>
-              <option value="capitalize">Hakuna malipo — Faida inajumlika</option>
-              <option value="defer">Hakuna malipo — Faida inaahirishwa</option>
+              <option value="interest_only">Interest only (principal paused)</option>
+              <option value="capitalize">No payment — Interest capitalised</option>
+              <option value="defer">No payment — Interest deferred</option>
             </select>
           </div>
         </div>
         {params.holidayType === 'capitalize' && Number(params.holidayMonths) > 0 && (
-          <div className="sched-note warn">⚠ Faida inayojumlika itaongeza deni lako. Deni litakuwa kubwa kuliko awali baada ya mapumziko.</div>
+          <div className="sched-note warn">⚠ Capitalised interest increases your balance. The amount owed will be higher after the holiday.</div>
         )}
         {params.holidayType === 'defer' && Number(params.holidayMonths) > 0 && (
-          <div className="sched-note warn">⚠ Faida iliyoahirishwa itaongezwa kama awamu ya ziada mwishoni mwa ratiba.</div>
+          <div className="sched-note warn">⚠ Deferred interest is added as an extra instalment at the end of the schedule.</div>
         )}
 
         {/* Bullet */}
-        <div className="sched-section" style={{marginTop:4}}>Malipo ya Mkupuo (Bullet)</div>
-        <label className="herd-label">Aina ya Bullet</label>
+        <div className="sched-section" style={{marginTop:4}}>Bullet / Balloon Payment</div>
+        <label className="herd-label">Bullet Type</label>
         <div className="herd-row">
-          {[['none','Hakuna'],['fixed_pct','Asilimia ya Deni'],['residual','Kiasi Maalum (Balloon)']].map(([v,l])=>(
+          {[['none','None'],['fixed_pct','Fixed % of Principal'],['residual','Fixed Amount (Balloon)']].map(([v,l])=>(
             <button key={v} type="button" className={`herd-chip${params.bulletType===v?' active':''}`} onClick={()=>set('bulletType',v)}>{l}</button>
           ))}
         </div>
         {params.bulletType === 'fixed_pct' && (
           <div>
-            <label className="herd-label">Asilimia ya Bullet (% ya deni)</label>
-            <input type="number" className="herd-input" min="1" max="90" placeholder="k.m. 30" value={params.bulletPct} onChange={e=>set('bulletPct',e.target.value)}/>
+            <label className="herd-label">Bullet Percentage (% of principal)</label>
+            <input type="number" className="herd-input" min="1" max="90" placeholder="e.g. 30" value={params.bulletPct} onChange={e=>set('bulletPct',e.target.value)}/>
             {params.bulletPct && params.assetPrice && params.downPayment !== undefined && (
               <div className="sched-note info">
                 Bullet = TZS {Math.round((Number(params.assetPrice)-Number(params.downPayment||0)) * Number(params.bulletPct) / 100).toLocaleString()}
@@ -8184,13 +8184,13 @@ function RepaymentScheduleGen({ showToast, onClose, prefill }) {
         )}
         {params.bulletType === 'residual' && (
           <div>
-            <label className="herd-label">Kiasi cha Bullet Mwishoni (TZS)</label>
-            <input type="number" className="herd-input" min="0" placeholder="k.m. 1000000" value={params.bulletResidual} onChange={e=>set('bulletResidual',e.target.value)}/>
+            <label className="herd-label">Balloon Amount at End (TZS)</label>
+            <input type="number" className="herd-input" min="0" placeholder="e.g. 1000000" value={params.bulletResidual} onChange={e=>set('bulletResidual',e.target.value)}/>
           </div>
         )}
 
         <button className="herd-save-btn" style={{marginTop:8}} disabled={loading||!canCompute} onClick={compute}>
-          {loading ? '⏳ Inakokotoa…' : '📊 Tengeneza Ratiba'}
+          {loading ? '⏳ Calculating…' : '📊 Generate Schedule'}
         </button>
       </div>
 
@@ -8201,24 +8201,24 @@ function RepaymentScheduleGen({ showToast, onClose, prefill }) {
           <div className="sched-results">
             {/* Summary cards */}
             <div className="sched-summary-grid">
-              <div className="sched-card"><span>Deni (Financed)</span><strong>TZS {Number(financedAmt).toLocaleString()}</strong></div>
-              <div className="sched-card"><span>Awamu ya kawaida</span><strong>TZS {Number(regInstallment).toLocaleString()}</strong></div>
-              {bulletAmt > 0 && <div className="sched-card bullet"><span>Malipo ya Bullet</span><strong>TZS {Number(bulletAmt).toLocaleString()}</strong></div>}
-              <div className="sched-card interest"><span>Jumla ya Riba</span><strong>TZS {totals.totalInt.toLocaleString()}</strong></div>
-              <div className="sched-card"><span>Gharama Yote</span><strong>TZS {totals.totalPaid.toLocaleString()}</strong></div>
-              <div className="sched-card"><span>Kiwango Halisi (APR)</span><strong>{effectiveAnnualRate}%</strong></div>
+              <div className="sched-card"><span>Amount Financed</span><strong>TZS {Number(financedAmt).toLocaleString()}</strong></div>
+              <div className="sched-card"><span>Regular Instalment</span><strong>TZS {Number(regInstallment).toLocaleString()}</strong></div>
+              {bulletAmt > 0 && <div className="sched-card bullet"><span>Bullet Payment</span><strong>TZS {Number(bulletAmt).toLocaleString()}</strong></div>}
+              <div className="sched-card interest"><span>Total Interest</span><strong>TZS {totals.totalInt.toLocaleString()}</strong></div>
+              <div className="sched-card"><span>Total Cost</span><strong>TZS {totals.totalPaid.toLocaleString()}</strong></div>
+              <div className="sched-card"><span>Effective Rate (APR)</span><strong>{effectiveAnnualRate}%</strong></div>
             </div>
 
             {/* Export buttons */}
             <div className="sched-export-row">
-              <button className="sched-pdf-btn" onClick={exportPDF}>📥 Pakua PDF</button>
-              <button className="sched-wa-btn" onClick={shareWhatsApp}>📲 Tuma WhatsApp</button>
+              <button className="sched-pdf-btn" onClick={exportPDF}>📥 Download PDF</button>
+              <button className="sched-wa-btn" onClick={shareWhatsApp}>📲 Share WhatsApp</button>
             </div>
 
             {/* Legend */}
             <div className="sched-legend">
-              {[['dp','DP'],['holiday_int','Mapumziko (Faida)'],['holiday_full','Mapumziko (Kamili)'],
-                ['installment','Awamu'],['deferred','Faida Iliyoahirishwa'],['bullet','Bullet']].map(([k,l])=>(
+              {[['dp','DP'],['holiday_int','Holiday (Interest)'],['holiday_full','Holiday (Full)'],
+                ['installment','Instalment'],['deferred','Deferred Int'],['bullet','Bullet']].map(([k,l])=>(
                 <span key={k} className="sched-leg-item" style={{color:(rowStyle[k]||{}).color||'#444'}}>■ {l}</span>
               ))}
             </div>
@@ -8228,7 +8228,7 @@ function RepaymentScheduleGen({ showToast, onClose, prefill }) {
               <table className="sched-table">
                 <thead>
                   <tr>
-                    {['#','Tarehe','Aina','Deni Wazi','Riba','Mtaji','Malipo','Deni Baki'].map(h=>(
+                    {['#','Date','Type','Open Bal','Interest','Principal','Payment','Close Bal'].map(h=>(
                       <th key={h}>{h}</th>
                     ))}
                   </tr>
@@ -8248,7 +8248,7 @@ function RepaymentScheduleGen({ showToast, onClose, prefill }) {
                   ))}
                   {/* Totals row */}
                   <tr className="sched-totals-row">
-                    <td colSpan={3}>JUMLA</td>
+                    <td colSpan={3}>TOTAL</td>
                     <td/>
                     <td className="num">{totals.totalInt.toLocaleString()}</td>
                     <td className="num">{totals.totalPrinc.toLocaleString()}</td>
@@ -8268,28 +8268,28 @@ function RepaymentScheduleGen({ showToast, onClose, prefill }) {
 // ─── AF Lease Application — KYC + Business Appraisal + Referee Link ────────────────
 
 const AFL_DOCS_REQUIRED = [
-  'Picha moja (passporti size)',
-  'Nakala ya kitambulisho (leseni ya udereva / kitambulisho cha taifa)',
-  'Fomu mbili za wadhamini zilizosainiwa',
-  'Barua ya kibali cha kupata taarifa kutoka benki / mkaguzi',
-  'Nakala za TIN, leseni ya biashara, VAT, BRELA na Tax Clearance',
-  'Mahesabu ya biashara yaliyokaguliwa (kama yapo)',
-  'Proforma Invoice kutoka kwa muuzaji aliyethibitishwa',
-  'Bank Statement (mwaka 1)',
-  'Mauzo yaliyopita (miezi 3)',
-  'Nakala ya hati ya umiliki / upangaji wa eneo la mradi',
-  'Mikataba ya biashara (Tender Contracts / LPOs)',
-  'Barua ya Utambulisho ya serikali ya mtaa',
+  'Passport-size photograph',
+  'Copy of ID (driving licence / national ID)',
+  'Two signed guarantor / referee forms',
+  'Letter of consent for financial background check (bank / auditor)',
+  'Copies of TIN, business licence, VAT, BRELA and Tax Clearance',
+  'Audited business accounts (if available)',
+  'Proforma Invoice from approved supplier',
+  'Bank statement (1 year)',
+  'Sales records (last 3 months)',
+  'Copy of title deed / lease agreement for project premises',
+  'Business contracts (Tender Contracts / LPOs)',
+  'Introductory letter from local government authority',
 ];
 
 const AFL_STEPS = [
-  { id:'kyc',       label:'KYC',          icon:'🪪', title:'Maelezo Binafsi na Utambulisho' },
-  { id:'business',  label:'Biashara',     icon:'🏭', title:'Maelezo ya Biashara' },
-  { id:'machine',   label:'Mashine',      icon:'⚙️', title:'Mashine Inayoombewa' },
-  { id:'project',   label:'Mradi',        icon:'📋', title:'Maelezo ya Mradi na Bidhaa' },
-  { id:'finance',   label:'Fedha',        icon:'💰', title:'Hali ya Kifedha' },
-  { id:'docs',      label:'Nyaraka',      icon:'📎', title:'Nyaraka Zinazohitajika' },
-  { id:'declare',   label:'Tamko',        icon:'✍️', title:'Tamko na Utoaji Taarifa' },
+  { id:'kyc',       label:'KYC',          icon:'🪪', title:'Personal Info & Identity' },
+  { id:'business',  label:'Business',     icon:'🏭', title:'Business Details' },
+  { id:'machine',   label:'Machine',      icon:'⚙️', title:'Machine Applied For' },
+  { id:'project',   label:'Project',      icon:'📋', title:'Project & Products' },
+  { id:'finance',   label:'Finance',      icon:'💰', title:'Financial Status' },
+  { id:'docs',      label:'Docs',         icon:'📎', title:'Required Documents' },
+  { id:'declare',   label:'Declaration',  icon:'✍️', title:'Declaration & Consent' },
 ];
 
 // IndexedDB key for applications
@@ -8433,19 +8433,19 @@ function AFLeaseApplication({ showToast, onClose, editId }) {
     <div className="afl-wrap">
       <div className="afl-success">
         <div style={{fontSize:64}}>✅</div>
-        <h2>Maombi Yamepokewa!</h2>
-        <p>Nambari ya Maombi yako: <strong>AFL-{appId.slice(0,8).toUpperCase()}</strong></p>
-        <p style={{marginTop:8,fontSize:13,color:'#666'}}>Tuma kiungo hiki kwa wadhamini wako wawili (wakadamini) wajaze fomu yao:</p>
+        <h2>Application Received!</h2>
+        <p>Your Application Reference: <strong>AFL-{appId.slice(0,8).toUpperCase()}</strong></p>
+        <p style={{marginTop:8,fontSize:13,color:'#666'}}>Share this link with your two referees so they can complete their guarantor form:</p>
         <div className="afl-referee-box">
           <div className="afl-referee-link">{refereeLink}</div>
           <div style={{display:'flex',gap:8,marginTop:10}}>
-            <button className="afl-copy-btn" onClick={() => { navigator.clipboard?.writeText(refereeLink); showToast('Kiungo kimenakiliwa!'); }}>📋 Nakili</button>
-            <a className="afl-wa-btn" href={`https://wa.me/?text=${encodeURIComponent('Habari! Tafadhali jaza fomu ya mdhamini kwa maombi yangu ya mkopo wa AF Lease:\n'+refereeLink)}`} target="_blank" rel="noopener noreferrer">
-              📲 Tuma WhatsApp
+            <button className="afl-copy-btn" onClick={() => { navigator.clipboard?.writeText(refereeLink); showToast('Link copied!'); }}>📋 Copy Link</button>
+            <a className="afl-wa-btn" href={`https://wa.me/?text=${encodeURIComponent('Hello! Please complete the referee form for my AF Lease application:\n'+refereeLink)}`} target="_blank" rel="noopener noreferrer">
+              📲 Share WhatsApp
             </a>
           </div>
         </div>
-        <button className="herd-save-btn" style={{marginTop:20}} onClick={onClose}>← Rudi HerdPass</button>
+        <button className="herd-save-btn" style={{marginTop:20}} onClick={onClose}>← Back to HerdPass</button>
       </div>
     </div>
   );
@@ -8470,7 +8470,7 @@ function AFLeaseApplication({ showToast, onClose, editId }) {
       <div className="afl-header-top">
         <button className="afl-back" onClick={() => step > 0 ? (saveProgress(), setStep(s=>s-1)) : onClose()}>←</button>
         <div>
-          <div className="afl-brand">AF Lease — Fomu ya Maombi</div>
+          <div className="afl-brand">AF Lease — Application Form</div>
           <div className="afl-step-title">{currentStep.icon} {currentStep.title}</div>
         </div>
         <div className="afl-counter">{step+1}/{totalSteps}</div>
@@ -8487,83 +8487,83 @@ function AFLeaseApplication({ showToast, onClose, editId }) {
     <div className="afl-wrap">
       {renderHeader()}
       <div className="afl-body">
-        <div className="afl-section-title">1.1 Maelezo Binafsi</div>
+        <div className="afl-section-title">1.1 Personal Details</div>
 
         <div className="herd-2col">
           <div>
-            <label className="herd-label">Jina la Kwanza na la Kati *</label>
-            <input className="herd-input" placeholder="k.m. Juma Rashid" value={kyc.jinaKwanzaKati} onChange={e=>setKyc(k=>({...k,jinaKwanzaKati:e.target.value}))}/>
+            <label className="herd-label">First & Middle Name *</label>
+            <input className="herd-input" placeholder="e.g. Juma Rashid" value={kyc.jinaKwanzaKati} onChange={e=>setKyc(k=>({...k,jinaKwanzaKati:e.target.value}))}/>
           </div>
           <div>
-            <label className="herd-label">Jina la Ukoo *</label>
-            <input className="herd-input" placeholder="k.m. Mwangi" value={kyc.jinalUkoo} onChange={e=>setKyc(k=>({...k,jinalUkoo:e.target.value}))}/>
+            <label className="herd-label">Surname *</label>
+            <input className="herd-input" placeholder="e.g. Mwangi" value={kyc.jinalUkoo} onChange={e=>setKyc(k=>({...k,jinalUkoo:e.target.value}))}/>
           </div>
         </div>
 
-        <label className="herd-label">Tarehe ya Kuzaliwa</label>
+        <label className="herd-label">Date of Birth</label>
         <input type="date" className="herd-input" value={kyc.dob} onChange={e=>setKyc(k=>({...k,dob:e.target.value}))} max={new Date().toISOString().slice(0,10)}/>
 
         <div className="herd-2col">
           <div>
-            <label className="herd-label">Simu ya Mkononi (1) *</label>
+            <label className="herd-label">Mobile Phone (1) *</label>
             <input className="herd-input" placeholder="+255..." value={kyc.simuMkononi1} onChange={e=>setKyc(k=>({...k,simuMkononi1:e.target.value}))}/>
           </div>
           <div>
-            <label className="herd-label">Simu ya Mkononi (2)</label>
+            <label className="herd-label">Mobile Phone (2)</label>
             <input className="herd-input" placeholder="+255..." value={kyc.simuMkononi2} onChange={e=>setKyc(k=>({...k,simuMkononi2:e.target.value}))}/>
           </div>
         </div>
 
-        <label className="herd-label">Barua Pepe</label>
-        <input type="email" className="herd-input" placeholder="k.m. juma@gmail.com" value={kyc.barua_pepe} onChange={e=>setKyc(k=>({...k,barua_pepe:e.target.value}))}/>
+        <label className="herd-label">Email Address</label>
+        <input type="email" className="herd-input" placeholder="e.g. juma@gmail.com" value={kyc.barua_pepe} onChange={e=>setKyc(k=>({...k,barua_pepe:e.target.value}))}/>
 
         <div className="herd-2col">
           <div>
-            <label className="herd-label">Mji / Kijiji *</label>
-            <input className="herd-input" placeholder="k.m. Arusha" value={kyc.mjiKijiji} onChange={e=>setKyc(k=>({...k,mjiKijiji:e.target.value}))}/>
+            <label className="herd-label">Town / Village *</label>
+            <input className="herd-input" placeholder="e.g. Arusha" value={kyc.mjiKijiji} onChange={e=>setKyc(k=>({...k,mjiKijiji:e.target.value}))}/>
           </div>
           <div>
-            <label className="herd-label">Kata *</label>
-            <input className="herd-input" placeholder="k.m. Sekei" value={kyc.kata} onChange={e=>setKyc(k=>({...k,kata:e.target.value}))}/>
+            <label className="herd-label">Ward *</label>
+            <input className="herd-input" placeholder="e.g. Sekei" value={kyc.kata} onChange={e=>setKyc(k=>({...k,kata:e.target.value}))}/>
           </div>
         </div>
 
         <div className="herd-2col">
           <div>
-            <label className="herd-label">Jina la Mtendaji Kata</label>
+            <label className="herd-label">Ward Executive Name</label>
             <input className="herd-input" value={kyc.mtendajiKata} onChange={e=>setKyc(k=>({...k,mtendajiKata:e.target.value}))}/>
           </div>
           <div>
-            <label className="herd-label">Simu ya Mtendaji</label>
+            <label className="herd-label">Ward Executive Phone</label>
             <input className="herd-input" value={kyc.simuMtendaji} onChange={e=>setKyc(k=>({...k,simuMtendaji:e.target.value}))}/>
           </div>
         </div>
 
-        <div className="afl-section-title" style={{marginTop:16}}>Utambulisho</div>
+        <div className="afl-section-title" style={{marginTop:16}}>Identification</div>
         <div className="herd-2col">
           <div>
-            <label className="herd-label">Aina ya Kitambulisho</label>
+            <label className="herd-label">ID Type</label>
             <select className="herd-input" value={kyc.ainaNambari} onChange={e=>setKyc(k=>({...k,ainaNambari:e.target.value}))}>
-              <option value="">— chagua —</option>
-              <option value="NIDA">NIDA (Kitambulisho cha Taifa)</option>
-              <option value="Leseni ya udereva">Leseni ya udereva</option>
-              <option value="Pasipoti">Pasipoti</option>
-              <option value="Kitambulisho cha mpiga kura">Kadi ya mpiga kura</option>
+              <option value="">— select —</option>
+              <option value="NIDA">NIDA (National ID)</option>
+              <option value="Leseni ya udereva">Driving Licence</option>
+              <option value="Pasipoti">Passport</option>
+              <option value="Kitambulisho cha mpiga kura">Voter Card</option>
             </select>
           </div>
           <div>
-            <label className="herd-label">Namba ya Kitambulisho</label>
+            <label className="herd-label">ID Number</label>
             <input className="herd-input" value={kyc.nambari} onChange={e=>setKyc(k=>({...k,nambari:e.target.value}))}/>
           </div>
         </div>
 
-        <div className="afl-section-title" style={{marginTop:16}}>Elimu (§6.1)</div>
+        <div className="afl-section-title" style={{marginTop:16}}>Education (§6.1)</div>
         <div style={{display:'flex',flexDirection:'column',gap:6}}>
           {[
-            ['elimuMsingi','Cheti cha Elimu ya Msingi'],
-            ['elimuSekondari','Cheti cha Sekondari'],
-            ['stashahada','Stashahada ya Chuo'],
-            ['shahada','Shahada ya Chuo Kikuu'],
+            ['elimuMsingi','Primary School Certificate'],
+            ['elimuSekondari','Secondary School Certificate'],
+            ['stashahada','College Diploma'],
+            ['shahada','University Degree'],
           ].map(([k,label]) => (
             <label key={k} className="afl-check-row">
               <input type="checkbox" checked={kyc[k]} onChange={e=>setKyc(p=>({...p,[k]:e.target.checked}))}/>
@@ -8572,18 +8572,18 @@ function AFLeaseApplication({ showToast, onClose, editId }) {
           ))}
         </div>
 
-        <div className="afl-section-title" style={{marginTop:16}}>Maelezo Binafsi (§6.3)</div>
-        <label className="herd-label">Hali ya Ndoa</label>
+        <div className="afl-section-title" style={{marginTop:16}}>Personal Background (§6.3)</div>
+        <label className="herd-label">Marital Status</label>
         <div className="herd-row">
-          {['Nimeoa/Nimeolewa','Sijaoa/Sijaolewa','Mtalaka','Mjane'].map(h => (
+          {['Married','Single','Divorced','Widowed'].map(h => (
             <button key={h} type="button" className={`herd-chip${kyc.haliNdoa===h?' active':''}`} onClick={() => setKyc(k=>({...k,haliNdoa:h}))}>{h}</button>
           ))}
         </div>
-        {(kyc.haliNdoa === 'Nimeoa/Nimeolewa') && (
+        {(kyc.haliNdoa === 'Married') && (
           <>
-            <label className="herd-label">Mwenzako anajua kuhusu maombi haya?</label>
+            <label className="herd-label">Does your spouse know about this application?</label>
             <div className="herd-row">
-              {['Ndiyo','Hapana'].map(v => (
+              {['Yes','No'].map(v => (
                 <button key={v} type="button" className={`herd-chip${kyc.mwenziAnajua===v?' active':''}`} onClick={() => setKyc(k=>({...k,mwenziAnajua:v}))}>{v}</button>
               ))}
             </div>
@@ -8591,7 +8591,7 @@ function AFLeaseApplication({ showToast, onClose, editId }) {
         )}
 
         <button className="herd-save-btn" style={{marginTop:16}} disabled={!kyc.jinaKwanzaKati||!kyc.jinalUkoo||!kyc.simuMkononi1} onClick={next}>
-          Endelea → Biashara
+          Continue → Business
         </button>
       </div>
     </div>
@@ -8602,77 +8602,77 @@ function AFLeaseApplication({ showToast, onClose, editId }) {
     <div className="afl-wrap">
       {renderHeader()}
       <div className="afl-body">
-        <div className="afl-section-title">1.2 Maelezo ya Biashara</div>
+        <div className="afl-section-title">1.2 Business Details</div>
 
-        <label className="herd-label">Maombi haya ni ya biashara iliyopo?</label>
+        <label className="herd-label">Is this application for an existing business?</label>
         <div className="herd-row">
           {['ndiyo','hapana'].map(v=>(
-            <button key={v} type="button" className={`herd-chip${biz.biasharaIliyopo===v?' active':''}`} onClick={()=>setBiz(b=>({...b,biasharaIliyopo:v}))}>{v==='ndiyo'?'Ndiyo':'Hapana'}</button>
+            <button key={v} type="button" className={`herd-chip${biz.biasharaIliyopo===v?' active':''}`} onClick={()=>setBiz(b=>({...b,biasharaIliyopo:v}))}>{v==='ndiyo'?'Yes':'No'}</button>
           ))}
         </div>
 
-        <label className="herd-label">Nani anamiliki biashara hii? *</label>
-        <input className="herd-input" placeholder="Jina kamili la mmiliki" value={biz.mmiliki} onChange={e=>setBiz(b=>({...b,mmiliki:e.target.value}))}/>
+        <label className="herd-label">Who owns this business? *</label>
+        <input className="herd-input" placeholder="Full legal name of owner" value={biz.mmiliki} onChange={e=>setBiz(b=>({...b,mmiliki:e.target.value}))}/>
 
         {biz.mmiliki !== (kyc.jinaKwanzaKati+' '+kyc.jinalUkoo).trim() && biz.mmiliki && (
           <>
-            <label className="herd-label">Kama sio mmiliki, unahusikaje?</label>
+            <label className="herd-label">If not the owner, what is your relationship to the business?</label>
             <input className="herd-input" value={biz.jinsiUhusika} onChange={e=>setBiz(b=>({...b,jinsiUhusika:e.target.value}))}/>
           </>
         )}
 
-        <label className="herd-label">Jina la Biashara *</label>
-        <input className="herd-input" placeholder="Jina biashara inayotambulika" value={biz.jinaBiashara} onChange={e=>setBiz(b=>({...b,jinaBiashara:e.target.value}))}/>
+        <label className="herd-label">Business Name *</label>
+        <input className="herd-input" placeholder="Registered / trading name" value={biz.jinaBiashara} onChange={e=>setBiz(b=>({...b,jinaBiashara:e.target.value}))}/>
 
         <div className="herd-2col">
           <div>
-            <label className="herd-label">Mji/Kijiji (Biashara)</label>
+            <label className="herd-label">Town / Village (Business)</label>
             <input className="herd-input" value={biz.mjiBiashara} onChange={e=>setBiz(b=>({...b,mjiBiashara:e.target.value}))}/>
           </div>
           <div>
-            <label className="herd-label">Kata (Biashara)</label>
+            <label className="herd-label">Ward (Business)</label>
             <input className="herd-input" value={biz.kataBiashara} onChange={e=>setBiz(b=>({...b,kataBiashara:e.target.value}))}/>
           </div>
         </div>
 
-        <label className="herd-label">Muundo wa Kisheria</label>
+        <label className="herd-label">Legal Structure</label>
         <div className="herd-row">
-          {[['kampuni','Kampuni'],['mmoja','Mmiliki Mmoja'],['haina','Haina/Inashughulikiwa']].map(([v,l])=>(
+          {[['kampuni','Company'],['mmoja','Sole Proprietor'],['haina','Informal / Unregistered']].map(([v,l])=>(
             <button key={v} type="button" className={`herd-chip${biz.muundo===v?' active':''}`} onClick={()=>setBiz(b=>({...b,muundo:v}))}>{l}</button>
           ))}
         </div>
 
-        <div className="afl-section-title" style={{marginTop:12}}>Usajili</div>
+        <div className="afl-section-title" style={{marginTop:12}}>Registrations</div>
         <div className="herd-2col">
           <div>
-            <label className="herd-label">TIN Namba</label>
+            <label className="herd-label">TIN Number</label>
             <input className="herd-input" value={biz.tin} onChange={e=>setBiz(b=>({...b,tin:e.target.value}))}/>
           </div>
           <div>
-            <label className="herd-label">TIN Aina</label>
+            <label className="herd-label">TIN Type</label>
             <select className="herd-input" value={biz.tinAina} onChange={e=>setBiz(b=>({...b,tinAina:e.target.value}))}>
-              <option value="binafsi">Binafsi</option>
-              <option value="biashara">Biashara</option>
+              <option value="binafsi">Individual</option>
+              <option value="biashara">Business</option>
             </select>
           </div>
         </div>
         <div className="herd-2col">
           <div>
-            <label className="herd-label">VRN Namba</label>
+            <label className="herd-label">VRN Number</label>
             <input className="herd-input" value={biz.vrn} onChange={e=>setBiz(b=>({...b,vrn:e.target.value}))}/>
           </div>
           <div>
-            <label className="herd-label">VAT Namba</label>
+            <label className="herd-label">VAT Number</label>
             <input className="herd-input" value={biz.vat} onChange={e=>setBiz(b=>({...b,vat:e.target.value}))}/>
           </div>
         </div>
         <div className="herd-2col">
           <div>
-            <label className="herd-label">Leseni ya Biashara</label>
+            <label className="herd-label">Business Licence No.</label>
             <input className="herd-input" value={biz.leseniBiashara} onChange={e=>setBiz(b=>({...b,leseniBiashara:e.target.value}))}/>
           </div>
           <div>
-            <label className="herd-label">Halmashauri</label>
+            <label className="herd-label">Local Authority</label>
             <input className="herd-input" value={biz.halmashauri} onChange={e=>setBiz(b=>({...b,halmashauri:e.target.value}))}/>
           </div>
         </div>
@@ -8680,32 +8680,32 @@ function AFLeaseApplication({ showToast, onClose, editId }) {
         {biz.muundo === 'kampuni' && (
           <>
             <div className="afl-section-title" style={{marginTop:12}}>BRELA</div>
-            <label className="herd-label">Jina na Namba ya Usajili wa BRELA</label>
+            <label className="herd-label">BRELA Registration Name & Number</label>
             <input className="herd-input" value={biz.brelaNamaRegistration} onChange={e=>setBiz(b=>({...b,brelaNamaRegistration:e.target.value}))}/>
-            <label className="herd-label">Anuani Iliyosajiliwa</label>
+            <label className="herd-label">Registered Address</label>
             <input className="herd-input" value={biz.brelaAnuani} onChange={e=>setBiz(b=>({...b,brelaAnuani:e.target.value}))}/>
-            <div className="afl-section-title" style={{marginTop:12}}>Wanahisa</div>
+            <div className="afl-section-title" style={{marginTop:12}}>Shareholders</div>
             {biz.shareholders.map((sh,i) => (
               <div key={i} className="herd-2col">
                 <div>
-                  <label className="herd-label">Mwanahisa {i+1} — Jina</label>
+                  <label className="herd-label">Shareholder {i+1} — Name</label>
                   <input className="herd-input" value={sh.jina} onChange={e=>updateRow(setBiz,'shareholders',i,'jina',e.target.value)}/>
                 </div>
                 <div>
-                  <label className="herd-label">% ya Hisa</label>
+                  <label className="herd-label">% Shareholding</label>
                   <input type="number" className="herd-input" min="0" max="100" value={sh.asilimia} onChange={e=>updateRow(setBiz,'shareholders',i,'asilimia',e.target.value)}/>
                 </div>
               </div>
             ))}
             {biz.shareholders.length < 4 && (
-              <button type="button" className="afl-add-row" onClick={()=>addRow(setBiz,'shareholders',{jina:'',asilimia:''})}>+ Ongeza Mwanahisa</button>
+              <button type="button" className="afl-add-row" onClick={()=>addRow(setBiz,'shareholders',{jina:'',asilimia:''})}>+ Add Shareholder</button>
             )}
           </>
         )}
 
         <div className="afl-nav-btns">
-          <button className="afl-prev-btn" onClick={prev}>← Nyuma</button>
-          <button className="herd-save-btn" style={{flex:1}} disabled={!biz.mmiliki||!biz.jinaBiashara} onClick={next}>Endelea → Mashine</button>
+          <button className="afl-prev-btn" onClick={prev}>← Back</button>
+          <button className="herd-save-btn" style={{flex:1}} disabled={!biz.mmiliki||!biz.jinaBiashara} onClick={next}>Continue → Machine</button>
         </div>
       </div>
     </div>
@@ -8716,52 +8716,52 @@ function AFLeaseApplication({ showToast, onClose, editId }) {
     <div className="afl-wrap">
       {renderHeader()}
       <div className="afl-body">
-        <div className="afl-section-title">§2 — Mashine Inayoombewa (Kulingana na Proforma Invoice)</div>
+        <div className="afl-section-title">§2 — Machine Applied For (per Proforma Invoice)</div>
         {machines.map((m,i) => (
           <div key={i} className="afl-machine-card">
-            <div className="afl-machine-no">Mashine {i+1}</div>
-            <label className="herd-label">Maelezo ya Mashine *</label>
-            <input className="herd-input" placeholder="k.m. Mashine ya kusaga unga" value={m.maelezo} onChange={e=>{ const a=[...machines]; a[i]={...a[i],maelezo:e.target.value}; setMachines(a); }}/>
+            <div className="afl-machine-no">Machine {i+1}</div>
+            <label className="herd-label">Machine Description *</label>
+            <input className="herd-input" placeholder="e.g. Grain milling machine" value={m.maelezo} onChange={e=>{ const a=[...machines]; a[i]={...a[i],maelezo:e.target.value}; setMachines(a); }}/>
             <div className="herd-2col">
               <div>
-                <label className="herd-label">Mwuzaji</label>
+                <label className="herd-label">Supplier</label>
                 <input className="herd-input" value={m.mwuzaji} onChange={e=>{ const a=[...machines]; a[i]={...a[i],mwuzaji:e.target.value}; setMachines(a); }}/>
               </div>
               <div>
-                <label className="herd-label">Mpya?</label>
+                <label className="herd-label">New?</label>
                 <select className="herd-input" value={m.mpya} onChange={e=>{ const a=[...machines]; a[i]={...a[i],mpya:e.target.value}; setMachines(a); }}>
-                  <option value="ndiyo">Ndiyo</option>
-                  <option value="hapana">Hapana (Tumika)</option>
+                  <option value="ndiyo">New</option>
+                  <option value="hapana">Used</option>
                 </select>
               </div>
             </div>
-            <label className="herd-label">Nishati Inayotumika</label>
+            <label className="herd-label">Power Source</label>
             <div className="herd-row">
-              {['umeme','mafuta','zote mbili'].map(n=>(
-                <button key={n} type="button" className={`herd-chip${m.nguvu===n?' active':''}`} onClick={()=>{ const a=[...machines]; a[i]={...a[i],nguvu:n}; setMachines(a); }}>{n}</button>
+              {[['umeme','Electric'],['mafuta','Diesel/Petrol'],['zote mbili','Both']].map(([n,nl])=>(
+                <button key={n} type="button" className={`herd-chip${m.nguvu===n?' active':''}`} onClick={()=>{ const a=[...machines]; a[i]={...a[i],nguvu:n}; setMachines(a); }}>{nl}</button>
               ))}
             </div>
             {(m.nguvu==='umeme'||m.nguvu==='zote mbili') && (
               <div>
-                <label className="herd-label">Matumizi (KWH)</label>
+                <label className="herd-label">Power Consumption (KWH)</label>
                 <input type="number" className="herd-input" min="0" value={m.kwh} onChange={e=>{ const a=[...machines]; a[i]={...a[i],kwh:e.target.value}; setMachines(a); }}/>
               </div>
             )}
             {(m.nguvu==='mafuta'||m.nguvu==='zote mbili') && (
               <div>
-                <label className="herd-label">Matumizi (Lita/saa)</label>
+                <label className="herd-label">Fuel Consumption (litres/hr)</label>
                 <input type="number" className="herd-input" min="0" step="0.1" value={m.litaSaa} onChange={e=>{ const a=[...machines]; a[i]={...a[i],litaSaa:e.target.value}; setMachines(a); }}/>
               </div>
             )}
             <div className="afl-cost-grid">
-              {[['bei','Bei ya Uuzaji (TZS)'],['vat','VAT'],['ushuru','Ushuru'],['usafiri','Usafiri'],['ufungaji','Ufungaji']].map(([k,label])=>(
+              {[['bei','Selling Price (TZS)'],['vat','VAT'],['ushuru','Customs Duty'],['usafiri','Freight / Transport'],['ufungaji','Installation']].map(([k,label])=>(
                 <div key={k}>
                   <label className="herd-label">{label}</label>
                   <input type="number" className="herd-input" min="0" value={m[k]} onChange={e=>{ const a=[...machines]; a[i]={...a[i],[k]:e.target.value}; setMachines(a); }}/>
                 </div>
               ))}
               <div>
-                <label className="herd-label">Jumla ya Gharama</label>
+                <label className="herd-label">Total Cost</label>
                 <div className="afl-total-display">TZS {machineTotals[i].toLocaleString()}</div>
               </div>
             </div>
@@ -8769,14 +8769,14 @@ function AFLeaseApplication({ showToast, onClose, editId }) {
         ))}
 
         {machines.length < 9 && (
-          <button type="button" className="afl-add-row" onClick={()=>setMachines(a=>[...a,{maelezo:'',mwuzaji:'',mpya:'ndiyo',nguvu:'umeme',kwh:'',litaSaa:'',bei:'',vat:'',ushuru:'',usafiri:'',ufungaji:'',jumla:''}])}>+ Ongeza Mashine</button>
+          <button type="button" className="afl-add-row" onClick={()=>setMachines(a=>[...a,{maelezo:'',mwuzaji:'',mpya:'ndiyo',nguvu:'umeme',kwh:'',litaSaa:'',bei:'',vat:'',ushuru:'',usafiri:'',ufungaji:'',jumla:''}])}>+ Add Machine</button>
         )}
 
-        <div className="afl-grand-total">Jumla Kuu: TZS {grandTotal.toLocaleString()}</div>
+        <div className="afl-grand-total">Grand Total: TZS {grandTotal.toLocaleString()}</div>
 
         <div className="afl-nav-btns">
-          <button className="afl-prev-btn" onClick={prev}>← Nyuma</button>
-          <button className="herd-save-btn" style={{flex:1}} disabled={!machines[0].maelezo} onClick={next}>Endelea → Mradi</button>
+          <button className="afl-prev-btn" onClick={prev}>← Back</button>
+          <button className="herd-save-btn" style={{flex:1}} disabled={!machines[0].maelezo} onClick={next}>Continue → Project</button>
         </div>
       </div>
     </div>
@@ -8787,135 +8787,135 @@ function AFLeaseApplication({ showToast, onClose, editId }) {
     <div className="afl-wrap">
       {renderHeader()}
       <div className="afl-body">
-        <div className="afl-section-title">§3 — Maelezo ya Mradi</div>
+        <div className="afl-section-title">§3 — Project Details</div>
 
-        <label className="herd-label">3.1.1 Eleza biashara yako inayohusika na maombi haya *</label>
+        <label className="herd-label">3.1.1 Describe the business related to this application *</label>
         <textarea className="herd-input" rows={4} value={project.maeleyoBiashara} onChange={e=>setProject(p=>({...p,maeleyoBiashara:e.target.value}))} style={{resize:'vertical'}}/>
 
-        <label className="herd-label">3.1.2 Sababu za kuanzisha biashara hii</label>
+        <label className="herd-label">3.1.2 Reasons for starting this business</label>
         <textarea className="herd-input" rows={3} value={project.sababuUanzishaji} onChange={e=>setProject(p=>({...p,sababuUanzishaji:e.target.value}))} style={{resize:'vertical'}}/>
 
-        <label className="herd-label">3.1.3 Utofautiano wako na washindani</label>
+        <label className="herd-label">3.1.3 Your competitive advantage over others</label>
         <textarea className="herd-input" rows={3} value={project.ushindani} onChange={e=>setProject(p=>({...p,ushindani:e.target.value}))} style={{resize:'vertical'}}/>
 
         {biz.biasharaIliyopo === 'ndiyo' && (
           <>
-            <div className="afl-section-title" style={{marginTop:12}}>§3.2 — Biashara Iliyopo</div>
+            <div className="afl-section-title" style={{marginTop:12}}>§3.2 — Existing Business</div>
             <div className="herd-2col">
               <div>
-                <label className="herd-label">Ilianzishwa lini na nani</label>
+                <label className="herd-label">When and by whom was it started</label>
                 <input className="herd-input" value={biz.walianzishwa} onChange={e=>setBiz(b=>({...b,walianzishwa:e.target.value}))}/>
               </div>
               <div>
-                <label className="herd-label">Mauzo/Faida mwaka jana</label>
+                <label className="herd-label">Sales / Profit last year</label>
                 <input className="herd-input" value={biz.mauzoFaida} onChange={e=>setBiz(b=>({...b,mauzoFaida:e.target.value}))}/>
               </div>
             </div>
-            <label className="herd-label">Sababu za kutafuta nyongeza ya mashine</label>
+            <label className="herd-label">Why do you need additional machinery?</label>
             <textarea className="herd-input" rows={2} value={biz.sababuNyongeza} onChange={e=>setBiz(b=>({...b,sababuNyongeza:e.target.value}))} style={{resize:'vertical'}}/>
 
-            <div className="afl-section-title" style={{marginTop:12}}>Wafanyakazi</div>
+            <div className="afl-section-title" style={{marginTop:12}}>Employees</div>
             {biz.employees.map((emp,i)=>(
               <div key={i} style={{display:'grid',gridTemplateColumns:'2fr 1fr 1fr',gap:6,marginBottom:6}}>
                 <div>
-                  <label className="herd-label">Kazi / Majukumu</label>
+                  <label className="herd-label">Role / Duties</label>
                   <input className="herd-input" value={emp.kazi} onChange={e=>updateRow(setBiz,'employees',i,'kazi',e.target.value)}/>
                 </div>
                 <div>
-                  <label className="herd-label">Idadi</label>
+                  <label className="herd-label">Count</label>
                   <input type="number" className="herd-input" min="0" value={emp.idadi} onChange={e=>updateRow(setBiz,'employees',i,'idadi',e.target.value)}/>
                 </div>
                 <div>
-                  <label className="herd-label">Wanawake</label>
+                  <label className="herd-label">Women</label>
                   <input type="number" className="herd-input" min="0" value={emp.wanawake} onChange={e=>updateRow(setBiz,'employees',i,'wanawake',e.target.value)}/>
                 </div>
               </div>
             ))}
             {biz.employees.length < 8 && (
-              <button type="button" className="afl-add-row" onClick={()=>addRow(setBiz,'employees',{kazi:'',aina:'kudumu',idadi:'',wanawake:'',malipoMwezi:'',malipoBia:''})}>+ Ongeza Mfanyakazi</button>
+              <button type="button" className="afl-add-row" onClick={()=>addRow(setBiz,'employees',{kazi:'',aina:'kudumu',idadi:'',wanawake:'',malipoMwezi:'',malipoBia:''})}>+ Add Employee Row</button>
             )}
           </>
         )}
 
-        <div className="afl-section-title" style={{marginTop:16}}>§4.1 — Bidhaa Unazouza</div>
+        <div className="afl-section-title" style={{marginTop:16}}>§4.1 — Products Sold</div>
         {project.products.map((p,i)=>(
           <div key={i} className="afl-row-card">
-            <div className="afl-row-num">Bidhaa {i+1}</div>
+            <div className="afl-row-num">Product {i+1}</div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
               <div>
-                <label className="herd-label">Jina la Bidhaa</label>
-                <input className="herd-input" placeholder="k.m. mafuta ya alizeti" value={p.jina} onChange={e=>updateRow(setProject,'products',i,'jina',e.target.value)}/>
+                <label className="herd-label">Product Name</label>
+                <input className="herd-input" placeholder="e.g. sunflower oil" value={p.jina} onChange={e=>updateRow(setProject,'products',i,'jina',e.target.value)}/>
               </div>
               <div>
-                <label className="herd-label">Kipimo</label>
-                <input className="herd-input" placeholder="k.m. kg" value={p.kipimo} onChange={e=>updateRow(setProject,'products',i,'kipimo',e.target.value)}/>
+                <label className="herd-label">Unit of Measure</label>
+                <input className="herd-input" placeholder="e.g. kg" value={p.kipimo} onChange={e=>updateRow(setProject,'products',i,'kipimo',e.target.value)}/>
               </div>
               <div>
-                <label className="herd-label">Bei kwa Kipimo</label>
+                <label className="herd-label">Price per Unit</label>
                 <input type="number" className="herd-input" min="0" value={p.bei} onChange={e=>updateRow(setProject,'products',i,'bei',e.target.value)}/>
               </div>
               <div>
-                <label className="herd-label">Mauzo (Mwezi 1)</label>
+                <label className="herd-label">Sales Month 1</label>
                 <input type="number" className="herd-input" min="0" value={p.mauzo1} onChange={e=>updateRow(setProject,'products',i,'mauzo1',e.target.value)}/>
               </div>
               <div>
-                <label className="herd-label">Mauzo (Mwezi 2)</label>
+                <label className="herd-label">Sales Month 2</label>
                 <input type="number" className="herd-input" min="0" value={p.mauzo2} onChange={e=>updateRow(setProject,'products',i,'mauzo2',e.target.value)}/>
               </div>
               <div>
-                <label className="herd-label">Mauzo (Mwezi 3)</label>
+                <label className="herd-label">Sales Month 3</label>
                 <input type="number" className="herd-input" min="0" value={p.mauzo3} onChange={e=>updateRow(setProject,'products',i,'mauzo3',e.target.value)}/>
               </div>
             </div>
-            <label className="herd-label">Mauzo yanaendana na msimu?</label>
+            <label className="herd-label">Is demand seasonal?</label>
             <div className="herd-row">
               {['ndiyo','hapana'].map(v=>(
-                <button key={v} type="button" className={`herd-chip${p.msimu===v?' active':''}`} onClick={()=>updateRow(setProject,'products',i,'msimu',v)}>{v==='ndiyo'?'Ndiyo':'Hapana'}</button>
+                <button key={v} type="button" className={`herd-chip${p.msimu===v?' active':''}`} onClick={()=>updateRow(setProject,'products',i,'msimu',v)}>{v==='ndiyo'?'Yes':'No'}</button>
               ))}
             </div>
           </div>
         ))}
         {project.products.length < 10 && (
-          <button type="button" className="afl-add-row" onClick={()=>addRow(setProject,'products',{jina:'',maelezo:'',kipimo:'',bei:'',mauzo1:'',mauzo2:'',mauzo3:'',msimu:'hapana',kipindi:'',kiasi:''})}>+ Ongeza Bidhaa</button>
+          <button type="button" className="afl-add-row" onClick={()=>addRow(setProject,'products',{jina:'',maelezo:'',kipimo:'',bei:'',mauzo1:'',mauzo2:'',mauzo3:'',msimu:'hapana',kipindi:'',kiasi:''})}>+ Add Product</button>
         )}
 
-        <div className="afl-section-title" style={{marginTop:16}}>§4.2 — Malighafi</div>
+        <div className="afl-section-title" style={{marginTop:16}}>§4.2 — Raw Materials</div>
         {project.materials.map((m,i)=>(
           <div key={i} className="afl-row-card">
-            <div className="afl-row-num">Malighafi {i+1}</div>
+            <div className="afl-row-num">Material {i+1}</div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
               <div>
-                <label className="herd-label">Jina la Malighafi</label>
+                <label className="herd-label">Material Name</label>
                 <input className="herd-input" value={m.jina} onChange={e=>updateRow(setProject,'materials',i,'jina',e.target.value)}/>
               </div>
               <div>
-                <label className="herd-label">Mwuzaji</label>
+                <label className="herd-label">Supplier</label>
                 <input className="herd-input" value={m.mwuzaji} onChange={e=>updateRow(setProject,'materials',i,'mwuzaji',e.target.value)}/>
               </div>
               <div>
-                <label className="herd-label">Kipimo</label>
+                <label className="herd-label">Unit of Measure</label>
                 <input className="herd-input" value={m.kipimo} onChange={e=>updateRow(setProject,'materials',i,'kipimo',e.target.value)}/>
               </div>
               <div>
-                <label className="herd-label">Gharama kwa Kipimo</label>
+                <label className="herd-label">Cost per Unit</label>
                 <input type="number" className="herd-input" min="0" value={m.gharama} onChange={e=>updateRow(setProject,'materials',i,'gharama',e.target.value)}/>
               </div>
             </div>
-            <label className="herd-label">Upatikanaji unaenda na msimu?</label>
+            <label className="herd-label">Is availability seasonal?</label>
             <div className="herd-row">
               {['ndiyo','hapana'].map(v=>(
-                <button key={v} type="button" className={`herd-chip${m.msimu===v?' active':''}`} onClick={()=>updateRow(setProject,'materials',i,'msimu',v)}>{v==='ndiyo'?'Ndiyo':'Hapana'}</button>
+                <button key={v} type="button" className={`herd-chip${m.msimu===v?' active':''}`} onClick={()=>updateRow(setProject,'materials',i,'msimu',v)}>{v==='ndiyo'?'Yes':'No'}</button>
               ))}
             </div>
           </div>
         ))}
         {project.materials.length < 15 && (
-          <button type="button" className="afl-add-row" onClick={()=>addRow(setProject,'materials',{jina:'',maelezo:'',mwuzaji:'',kipimo:'',gharama:'',msimu:'hapana',kipindi:'',kiasi:''})}>+ Ongeza Malighafi</button>
+          <button type="button" className="afl-add-row" onClick={()=>addRow(setProject,'materials',{jina:'',maelezo:'',mwuzaji:'',kipimo:'',gharama:'',msimu:'hapana',kipindi:'',kiasi:''})}>+ Add Material</button>
         )}
 
         <div className="afl-nav-btns">
-          <button className="afl-prev-btn" onClick={prev}>← Nyuma</button>
-          <button className="herd-save-btn" style={{flex:1}} disabled={!project.maeleyoBiashara} onClick={next}>Endelea → Fedha</button>
+          <button className="afl-prev-btn" onClick={prev}>← Back</button>
+          <button className="herd-save-btn" style={{flex:1}} disabled={!project.maeleyoBiashara} onClick={next}>Continue → Finance</button>
         </div>
       </div>
     </div>
@@ -8926,149 +8926,149 @@ function AFLeaseApplication({ showToast, onClose, editId }) {
     <div className="afl-wrap">
       {renderHeader()}
       <div className="afl-body">
-        <div className="afl-section-title">§7.1 — Kipato Chako cha Sasa (nje ya biashara hii)</div>
+        <div className="afl-section-title">§7.1 — Current Income (outside this business)</div>
         {fin.kipato.map((r,i)=>(
           <div key={i} style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
             <div>
-              <label className="herd-label">Chanzo</label>
-              <input className="herd-input" placeholder="k.m. mshahara, biashara nyingine" value={r.chanzo} onChange={e=>updateRow(setFin,'kipato',i,'chanzo',e.target.value)}/>
+              <label className="herd-label">Source</label>
+              <input className="herd-input" placeholder="e.g. salary, other business" value={r.chanzo} onChange={e=>updateRow(setFin,'kipato',i,'chanzo',e.target.value)}/>
             </div>
             <div>
-              <label className="herd-label">Kiasi (TZS/mwezi)</label>
+              <label className="herd-label">Amount (TZS/month)</label>
               <input type="number" className="herd-input" min="0" value={r.kiasi} onChange={e=>updateRow(setFin,'kipato',i,'kiasi',e.target.value)}/>
             </div>
           </div>
         ))}
-        <button type="button" className="afl-add-row" onClick={()=>addRow(setFin,'kipato',{chanzo:'',kiasi:'',muda:'',maelezo:''})}>+ Ongeza Chanzo</button>
+        <button type="button" className="afl-add-row" onClick={()=>addRow(setFin,'kipato',{chanzo:'',kiasi:'',muda:'',maelezo:''})}>+ Add Income Source</button>
 
-        <div className="afl-section-title" style={{marginTop:14}}>§7.2.1 — Akiba na Uwekezaji</div>
+        <div className="afl-section-title" style={{marginTop:14}}>§7.2.1 — Savings & Investments</div>
         {fin.akiba.map((r,i)=>(
           <div key={i} style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
             <div>
-              <label className="herd-label">Taasisi ya Fedha</label>
+              <label className="herd-label">Financial Institution</label>
               <input className="herd-input" value={r.taasisi} onChange={e=>updateRow(setFin,'akiba',i,'taasisi',e.target.value)}/>
             </div>
             <div>
-              <label className="herd-label">Salio (TZS)</label>
+              <label className="herd-label">Balance (TZS)</label>
               <input type="number" className="herd-input" min="0" value={r.salio} onChange={e=>updateRow(setFin,'akiba',i,'salio',e.target.value)}/>
             </div>
           </div>
         ))}
-        <button type="button" className="afl-add-row" onClick={()=>addRow(setFin,'akiba',{taasisi:'',tawi:'',salio:'',mawasiliano:''})}>+ Ongeza Akaunti</button>
+        <button type="button" className="afl-add-row" onClick={()=>addRow(setFin,'akiba',{taasisi:'',tawi:'',salio:'',mawasiliano:''})}>+ Add Account</button>
 
-        <div className="afl-section-title" style={{marginTop:14}}>§7.2.3 — Mali na Vyombo vya Usafiri</div>
+        <div className="afl-section-title" style={{marginTop:14}}>§7.2.3 — Assets & Vehicles</div>
         {fin.mali.map((r,i)=>(
           <div key={i} style={{display:'grid',gridTemplateColumns:'2fr 1fr 1fr',gap:8,marginBottom:8}}>
             <div>
-              <label className="herd-label">Mali</label>
-              <input className="herd-input" placeholder="k.m. gari, nyumba" value={r.mali} onChange={e=>updateRow(setFin,'mali',i,'mali',e.target.value)}/>
+              <label className="herd-label">Asset</label>
+              <input className="herd-input" placeholder="e.g. car, house" value={r.mali} onChange={e=>updateRow(setFin,'mali',i,'mali',e.target.value)}/>
             </div>
             <div>
-              <label className="herd-label">Hati Miliki</label>
+              <label className="herd-label">Title Deed</label>
               <select className="herd-input" value={r.hati} onChange={e=>updateRow(setFin,'mali',i,'hati',e.target.value)}>
-                <option value="ndiyo">Ndiyo</option>
-                <option value="hapana">Hapana</option>
+                <option value="ndiyo">Yes</option>
+                <option value="hapana">No</option>
               </select>
             </div>
             <div>
-              <label className="herd-label">Thamani (TZS)</label>
+              <label className="herd-label">Value (TZS)</label>
               <input type="number" className="herd-input" min="0" value={r.thamani} onChange={e=>updateRow(setFin,'mali',i,'thamani',e.target.value)}/>
             </div>
           </div>
         ))}
-        <button type="button" className="afl-add-row" onClick={()=>addRow(setFin,'mali',{mali:'',hati:'hapana',thamani:'',maelezo:''})}>+ Ongeza Mali</button>
+        <button type="button" className="afl-add-row" onClick={()=>addRow(setFin,'mali',{mali:'',hati:'hapana',thamani:'',maelezo:''})}>+ Add Asset</button>
 
-        <div className="afl-section-title" style={{marginTop:14}}>§7.3.1 — Mikopo Inayodaiwa Sasa</div>
+        <div className="afl-section-title" style={{marginTop:14}}>§7.3.1 — Current Outstanding Loans</div>
         {fin.mikopo.map((r,i)=>(
           <div key={i} style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
             <div>
-              <label className="herd-label">Taasisi</label>
+              <label className="herd-label">Institution</label>
               <input className="herd-input" value={r.taasisi} onChange={e=>updateRow(setFin,'mikopo',i,'taasisi',e.target.value)}/>
             </div>
             <div>
-              <label className="herd-label">Kilichobakia (TZS)</label>
+              <label className="herd-label">Outstanding Balance (TZS)</label>
               <input type="number" className="herd-input" min="0" value={r.kilichobakia} onChange={e=>updateRow(setFin,'mikopo',i,'kilichobakia',e.target.value)}/>
             </div>
             <div>
-              <label className="herd-label">Malipo / mwezi (TZS)</label>
+              <label className="herd-label">Monthly Repayment (TZS)</label>
               <input type="number" className="herd-input" min="0" value={r.malipo_mwezi} onChange={e=>updateRow(setFin,'mikopo',i,'malipo_mwezi',e.target.value)}/>
             </div>
             <div>
-              <label className="herd-label">Tarehe ya Mwisho</label>
+              <label className="herd-label">End Date</label>
               <input type="date" className="herd-input" value={r.tarehe} onChange={e=>updateRow(setFin,'mikopo',i,'tarehe',e.target.value)}/>
             </div>
           </div>
         ))}
-        <button type="button" className="afl-add-row" onClick={()=>addRow(setFin,'mikopo',{taasisi:'',tawi:'',aina:'',kilichokopwa:'',kilichobakia:'',tarehe:'',malipo_mwezi:'',mawasiliano:''})}>+ Ongeza Mkopo</button>
+        <button type="button" className="afl-add-row" onClick={()=>addRow(setFin,'mikopo',{taasisi:'',tawi:'',aina:'',kilichokopwa:'',kilichobakia:'',tarehe:'',malipo_mwezi:'',mawasiliano:''})}>+ Add Loan</button>
 
-        <div className="afl-section-title" style={{marginTop:14}}>§6.4 — Historia ya Mikopo Iliyokwisha Lipa</div>
+        <div className="afl-section-title" style={{marginTop:14}}>§6.4 — Loan Repayment History</div>
         {fin.historia_mikopo.map((r,i)=>(
           <div key={i} style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:8}}>
             <div>
-              <label className="herd-label">Taasisi</label>
+              <label className="herd-label">Institution</label>
               <input className="herd-input" value={r.taasisi} onChange={e=>updateRow(setFin,'historia_mikopo',i,'taasisi',e.target.value)}/>
             </div>
             <div>
-              <label className="herd-label">Kiasi (TZS)</label>
+              <label className="herd-label">Amount (TZS)</label>
               <input type="number" className="herd-input" min="0" value={r.kilichokopwa} onChange={e=>updateRow(setFin,'historia_mikopo',i,'kilichokopwa',e.target.value)}/>
             </div>
           </div>
         ))}
-        <button type="button" className="afl-add-row" onClick={()=>addRow(setFin,'historia_mikopo',{taasisi:'',tawi:'',aina:'',kilichokopwa:'',muda:'',tarehe:'',mawasiliano:''})}>+ Ongeza Mkopo wa Zamani</button>
+        <button type="button" className="afl-add-row" onClick={()=>addRow(setFin,'historia_mikopo',{taasisi:'',tawi:'',aina:'',kilichokopwa:'',muda:'',tarehe:'',mawasiliano:''})}>+ Add Past Loan</button>
 
-        <div className="afl-section-title" style={{marginTop:14}}>§5 — Eneo na Maelezo Zaidi ya Biashara</div>
-        <label className="herd-label">Je umefanikiwa kupata eneo?</label>
+        <div className="afl-section-title" style={{marginTop:14}}>§5 — Site & Additional Business Details</div>
+        <label className="herd-label">Have you secured a site?</label>
         <div className="herd-row">
           {['ndiyo','hapana'].map(v=>(
-            <button key={v} type="button" className={`herd-chip${ops.eonoLimepatikana===v?' active':''}`} onClick={()=>setOps(o=>({...o,eonoLimepatikana:v}))}>{v==='ndiyo'?'Ndiyo':'Hapana'}</button>
+            <button key={v} type="button" className={`herd-chip${ops.eonoLimepatikana===v?' active':''}`} onClick={()=>setOps(o=>({...o,eonoLimepatikana:v}))}>{v==='ndiyo'?'Yes':'No'}</button>
           ))}
         </div>
         {ops.eonoLimepatikana === 'ndiyo' && (
           <>
-            <label className="herd-label">Unamiliki au unakodisha?</label>
+            <label className="herd-label">Do you own or rent?</label>
             <div className="herd-row">
-              {[['namiliki','Namiliki'],['nakodisha','Nakodisha']].map(([v,l])=>(
+              {[['namiliki','I Own'],['nakodisha','I Rent']].map(([v,l])=>(
                 <button key={v} type="button" className={`herd-chip${ops.umilikiAuUkodishaji===v?' active':''}`} onClick={()=>setOps(o=>({...o,umilikiAuUkodishaji:v}))}>{l}</button>
               ))}
             </div>
             {ops.umilikiAuUkodishaji === 'nakodisha' && (
               <div className="herd-2col">
                 <div>
-                  <label className="herd-label">Mkataba mpaka lini</label>
+                  <label className="herd-label">Lease expires</label>
                   <input type="date" className="herd-input" value={ops.mkataba_mpaka} onChange={e=>setOps(o=>({...o,mkataba_mpaka:e.target.value}))}/>
                 </div>
                 <div>
-                  <label className="herd-label">Kodi ya mwezi (TZS)</label>
+                  <label className="herd-label">Monthly rent (TZS)</label>
                   <input type="number" className="herd-input" min="0" value={ops.kodi} onChange={e=>setOps(o=>({...o,kodi:e.target.value}))}/>
                 </div>
               </div>
             )}
           </>
         )}
-        <label className="herd-label">Utahitaji umeme mkubwa (laini tatu)?</label>
+        <label className="herd-label">Will you need 3-phase power?</label>
         <div className="herd-row">
           {['ndiyo','hapana'].map(v=>(
-            <button key={v} type="button" className={`herd-chip${ops.umemeTatu===v?' active':''}`} onClick={()=>setOps(o=>({...o,umemeTatu:v}))}>{v==='ndiyo'?'Ndiyo':'Hapana'}</button>
+            <button key={v} type="button" className={`herd-chip${ops.umemeTatu===v?' active':''}`} onClick={()=>setOps(o=>({...o,umemeTatu:v}))}>{v==='ndiyo'?'Yes':'No'}</button>
           ))}
         </div>
-        <label className="herd-label">5.3.1 — Taarifa za Fedha unazoweka</label>
-        <input className="herd-input" placeholder="k.m. rejista, vitabu vya mahesabu" value={ops.taarifa_fedha} onChange={e=>setOps(o=>({...o,taarifa_fedha:e.target.value}))}/>
-        <label className="herd-label">Mahesabu yamekaguliwa?</label>
+        <label className="herd-label">5.3.1 — Financial records you keep</label>
+        <input className="herd-input" placeholder="e.g. cash book, receipts register" value={ops.taarifa_fedha} onChange={e=>setOps(o=>({...o,taarifa_fedha:e.target.value}))}/>
+        <label className="herd-label">Are your accounts audited?</label>
         <div className="herd-row">
           {['ndiyo','hapana'].map(v=>(
-            <button key={v} type="button" className={`herd-chip${ops.mahesabu_kukaguliwa===v?' active':''}`} onClick={()=>setOps(o=>({...o,mahesabu_kukaguliwa:v}))}>{v==='ndiyo'?'Ndiyo':'Hapana'}</button>
+            <button key={v} type="button" className={`herd-chip${ops.mahesabu_kukaguliwa===v?' active':''}`} onClick={()=>setOps(o=>({...o,mahesabu_kukaguliwa:v}))}>{v==='ndiyo'?'Yes':'No'}</button>
           ))}
         </div>
         {ops.mahesabu_kukaguliwa === 'ndiyo' && (
           <>
-            <label className="herd-label">Maelezo ya Mkaguzi</label>
-            <input className="herd-input" placeholder="Jina la kampuni au mkaguzi" value={ops.mkaguzi} onChange={e=>setOps(o=>({...o,mkaguzi:e.target.value}))}/>
+            <label className="herd-label">Auditor details</label>
+            <input className="herd-input" placeholder="Audit firm or auditor name" value={ops.mkaguzi} onChange={e=>setOps(o=>({...o,mkaguzi:e.target.value}))}/>
           </>
         )}
 
         <div className="afl-nav-btns">
-          <button className="afl-prev-btn" onClick={prev}>← Nyuma</button>
-          <button className="herd-save-btn" style={{flex:1}} onClick={next}>Endelea → Nyaraka</button>
+          <button className="afl-prev-btn" onClick={prev}>← Back</button>
+          <button className="herd-save-btn" style={{flex:1}} onClick={next}>Continue → Documents</button>
         </div>
       </div>
     </div>
@@ -9079,7 +9079,7 @@ function AFLeaseApplication({ showToast, onClose, editId }) {
     <div className="afl-wrap">
       {renderHeader()}
       <div className="afl-body">
-        <div className="afl-section-title">§9 — Nyaraka Zinazohitajika (Weka alama unazo)</div>
+        <div className="afl-section-title">§9 — Required Documents (tick those you have)</div>
         <div style={{display:'flex',flexDirection:'column',gap:10}}>
           {AFL_DOCS_REQUIRED.map(doc => (
             <label key={doc} className="afl-check-row">
@@ -9089,11 +9089,11 @@ function AFLeaseApplication({ showToast, onClose, editId }) {
           ))}
         </div>
         <div className="afl-docs-note">
-          Nyaraka ambazo huna bado zitakusaidia kupata mkopo haraka. Ni muhimu uziwasilishe ofisini kabla ya kuchakatwa kwa maombi yako.
+          Missing documents can be submitted to the office before your application is processed. Having them ready speeds up approval.
         </div>
         <div className="afl-nav-btns">
-          <button className="afl-prev-btn" onClick={prev}>← Nyuma</button>
-          <button className="herd-save-btn" style={{flex:1}} onClick={next}>Endelea → Tamko</button>
+          <button className="afl-prev-btn" onClick={prev}>← Back</button>
+          <button className="herd-save-btn" style={{flex:1}} onClick={next}>Continue → Declaration</button>
         </div>
       </div>
     </div>
@@ -9104,24 +9104,24 @@ function AFLeaseApplication({ showToast, onClose, editId }) {
     <div className="afl-wrap">
       {renderHeader()}
       <div className="afl-body">
-        <div className="afl-section-title">§10 — Tamko</div>
+        <div className="afl-section-title">§10 — Declaration</div>
         <div className="afl-declaration-box">
-          <p>Ahsante kwa kujaza maelezo haya.</p>
-          <p style={{marginTop:8}}>Kwa kusaini/kuthibitisha fomu hii unathibitisha kwamba maelezo yaliyoko hapa ni sahihi kwa kadri ujuavyo na kwamba unatoa idhini kwetu kuhakiki katika taasisi mbalimbali za fedha kuhusu mahusiano yako na wao. Pia inairuhusu AF Lease kupata taarifa zako kutoka shirika lolote la kifedha au benki iliyosajiliwa na Serikali ya Tanzania.</p>
+          <p>Thank you for completing this application.</p>
+          <p style={{marginTop:8}}>By submitting this form you confirm that the information provided is true and accurate to the best of your knowledge, and that you authorise AF Lease to verify your details with any financial institution or bank registered with the Government of Tanzania.</p>
         </div>
 
         <div className="afl-summary">
-          <div className="afl-summary-row"><span>Mkopaji:</span><strong>{kyc.jinaKwanzaKati} {kyc.jinalUkoo}</strong></div>
-          <div className="afl-summary-row"><span>Biashara:</span><strong>{biz.jinaBiashara}</strong></div>
-          <div className="afl-summary-row"><span>Mashine:</span><strong>{machines.filter(m=>m.maelezo).length} mashine</strong></div>
-          <div className="afl-summary-row"><span>Jumla ya Gharama:</span><strong>TZS {grandTotal.toLocaleString()}</strong></div>
-          <div className="afl-summary-row"><span>Nyaraka:</span><strong>{Object.values(docs).filter(Boolean).length}/{AFL_DOCS_REQUIRED.length} zimeandikwa</strong></div>
+          <div className="afl-summary-row"><span>Applicant:</span><strong>{kyc.jinaKwanzaKati} {kyc.jinalUkoo}</strong></div>
+          <div className="afl-summary-row"><span>Business:</span><strong>{biz.jinaBiashara}</strong></div>
+          <div className="afl-summary-row"><span>Machines:</span><strong>{machines.filter(m=>m.maelezo).length} machine(s)</strong></div>
+          <div className="afl-summary-row"><span>Total Cost:</span><strong>TZS {grandTotal.toLocaleString()}</strong></div>
+          <div className="afl-summary-row"><span>Documents:</span><strong>{Object.values(docs).filter(Boolean).length}/{AFL_DOCS_REQUIRED.length} ticked</strong></div>
         </div>
 
         <button className="herd-save-btn" style={{marginTop:16,background:'#1a5c36'}} disabled={saving} onClick={handleSubmit}>
-          {saving ? '⏳ Inahifadhiwa…' : '✅ Wasilisha Maombi na Pata Kiungo cha Mdhamini'}
+          {saving ? '⏳ Saving…' : '✅ Submit Application & Get Referee Link'}
         </button>
-        <button className="afl-prev-btn" style={{marginTop:8,width:'100%'}} onClick={prev}>← Nyuma</button>
+        <button className="afl-prev-btn" style={{marginTop:8,width:'100%'}} onClick={prev}>← Back</button>
       </div>
     </div>
   );
@@ -9164,83 +9164,83 @@ function AFLeaseRefereeForm({ token, applicantName, showToast }) {
   if (saved) return (
     <div style={{minHeight:'100dvh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:24,textAlign:'center',background:'#f5faf7'}}>
       <div style={{fontSize:64}}>✅</div>
-      <h2 style={{fontSize:22,fontWeight:800,color:'#1a5c36',marginTop:12}}>Asante!</h2>
-      <p style={{marginTop:8,color:'#555',fontSize:14,lineHeight:1.6}}>Fomu yako ya udhamini imehifadhiwa na kutumwa kwa AF Lease. Ombi la <strong>{applicantName}</strong> litachakatwa hivi karibuni.</p>
+      <h2 style={{fontSize:22,fontWeight:800,color:'#1a5c36',marginTop:12}}>Thank you!</h2>
+      <p style={{marginTop:8,color:'#555',fontSize:14,lineHeight:1.6}}>Your referee form has been saved and sent to AF Lease. The application by <strong>{applicantName}</strong> will be processed shortly.</p>
     </div>
   );
 
   return (
     <div className="afl-ref-wrap">
       <div className="afl-ref-header">
-        <div className="afl-brand" style={{fontSize:16}}>AF Lease — Fomu ya Mdhamini</div>
-        {applicantName && <div style={{fontSize:13,color:'rgba(255,255,255,.8)',marginTop:4}}>Kwa ombi la: <strong>{applicantName}</strong></div>}
+        <div className="afl-brand" style={{fontSize:16}}>AF Lease — Referee Form</div>
+        {applicantName && <div style={{fontSize:13,color:'rgba(255,255,255,.8)',marginTop:4}}>For the application of: <strong>{applicantName}</strong></div>}
       </div>
       <div className="afl-body">
-        <div className="afl-section-title">Maelezo Yako Binafsi</div>
-        <label className="herd-label">Jina Kamili *</label>
-        <input className="herd-input" placeholder="Jina la kwanza, kati na ukoo" value={form.jinaKamili} onChange={e=>setForm(f=>({...f,jinaKamili:e.target.value}))}/>
+        <div className="afl-section-title">Your Personal Details</div>
+        <label className="herd-label">Full Name *</label>
+        <input className="herd-input" placeholder="First, middle and surname" value={form.jinaKamili} onChange={e=>setForm(f=>({...f,jinaKamili:e.target.value}))}/>
 
         <div className="herd-2col">
           <div>
-            <label className="herd-label">Namba ya Kitambulisho *</label>
+            <label className="herd-label">ID Number *</label>
             <input className="herd-input" value={form.nambariKitambulisho} onChange={e=>setForm(f=>({...f,nambariKitambulisho:e.target.value}))}/>
           </div>
           <div>
-            <label className="herd-label">Simu ya Mkononi *</label>
+            <label className="herd-label">Mobile Phone *</label>
             <input className="herd-input" placeholder="+255..." value={form.simu} onChange={e=>setForm(f=>({...f,simu:e.target.value}))}/>
           </div>
         </div>
 
         <div className="herd-2col">
           <div>
-            <label className="herd-label">Mji / Kijiji</label>
+            <label className="herd-label">Town / Village</label>
             <input className="herd-input" value={form.mjiKijiji} onChange={e=>setForm(f=>({...f,mjiKijiji:e.target.value}))}/>
           </div>
           <div>
-            <label className="herd-label">Kata</label>
+            <label className="herd-label">Ward</label>
             <input className="herd-input" value={form.kata} onChange={e=>setForm(f=>({...f,kata:e.target.value}))}/>
           </div>
         </div>
 
-        <div className="afl-section-title" style={{marginTop:14}}>Uhusiano na Mwombaji</div>
-        <label className="herd-label">Uhusiano wako na mwombaji *</label>
+        <div className="afl-section-title" style={{marginTop:14}}>Relationship to Applicant</div>
+        <label className="herd-label">Your relationship to the applicant *</label>
         <select className="herd-input" value={form.uhusiano} onChange={e=>setForm(f=>({...f,uhusiano:e.target.value}))}>
-          <option value="">— chagua —</option>
-          <option value="ndugu">Ndugu (familia)</option>
-          <option value="jirani">Jirani</option>
-          <option value="mwenzake_biashara">Mwenzake wa biashara</option>
-          <option value="mwenzake_kazi">Mwenzake wa kazi</option>
-          <option value="rafiki">Rafiki</option>
-          <option value="mwingine">Mwingine</option>
+          <option value="">— select —</option>
+          <option value="ndugu">Family member</option>
+          <option value="jirani">Neighbour</option>
+          <option value="mwenzake_biashara">Business associate</option>
+          <option value="mwenzake_kazi">Work colleague</option>
+          <option value="rafiki">Friend</option>
+          <option value="mwingine">Other</option>
         </select>
-        <label className="herd-label">Unamjua kwa miaka mingapi?</label>
-        <input type="number" className="herd-input" min="0" max="80" placeholder="k.m. 5" value={form.miakaMfahamu} onChange={e=>setForm(f=>({...f,miakaMfahamu:e.target.value}))}/>
+        <label className="herd-label">How many years have you known them?</label>
+        <input type="number" className="herd-input" min="0" max="80" placeholder="e.g. 5" value={form.miakaMfahamu} onChange={e=>setForm(f=>({...f,miakaMfahamu:e.target.value}))}/>
 
-        <div className="afl-section-title" style={{marginTop:14}}>Kazi na Kipato Chako</div>
-        <label className="herd-label">Kazi yako / Biashara yako</label>
-        <input className="herd-input" placeholder="k.m. Mwalimu, Mfanyabiashara" value={form.kazi} onChange={e=>setForm(f=>({...f,kazi:e.target.value}))}/>
-        <label className="herd-label">Mwajiri / Anwani ya Biashara</label>
+        <div className="afl-section-title" style={{marginTop:14}}>Your Employment & Income</div>
+        <label className="herd-label">Your occupation / business</label>
+        <input className="herd-input" placeholder="e.g. Teacher, Trader" value={form.kazi} onChange={e=>setForm(f=>({...f,kazi:e.target.value}))}/>
+        <label className="herd-label">Employer / Business address</label>
         <input className="herd-input" value={form.mwajiri} onChange={e=>setForm(f=>({...f,mwajiri:e.target.value}))}/>
-        <label className="herd-label">Kipato cha Kila Mwezi (TZS)</label>
-        <input type="number" className="herd-input" min="0" placeholder="k.m. 500000" value={form.kipato_mwezi} onChange={e=>setForm(f=>({...f,kipato_mwezi:e.target.value}))}/>
+        <label className="herd-label">Monthly Income (TZS)</label>
+        <input type="number" className="herd-input" min="0" placeholder="e.g. 500000" value={form.kipato_mwezi} onChange={e=>setForm(f=>({...f,kipato_mwezi:e.target.value}))}/>
 
-        <div className="afl-section-title" style={{marginTop:14}}>Udhamini</div>
-        <label className="herd-label">Je unakubali kuwa mdhamini wa mkopo huu? *</label>
+        <div className="afl-section-title" style={{marginTop:14}}>Guarantee Consent</div>
+        <label className="herd-label">Do you agree to act as guarantor for this application? *</label>
         <div className="herd-row">
-          {['Ndiyo, nakubali','Hapana, sijakubali'].map(v=>(
+          {['Yes, I agree','No, I do not agree'].map(v=>(
             <button key={v} type="button" className={`herd-chip${form.ridhaa===v?' active':''}`} onClick={()=>setForm(f=>({...f,ridhaa:v}))}>{v}</button>
           ))}
         </div>
-        <label className="herd-label">Maelezo ya ziada (hiari)</label>
+        <label className="herd-label">Additional comments (optional)</label>
         <textarea className="herd-input" rows={3} value={form.maelezo} onChange={e=>setForm(f=>({...f,maelezo:e.target.value}))} style={{resize:'vertical'}}/>
 
-        <div className="afl-section-title" style={{marginTop:14}}>Tamko</div>
+        <div className="afl-section-title" style={{marginTop:14}}>Declaration</div>
         <div className="afl-declaration-box" style={{fontSize:12}}>
-          Kwa kutuma fomu hii, ninathibitisha kwamba maelezo niliyoyatoa ni ya kweli na sahihi. Ninakubali kushirikiana na AF Lease katika mchakato wa kuhakiki na kupitisha mkopo huu.
+          By submitting this form I confirm that the information I have provided is true and accurate. I agree to cooperate with AF Lease during the verification and approval process for this application.
         </div>
         <div className="herd-2col" style={{marginTop:8}}>
           <div>
-            <label className="herd-label">Tarehe</label>
+            <label className="herd-label">Date</label>
             <input type="date" className="herd-input" value={form.tarehe} onChange={e=>setForm(f=>({...f,tarehe:e.target.value}))}/>
           </div>
         </div>
@@ -9248,7 +9248,7 @@ function AFLeaseRefereeForm({ token, applicantName, showToast }) {
         <button className="herd-save-btn" style={{marginTop:16}}
           disabled={saving || !form.jinaKamili || !form.simu || !form.uhusiano || !form.ridhaa}
           onClick={handleSave}>
-          {saving ? 'Inahifadhiwa…' : '✅ Wasilisha Fomu ya Udhamini'}
+          {saving ? 'Saving…' : '✅ Submit Referee Form'}
         </button>
       </div>
     </div>
@@ -9538,10 +9538,10 @@ function HerdTab({ userRole, country, showToast, cur }) {
             + Add Animal
           </button>
           <button className="afl-apply-btn" onClick={() => setAflView(true)}>
-            📋 Omba AF Lease
+            📋 Apply for AF Lease
           </button>
           <button className="afl-apply-btn" style={{background:'#1d4ed8'}} onClick={() => setSchedView({})}>
-            📊 Ratiba ya Malipo
+            📊 Repayment Schedule
           </button>
         </div>
       </div>
@@ -9971,7 +9971,7 @@ function HerdTab({ userRole, country, showToast, cur }) {
                         annualRate: lease.interestRate || '',
                         termMonths: (lease.totalInstalments || 24) * ({ monthly:1, quarterly:3, 'bi-annual':6, annual:12 }[lease.frequency]||1),
                       })}>
-                      📊 Ratiba
+                      📊 Schedule
                     </button>
                   </div>
                   </div>
