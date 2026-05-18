@@ -12,8 +12,6 @@ const stripeService   = require('../services/stripe');
 const selcomService   = require('../services/selcom');
 const mpesaKEService  = require('../services/mpesaKenya');
 
-const SEED_KES_RATE = 0.0465; // fallback TZS → KES if Redis cache is cold
-
 async function tzsToKes(amountTzs) {
   try {
     const raw = await redis.get('fx:rates');
@@ -21,8 +19,13 @@ async function tzsToKes(amountTzs) {
       const { rates } = JSON.parse(raw);
       if (rates?.KES) return Math.round(amountTzs * rates.KES);
     }
-  } catch { /* fall through to seed rate */ }
-  return Math.round(amountTzs * SEED_KES_RATE);
+  } catch { /* fall through */ }
+  // In production, refuse to charge at a potentially stale rate
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('FX rate unavailable — cannot convert TZS to KES');
+  }
+  // Development fallback only
+  return Math.round(amountTzs * 0.0465);
 }
 
 const router = express.Router();
@@ -170,6 +173,21 @@ router.post('/stripe/webhook', express.raw({ type: 'application/json' }), async 
 // POST /api/payments/mpesa/callback — Safaricom Daraja STK push result
 router.post('/mpesa/callback', async (req, res, next) => {
   try {
+    // Bearer token guard — set MPESA_CALLBACK_TOKEN to the value configured in Daraja portal
+    const callbackToken = process.env.MPESA_CALLBACK_TOKEN;
+    if (callbackToken) {
+      const auth = req.headers['authorization'] || '';
+      const provided = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+      const tokBuf = Buffer.from(callbackToken);
+      const proBuf = Buffer.from(provided);
+      const valid = tokBuf.length === proBuf.length &&
+        crypto.timingSafeEqual(tokBuf, proBuf);
+      if (!valid) {
+        logger.warn('M-Pesa callback bearer token mismatch', { ip: req.ip });
+        return res.status(401).json({ ResultCode: 1, ResultDesc: 'Unauthorized' });
+      }
+    }
+
     const body = req.body?.Body?.stkCallback;
     if (!body) return res.json({ ResultCode: 0 });
 
@@ -199,7 +217,10 @@ router.post('/mpesa/callback', async (req, res, next) => {
 // Verify Selcom callback using HMAC-SHA256 of the request body
 function verifySelcomCallback(req) {
   const secret = process.env.SELCOM_API_SECRET;
-  if (!secret) return true; // not configured — skip in dev/sandbox
+  if (!secret) {
+    logger.error('SELCOM_API_SECRET not configured — rejecting Selcom callback');
+    return false;
+  }
   const signature = req.headers['x-selcom-signature'] || req.headers['authorization'] || '';
   const bodyStr = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
   const expected = crypto.createHmac('sha256', secret).update(bodyStr).digest('hex');

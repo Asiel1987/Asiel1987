@@ -52,7 +52,8 @@ router.get('/', async (req, res, next) => {
     }
 
     if (search) {
-      params.push(`%${search}%`);
+      const searchTerm = String(search).slice(0, 100);
+      params.push(`%${searchTerm}%`);
       conditions.push(`p.name ILIKE $${params.length}`);
     }
 

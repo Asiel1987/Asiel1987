@@ -113,10 +113,15 @@ CREATE TRIGGER trg_herd_animals_updated_at
   FOR EACH ROW EXECUTE FUNCTION set_herd_animals_updated_at();
 
 -- Auto-update herd_leases.updated_at
+CREATE OR REPLACE FUNCTION set_herd_leases_updated_at()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN NEW.updated_at = NOW(); RETURN NEW; END;
+$$;
+
 DROP TRIGGER IF EXISTS trg_herd_leases_updated_at ON herd_leases;
 CREATE TRIGGER trg_herd_leases_updated_at
   BEFORE UPDATE ON herd_leases
-  FOR EACH ROW EXECUTE FUNCTION set_herd_animals_updated_at();
+  FOR EACH ROW EXECUTE FUNCTION set_herd_leases_updated_at();
 
 -- Track migration
 INSERT INTO schema_migrations(filename) VALUES('006_herd.sql')

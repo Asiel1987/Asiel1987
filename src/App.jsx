@@ -4836,7 +4836,7 @@ img.src = url;
 async function uploadPhoto(file) {
 // Demo mode — no real upload
 if (!API_BASE) {
-await new Promise(r => setTimeout(r, 600 + Math.random() * 600));
+await new Promise(r => setTimeout(r, 600 + (crypto.getRandomValues(new Uint32Array(1))[0] % 600)));
 return { url: URL.createObjectURL(file), name: file.name, size: file.size };
 }
 // Production: get presigned URL from backend, upload directly to Cloudflare Images
@@ -5470,8 +5470,9 @@ onChange({ text, lat, lng, w3w, distKm });
 },
 () => {
 // GPS blocked in sandbox — use hub location as demo pin
-const lat = hubCoord.lat + (Math.random() - 0.5) * 0.02;
-const lng = hubCoord.lng + (Math.random() - 0.5) * 0.02;
+const jitter = () => (crypto.getRandomValues(new Uint32Array(1))[0] / 0xffffffff - 0.5) * 0.02;
+const lat = hubCoord.lat + jitter();
+const lng = hubCoord.lng + jitter();
 const distKm = calcDistKm(lat, lng, hubCoord.lat, hubCoord.lng);
 const w3w    = mockW3W(lat, lng);
 const text   = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;

@@ -33,6 +33,7 @@ function errorHandler(err, req, res, next) {
       constraint: isProd ? '[redacted]' : err.constraint,
       path:       req.path,
       method:     req.method,
+      ip:         req.ip,
     });
 
     // Unique constraint violation
@@ -60,6 +61,7 @@ function errorHandler(err, req, res, next) {
     path: req.path,
     method: req.method,
     status,
+    ip: req.ip,
   });
 
   // Never leak stack traces in production

@@ -12,10 +12,39 @@
  */
 
 const express = require('express');
+const { rateLimit } = require('express-rate-limit');
+const { RedisStore } = require('rate-limit-redis');
+const Joi     = require('joi');
 const { v4: uuidv4 } = require('uuid');
 const router  = express.Router();
 const db      = require('../db');
+const redis   = require('../redis');
 const logger  = require('../logger');
+
+// Rate limiter for public (unauthenticated) endpoints — 5 submissions per hour per IP
+const publicSubmitLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Too many submissions. Please try again later.' },
+  store: new RedisStore({
+    sendCommand: (...args) => redis.call(...args),
+    prefix: 'rl:herd:public:',
+  }),
+});
+
+// Joi schemas for public endpoints
+const applySchema = Joi.object({
+  id:           Joi.string().min(8).max(64).required(),
+  refereeToken: Joi.string().max(128).optional().allow(null, ''),
+}).unknown(true); // allow extra KYC fields
+
+const refereeSchema = Joi.object({
+  token:      Joi.string().min(8).max(128).required(),
+  jinaKamili: Joi.string().min(2).max(200).required(),
+  id:         Joi.string().max(64).optional().allow(null, ''),
+}).unknown(true);
 
 function requireAuth(req, res, next) {
   if (!req.session?.userId) return res.status(401).json({ error: 'Authentication required' });
@@ -33,12 +62,20 @@ const VALID_STATUSES = new Set(['active','dry','pregnant','empty','sold','culled
 const VALID_EV_TYPES = new Set(['health','repro','production']);
 const VALID_FREQS    = new Set(['monthly','quarterly','bi-annual','annual']);
 
+const SYNC_MAX = 500; // max items per array per sync call
+
 // ── POST /api/herd/sync ─────────────────────────────────────────────────────────────
 // Client sends arrays of unsynced animals/events/leases/payments.
 // We upsert each batch inside a transaction and return counts.
 router.post('/sync', requireAuth, async (req, res, next) => {
   const userId = req.session.userId;
   const { animals = [], events = [], leases = [] } = req.body || {};
+
+  if (animals.length > SYNC_MAX || events.length > SYNC_MAX || leases.length > SYNC_MAX) {
+    return res.status(400).json({
+      error: `Sync batch exceeds maximum of ${SYNC_MAX} items per array`,
+    });
+  }
 
   const client = await db.connect();
   try {
@@ -259,45 +296,42 @@ router.get('/animals/:id/events', requireAuth, async (req, res, next) => {
 // ── POST /api/herd/apply ──────────────────────────────────────────────────────────
 // Accepts a full AF Lease application submitted from the multi-step form.
 // Stores it in afl_applications. No auth required (applicant may not yet have account).
-router.post('/apply', async (req, res, next) => {
+router.post('/apply', publicSubmitLimiter, async (req, res, next) => {
   try {
-    const body = req.body || {};
-    const appId = body.id;
-    if (!appId || typeof appId !== 'string' || appId.length < 8) {
-      return res.status(400).json({ error: 'Invalid application id' });
-    }
-    // Rate-limit: one record per id (upsert)
+    const { error, value } = applySchema.validate(req.body || {});
+    if (error) return res.status(400).json({ error: error.details[0].message });
+
     await db.query(
       `INSERT INTO afl_applications (id, referee_token, data, submitted_at)
        VALUES ($1, $2, $3, NOW())
        ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()`,
-      [appId, body.refereeToken || null, JSON.stringify(body)]
+      [value.id, value.refereeToken || null, JSON.stringify(req.body)]
     );
-    logger.info('AFL application received', { appId });
-    return res.json({ ok: true, id: appId });
+    logger.info('AFL application received', { appId: value.id });
+    return res.json({ ok: true, id: value.id });
   } catch (err) { next(err); }
 });
 
 // ── POST /api/herd/referee ────────────────────────────────────────────────────────
 // Receives a completed referee/guarantor form (no auth needed — opened via public link).
-router.post('/referee', async (req, res, next) => {
+router.post('/referee', publicSubmitLimiter, async (req, res, next) => {
   try {
-    const body = req.body || {};
-    if (!body.token || !body.jinaKamili) {
-      return res.status(400).json({ error: 'token and jinaKamili are required' });
-    }
+    const { error, value } = refereeSchema.validate(req.body || {});
+    if (error) return res.status(400).json({ error: error.details[0].message });
+
+    const refId = value.id || require('crypto').randomUUID();
     await db.query(
       `INSERT INTO afl_referees (id, app_token, data, submitted_at)
        VALUES ($1, $2, $3, NOW())`,
-      [body.id || require('crypto').randomUUID(), body.token, JSON.stringify(body)]
+      [refId, value.token, JSON.stringify(req.body)]
     );
     // Link back to application
     await db.query(
       `UPDATE afl_applications SET referee_count = COALESCE(referee_count,0)+1, updated_at = NOW()
        WHERE referee_token = $1`,
-      [body.token]
+      [value.token]
     );
-    logger.info('AFL referee form received', { token: body.token });
+    logger.info('AFL referee form received', { token: value.token });
     return res.json({ ok: true });
   } catch (err) { next(err); }
 });

@@ -145,6 +145,18 @@ router.post('/', requireAuth, async (req, res, next) => {
 
     await client.query('BEGIN');
 
+    // Lock the user row first (before product locks) to establish a consistent
+    // lock order and prevent deadlocks with concurrent loyalty-point operations.
+    const userLockResult = await client.query(
+      'SELECT loyalty_pts FROM users WHERE id = $1 FOR UPDATE',
+      [req.session.userId]
+    );
+    if (!userLockResult.rows.length) {
+      await client.query('ROLLBACK');
+      return res.status(401).json({ error: 'User not found' });
+    }
+    const currentLoyaltyPts = userLockResult.rows[0].loyalty_pts || 0;
+
     // Fetch all products in one query and lock the rows for the stock update
     const productIds = value.items.map((i) => i.productId);
     const productResult = await client.query(
@@ -234,18 +246,13 @@ router.post('/', requireAuth, async (req, res, next) => {
       );
     }
 
-    // Deduct loyalty points (already capped to loyaltyDiscount = min(requested, total))
+    // Deduct loyalty points — user row already locked above; use the prefetched value
     if (loyaltyDiscount > 0) {
-      const loyaltyResult = await client.query(
-        'SELECT loyalty_pts FROM users WHERE id = $1 FOR UPDATE',
-        [req.session.userId]
-      );
-      const currentPts = loyaltyResult.rows[0]?.loyalty_pts || 0;
-      if (loyaltyDiscount > currentPts) {
+      if (loyaltyDiscount > currentLoyaltyPts) {
         await client.query('ROLLBACK');
         return res.status(400).json({
           error: 'Insufficient loyalty points',
-          available: currentPts,
+          available: currentLoyaltyPts,
           requested: loyaltyDiscount,
         });
       }

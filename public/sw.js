@@ -40,10 +40,22 @@ self.addEventListener('activate', event => {
   );
 });
 
+// Paths that must never be served from cache — auth, user data, admin, CSRF
+const NETWORK_ONLY_PREFIXES = [
+  '/api/auth',
+  '/api/users',
+  '/api/csrf-token',
+  '/api/herd/admin',
+];
+
 self.addEventListener('fetch', event => {
   const { request } = event;
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
+
+  // Sensitive endpoints — always network-only, never cached
+  if (NETWORK_ONLY_PREFIXES.some(p => url.pathname.startsWith(p))) return;
+
   if (url.pathname.startsWith('/api/products')) {
     // Products use their own cache for offline catalogue; update in background
     event.respondWith(staleWhileRevalidate(request, PRODUCT_CACHE));

@@ -21,6 +21,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const redis = require('../redis');
 const logger = require('../logger');
 
 // Africa's Talking published IP ranges (https://developers.africastalking.com/docs/ussd)
@@ -107,9 +108,25 @@ async function getFarmerBalance(phone) {
   } catch { return 0; }
 }
 
+// Per-phone USSD rate limit: max 30 requests per minute
+async function ussdPhoneGuard(req, res, next) {
+  const phone = req.body?.phoneNumber;
+  if (!phone) return next();
+  const key = `rl:ussd:${phone}`;
+  try {
+    const count = await redis.incr(key);
+    if (count === 1) await redis.expire(key, 60);
+    if (count > 30) {
+      logger.warn('USSD rate limit exceeded', { phone });
+      return res.set('Content-Type', 'text/plain').send('END Too many requests. Please try again later.');
+    }
+  } catch { /* non-fatal — continue if Redis unavailable */ }
+  next();
+}
+
 // ── POST /api/ussd ────────────────────────────────────────────────────────────
 // Africa's Talking sends application/x-www-form-urlencoded
-router.post('/', ussdIpGuard, express.urlencoded({ extended: false }), async (req, res) => {
+router.post('/', ussdIpGuard, express.urlencoded({ extended: false }), ussdPhoneGuard, async (req, res) => {
   const { sessionId, phoneNumber, text = '' } = req.body;
   const country = countryFromPhone(phoneNumber);
   const parts   = text.split('*').filter(Boolean);

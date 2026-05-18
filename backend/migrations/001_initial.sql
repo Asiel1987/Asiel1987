@@ -10,6 +10,15 @@
 -- Enable pgcrypto for gen_random_uuid() (already enabled on Supabase; idempotent)
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
+-- ── Migration tracking ────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS schema_migrations (
+  filename   TEXT        PRIMARY KEY,
+  applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+INSERT INTO schema_migrations (filename) VALUES ('001_initial.sql')
+  ON CONFLICT DO NOTHING;
+
 -- ── Users ─────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS users (
   id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -56,7 +65,7 @@ CREATE TABLE IF NOT EXISTS orders (
                        'assigned', 'in_transit', 'delivered',
                        'cancelled', 'refunded'
                      )),
-  total_tzs        INTEGER     NOT NULL CHECK (total_tzs >= 0),
+  total_tzs        INTEGER     NOT NULL CHECK (total_tzs > 0),
   delivery_fee     INTEGER     NOT NULL DEFAULT 0 CHECK (delivery_fee >= 0),
   discount         INTEGER     NOT NULL DEFAULT 0 CHECK (discount >= 0),
   country          CHAR(2)     NOT NULL CHECK (country IN ('TZ', 'KE')),

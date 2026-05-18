@@ -41,9 +41,11 @@ async function verifyAppleToken(idToken) {
   const header  = JSON.parse(Buffer.from(parts[0], 'base64url').toString());
   const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
 
+  const now = Math.floor(Date.now() / 1000);
   if (payload.iss !== 'https://appleid.apple.com') throw new Error('Invalid Apple issuer');
   if (payload.aud !== process.env.APPLE_CLIENT_ID)  throw new Error('Apple token audience mismatch');
-  if (payload.exp  < Math.floor(Date.now() / 1000)) throw new Error('Apple token expired');
+  if (payload.exp  < now) throw new Error('Apple token expired');
+  if (payload.nbf !== undefined && payload.nbf > now) throw new Error('Apple token not yet valid');
 
   // Fetch Apple JWKS and verify RS256 signature using Node built-in crypto
   const { data } = await axios.get('https://appleid.apple.com/auth/keys', { timeout: 8000 });
@@ -136,6 +138,18 @@ function otpRedisKey(phone) {
   return `otp:${phone}`;
 }
 
+// Per-phone rate limit stored directly in Redis (complements the IP-based express-rate-limit)
+async function checkPhoneRateLimit(phone, limitKey, maxCount, windowSec) {
+  const key = `rl:phone:${limitKey}:${phone}`;
+  const count = await redisClient.incr(key);
+  if (count === 1) await redisClient.expire(key, windowSec);
+  if (count > maxCount) {
+    const ttl = await redisClient.ttl(key);
+    return { limited: true, retryAfter: ttl };
+  }
+  return { limited: false };
+}
+
 // ── Routes ────────────────────────────────────────────────────────────────────
 
 /**
@@ -148,6 +162,16 @@ router.post('/otp/send', otpSendLimiter, async (req, res, next) => {
     if (error) return next(error);
 
     const { phone } = value;
+
+    // Per-phone limit: max 3 OTP sends per hour
+    const phoneLimit = await checkPhoneRateLimit(phone, 'send', 3, 3600);
+    if (phoneLimit.limited) {
+      return res.status(429).json({
+        error: 'Too many OTP requests for this number. Please wait before requesting another code.',
+        retryAfter: phoneLimit.retryAfter,
+      });
+    }
+
     const code = generateOTP();
     const key = otpRedisKey(phone);
 
@@ -175,6 +199,16 @@ router.post('/otp/verify', otpVerifyLimiter, async (req, res, next) => {
     if (error) return next(error);
 
     const { phone, code } = value;
+
+    // Per-phone limit: max 10 verify attempts per hour across all OTP codes
+    const phoneLimit = await checkPhoneRateLimit(phone, 'verify', 10, 3600);
+    if (phoneLimit.limited) {
+      return res.status(429).json({
+        error: 'Too many verification attempts for this number. Please try again later.',
+        retryAfter: phoneLimit.retryAfter,
+      });
+    }
+
     const key = otpRedisKey(phone);
 
     const raw = await redisClient.get(key);
