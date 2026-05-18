@@ -3,6 +3,7 @@
 const express = require('express');
 const Joi     = require('joi');
 const crypto  = require('crypto');
+const axios   = require('axios');
 const { OAuth2Client } = require('google-auth-library');
 const { v4: uuidv4 } = require('uuid');
 
@@ -34,6 +35,29 @@ async function verifyGoogleToken(credential) {
   };
 }
 
+// In-memory JWKS cache — Apple keys rotate infrequently; 1-hour TTL avoids hammering their endpoint
+let _appleJwksCache = null;
+let _appleJwksCachedAt = 0;
+const APPLE_JWKS_TTL_MS = 60 * 60 * 1000; // 1 hour
+
+async function fetchAppleJwks(kid, alg) {
+  const now = Date.now();
+  if (!_appleJwksCache || now - _appleJwksCachedAt > APPLE_JWKS_TTL_MS) {
+    const { data } = await axios.get('https://appleid.apple.com/auth/keys', { timeout: 8000 });
+    _appleJwksCache = data.keys;
+    _appleJwksCachedAt = now;
+  }
+  let jwk = _appleJwksCache.find(k => k.kid === kid && k.alg === alg);
+  // If not found, force a cache refresh (key may have rotated)
+  if (!jwk && now - _appleJwksCachedAt > 0) {
+    const { data } = await axios.get('https://appleid.apple.com/auth/keys', { timeout: 8000 });
+    _appleJwksCache = data.keys;
+    _appleJwksCachedAt = Date.now();
+    jwk = _appleJwksCache.find(k => k.kid === kid && k.alg === alg);
+  }
+  return jwk || null;
+}
+
 async function verifyAppleToken(idToken) {
   const parts = idToken.split('.');
   if (parts.length !== 3) throw new Error('Invalid Apple JWT structure');
@@ -47,9 +71,7 @@ async function verifyAppleToken(idToken) {
   if (payload.exp  < now) throw new Error('Apple token expired');
   if (payload.nbf !== undefined && payload.nbf > now) throw new Error('Apple token not yet valid');
 
-  // Fetch Apple JWKS and verify RS256 signature using Node built-in crypto
-  const { data } = await axios.get('https://appleid.apple.com/auth/keys', { timeout: 8000 });
-  const jwk = data.keys.find(k => k.kid === header.kid && k.alg === header.alg);
+  const jwk = await fetchAppleJwks(header.kid, header.alg);
   if (!jwk) throw new Error('No matching Apple public key');
 
   const publicKey = crypto.createPublicKey({ key: jwk, format: 'jwk' });
@@ -68,15 +90,17 @@ async function verifyAppleToken(idToken) {
 
 // Finds an existing user by social ID, then email; links the social ID if found by email.
 // Creates a new user (no phone) if no match found.
-async function findOrCreateSocialUser({ provider, socialId, email, displayName }) {
+async function findOrCreateSocialUser({ provider, socialId, email, emailVerified, displayName }) {
   const idCol = provider === 'google' ? 'google_id' : 'apple_id';
 
   // 1) Lookup by social ID
   let result = await db.query(`SELECT * FROM users WHERE ${idCol} = $1`, [socialId]);
   if (result.rows.length) return result.rows[0];
 
-  // 2) Lookup by email and link
-  if (email) {
+  // 2) Lookup by email and link — only when the provider has verified the email address.
+  // Linking on an unverified email would let an attacker take over any account whose
+  // email they claim but do not control.
+  if (email && emailVerified) {
     result = await db.query('SELECT * FROM users WHERE email = $1', [email]);
     if (result.rows.length) {
       const user = result.rows[0];
@@ -102,9 +126,11 @@ async function createSocialSession(req, user) {
   await new Promise((resolve, reject) => {
     req.session.regenerate(err => (err ? reject(err) : resolve()));
   });
-  req.session.userId  = user.id;
-  req.session.role    = user.role;
-  req.session.country = user.country;
+  req.session.userId    = user.id;
+  req.session.role      = user.role;
+  req.session.country   = user.country;
+  // Nullify any stale CSRF token — the client must fetch a fresh one via GET /api/csrf-token
+  req.session.csrfToken = null;
 }
 
 // ── Validation schemas ────────────────────────────────────────────────────────
@@ -329,10 +355,11 @@ router.post('/google', async (req, res, next) => {
     }
 
     const user = await findOrCreateSocialUser({
-      provider:    'google',
-      socialId:    googleUser.googleId,
-      email:       googleUser.email,
-      displayName: googleUser.name,
+      provider:      'google',
+      socialId:      googleUser.googleId,
+      email:         googleUser.email,
+      emailVerified: googleUser.emailVerified,
+      displayName:   googleUser.name,
     });
 
     await createSocialSession(req, user);
@@ -378,9 +405,10 @@ router.post('/apple', async (req, res, next) => {
       : null;
 
     const user = await findOrCreateSocialUser({
-      provider:    'apple',
-      socialId:    applePayload.appleId,
-      email:       applePayload.email,
+      provider:      'apple',
+      socialId:      applePayload.appleId,
+      email:         applePayload.email,
+      emailVerified: applePayload.emailVerified,
       displayName,
     });
 

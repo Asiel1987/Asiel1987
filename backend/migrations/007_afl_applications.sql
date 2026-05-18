@@ -14,7 +14,7 @@ CREATE INDEX IF NOT EXISTS idx_afl_apps_token     ON afl_applications(referee_to
 
 CREATE TABLE IF NOT EXISTS afl_referees (
   id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  app_token       TEXT        NOT NULL,             -- matches afl_applications.referee_token
+  app_token       TEXT        NOT NULL UNIQUE,      -- matches afl_applications.referee_token; one submission per link
   data            JSONB       NOT NULL DEFAULT '{}',
   submitted_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

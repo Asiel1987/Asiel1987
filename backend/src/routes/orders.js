@@ -76,7 +76,14 @@ router.get('/', requireAuth, async (req, res, next) => {
 
     const { conditions, params } = buildOrderFilter(role, userId, country);
 
+    const VALID_ORDER_STATUSES = new Set([
+      'pending','paid','confirmed','preparing','assigned',
+      'in_transit','picked-up','delivered','cancelled','refunded',
+    ]);
     if (status) {
+      if (!VALID_ORDER_STATUSES.has(status)) {
+        return res.status(400).json({ error: 'Invalid status value' });
+      }
       params.push(status);
       conditions.push(`o.status = $${params.length}`);
     }
@@ -462,8 +469,9 @@ router.patch('/:id/status', requireAuth, async (req, res, next) => {
 // Called by the rider app (or demo simulator) to update their GPS position.
 // Stores in Redis with a 10-minute TTL and broadcasts SSE to the customer.
 const riderLocationSchema = Joi.object({
-  lat: Joi.number().min(-90).max(90).required(),
-  lng: Joi.number().min(-180).max(180).required(),
+  lat:        Joi.number().min(-90).max(90).required(),
+  lng:        Joi.number().min(-180).max(180).required(),
+  etaMinutes: Joi.number().integer().min(0).max(240).optional(),
 });
 
 router.put('/:id/rider-location', requireAuth, async (req, res, next) => {
@@ -497,8 +505,8 @@ router.put('/:id/rider-location', requireAuth, async (req, res, next) => {
       lng: value.lng,
     });
 
-    // Push notification when rider is ~10 min away (etaMinutes supplied by rider client)
-    const etaMinutes = req.body.etaMinutes ? Number(req.body.etaMinutes) : null;
+    // Push notification when rider is ~10 min away (etaMinutes from validated schema)
+    const etaMinutes = value.etaMinutes ?? null;
     const prevKey = `rider_10min_notified:${id}`;
     if (etaMinutes !== null && etaMinutes <= 10) {
       const alreadySent = await redisClient.get(prevKey);

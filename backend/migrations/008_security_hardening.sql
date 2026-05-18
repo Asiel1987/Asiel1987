@@ -91,6 +91,13 @@ CREATE POLICY farmer_profiles_owner ON farmer_profiles
   USING (user_id = current_setting('app.current_user_id', true)::uuid
          OR current_setting('app.current_role', true) = 'admin');
 
+-- ── L9: Unique referee submission per link token ──────────────────────────────
+-- One referee link → one submission; prevents inflated referee_count
+ALTER TABLE afl_referees
+  DROP CONSTRAINT IF EXISTS afl_referees_app_token_key;
+ALTER TABLE afl_referees
+  ADD CONSTRAINT afl_referees_app_token_key UNIQUE (app_token);
+
 -- Track migration
 INSERT INTO schema_migrations (filename) VALUES ('008_security_hardening.sql')
   ON CONFLICT DO NOTHING;

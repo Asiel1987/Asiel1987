@@ -20,6 +20,7 @@ const router  = express.Router();
 const db      = require('../db');
 const redis   = require('../redis');
 const logger  = require('../logger');
+const { requireAuth, requireRole } = require('../middleware/auth');
 
 // Rate limiter for public (unauthenticated) endpoints — 5 submissions per hour per IP
 const publicSubmitLimiter = rateLimit({
@@ -46,23 +47,14 @@ const refereeSchema = Joi.object({
   id:         Joi.string().max(64).optional().allow(null, ''),
 }).unknown(true);
 
-function requireAuth(req, res, next) {
-  if (!req.session?.userId) return res.status(401).json({ error: 'Authentication required' });
-  next();
-}
-
-function requireAdmin(req, res, next) {
-  if (req.session?.role !== 'admin') return res.status(403).json({ error: 'Admin only' });
-  next();
-}
-
 // Allowed species + statuses (mirror client-side constants)
 const VALID_SPECIES  = new Set(['cow','goat','sheep','fish']);
 const VALID_STATUSES = new Set(['active','dry','pregnant','empty','sold','culled']);
 const VALID_EV_TYPES = new Set(['health','repro','production']);
 const VALID_FREQS    = new Set(['monthly','quarterly','bi-annual','annual']);
 
-const SYNC_MAX = 500; // max items per array per sync call
+const SYNC_MAX = 500;           // max items per top-level array per sync call
+const PAYMENTS_PER_LEASE_MAX = 50; // max payments nested inside a single lease
 
 // ── POST /api/herd/sync ─────────────────────────────────────────────────────────────
 // Client sends arrays of unsynced animals/events/leases/payments.
@@ -77,7 +69,7 @@ router.post('/sync', requireAuth, async (req, res, next) => {
     });
   }
 
-  const client = await db.connect();
+  const client = await db.getClient();
   try {
     await client.query('BEGIN');
 
@@ -220,8 +212,9 @@ router.post('/sync', requireAuth, async (req, res, next) => {
         ]
       );
 
-      // Upsert payments attached to this lease
-      for (const p of (l.payments || [])) {
+      // Upsert payments attached to this lease (capped to prevent DoS via huge nested arrays)
+      const leasePayments = (l.payments || []).slice(0, PAYMENTS_PER_LEASE_MAX);
+      for (const p of leasePayments) {
         if (!p.id || !p.amountTzs || !p.payDate) continue;
         await client.query(
           `INSERT INTO herd_lease_payments
@@ -305,7 +298,7 @@ router.post('/apply', publicSubmitLimiter, async (req, res, next) => {
       `INSERT INTO afl_applications (id, referee_token, data, submitted_at)
        VALUES ($1, $2, $3, NOW())
        ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = NOW()`,
-      [value.id, value.refereeToken || null, JSON.stringify(req.body)]
+      [value.id, value.refereeToken || null, JSON.stringify(value)]
     );
     logger.info('AFL application received', { appId: value.id });
     return res.json({ ok: true, id: value.id });
@@ -323,7 +316,7 @@ router.post('/referee', publicSubmitLimiter, async (req, res, next) => {
     await db.query(
       `INSERT INTO afl_referees (id, app_token, data, submitted_at)
        VALUES ($1, $2, $3, NOW())`,
-      [refId, value.token, JSON.stringify(req.body)]
+      [refId, value.token, JSON.stringify(value)]
     );
     // Link back to application
     await db.query(
@@ -338,7 +331,7 @@ router.post('/referee', publicSubmitLimiter, async (req, res, next) => {
 
 // ── GET /api/herd/admin/applications ─────────────────────────────────────────────
 // Admin view of all loan applications
-router.get('/admin/applications', requireAuth, requireAdmin, async (req, res, next) => {
+router.get('/admin/applications', requireAuth, requireRole('admin'), async (req, res, next) => {
   try {
     const { rows } = await db.query(
       `SELECT id, referee_token, referee_count,
@@ -355,7 +348,7 @@ router.get('/admin/applications', requireAuth, requireAdmin, async (req, res, ne
 
 // ── GET /api/herd/admin/portfolio ─────────────────────────────────────────────────
 // Returns all active AF Lease hire-purchase records with payment progress — for lender dashboard
-router.get('/admin/portfolio', requireAuth, requireAdmin, async (req, res, next) => {
+router.get('/admin/portfolio', requireAuth, requireRole('admin'), async (req, res, next) => {
   try {
     const { rows } = await db.query(
       `SELECT l.*,

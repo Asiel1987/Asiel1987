@@ -174,8 +174,11 @@ router.post('/stripe/webhook', express.raw({ type: 'application/json' }), async 
 router.post('/mpesa/callback', async (req, res, next) => {
   try {
     // Bearer token guard — set MPESA_CALLBACK_TOKEN to the value configured in Daraja portal
-    const callbackToken = process.env.MPESA_CALLBACK_TOKEN;
-    if (callbackToken) {
+    const callbackToken = process.env.MPESA_CALLBACK_TOKEN || '';
+    if (process.env.NODE_ENV === 'production' && !callbackToken) {
+      logger.warn('MPESA_CALLBACK_TOKEN not set — M-Pesa callback is unauthenticated');
+    }
+    if (callbackToken.length > 0) {
       const auth = req.headers['authorization'] || '';
       const provided = auth.startsWith('Bearer ') ? auth.slice(7) : '';
       const tokBuf = Buffer.from(callbackToken);

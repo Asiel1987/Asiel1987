@@ -338,12 +338,11 @@ this._push("error.captured", entry);
 log.error("[Analytics] exception:", entry.message, context);
 // Wire: if (this._Sentry) this._Sentry.withScope(s => { s.setUser({ id: this._userId }); s.setExtras(context); this._Sentry.captureException(error); });
 
-// POST to backend /api/errors when API_BASE is set (no external dep — pure fetch)
+// POST to backend /api/errors via apiFetch so CSRF token and credentials are included
 if (API_BASE) {
-  fetch(`${API_BASE}/api/errors`, {
-    method:  "POST",
-    headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify(entry),
+  apiFetch("/api/errors", {
+    method: "POST",
+    body:   JSON.stringify(entry),
   }).catch(err => log.warn("[analytics] error report failed:", err.message));
 }
 
@@ -848,9 +847,9 @@ error: (...a) => console.error(...a) };          // errors always shown
 // Demo mode uses localStorage only because there is no backend to issue cookies.
 const tokenStore = {
   _mem: null,
-  get()         { return API_BASE ? this._mem : tokenStore.get(); },
+  get()         { return API_BASE ? this._mem : localStorage.getItem("asf_token"); },
   set(tok)      { if (API_BASE) { this._mem = tok; } else { localStorage.setItem("asf_token", tok); } },
-  clear()       { this._mem = null; tokenStore.clear(); },
+  clear()       { this._mem = null; localStorage.removeItem("asf_token"); },
   exists()      { return !!this.get(); },
 };
 // In-memory CSRF token — fetched once after login, never persisted.
@@ -1462,8 +1461,13 @@ async function refresh() {
   try {
     const res = await apiFetch("/api/fx");
     if (res?.rates && typeof res.rates === "object") {
-      // Merge live rates into the module-level FX object
-      Object.assign(FX, res.rates);
+      // Only merge known currency codes with positive finite numbers — prevents prototype pollution
+      const safeRates = {};
+      for (const code of Object.keys(SEED_FX)) {
+        const v = res.rates[code];
+        if (typeof v === "number" && isFinite(v) && v > 0) safeRates[code] = v;
+      }
+      Object.assign(FX, safeRates);
       setFxRevision(v => v + 1);
       setFxMeta({ source:"live", updatedAt: res.updatedAt || new Date().toISOString() });
     }
@@ -1564,6 +1568,9 @@ Promise.all(keys.filter(k => k !== CACHE_NAME && k !== API_CACHE).map(k => cache
 );
 });
 
+// Sensitive endpoints — never served from cache
+const NETWORK_ONLY_PREFIXES = ['/api/auth','/api/users','/api/csrf-token','/api/herd/admin'];
+
 // ── Fetch: route-based caching strategy ──
 self.addEventListener('fetch', event => {
 const { request } = event;
@@ -1571,6 +1578,9 @@ const url = new URL(request.url);
 
 // Skip non-GET, chrome-extension, and cross-origin requests
 if (request.method !== 'GET' || url.origin !== self.location.origin) return;
+
+// Auth / user-data endpoints — always network-only
+if (NETWORK_ONLY_PREFIXES.some(p => url.pathname.startsWith(p))) return;
 
 // API product listings — StaleWhileRevalidate (fast + fresh)
 if (url.pathname.startsWith('/api/products')) {

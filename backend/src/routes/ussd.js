@@ -53,6 +53,20 @@ function ussdIpGuard(req, res, next) {
   return res.status(403).send('END Forbidden');
 }
 
+// Normalize any phone format to E.164 (+CCXXXXXXXXX)
+// Africa's Talking can deliver numbers as "0712...", "255712...", or "+255712..."
+function normalizePhone(phone) {
+  if (!phone) return null;
+  const digits = phone.replace(/\D/g, '');
+  if (digits.startsWith('254')) return `+${digits}`;
+  if (digits.startsWith('255')) return `+${digits}`;
+  if (digits.startsWith('0') && digits.length === 10) {
+    // Assume TZ local format 07XX... → +2557XX...
+    return `+255${digits.slice(1)}`;
+  }
+  return `+${digits}`;
+}
+
 // Detect country from phone prefix
 function countryFromPhone(phone) {
   if (!phone) return 'TZ';
@@ -127,13 +141,14 @@ async function ussdPhoneGuard(req, res, next) {
 // ── POST /api/ussd ────────────────────────────────────────────────────────────
 // Africa's Talking sends application/x-www-form-urlencoded
 router.post('/', ussdIpGuard, express.urlencoded({ extended: false }), ussdPhoneGuard, async (req, res) => {
-  const { sessionId, phoneNumber, text = '' } = req.body;
+  const { sessionId, phoneNumber: rawPhone, text = '' } = req.body;
+  const phoneNumber = normalizePhone(rawPhone);
   const country = countryFromPhone(phoneNumber);
   const parts   = text.split('*').filter(Boolean);
   const level   = parts.length;
   const last    = parts[level - 1] || '';
 
-  logger.info('USSD', { sessionId, phoneNumber, text });
+  logger.info('USSD', { sessionId, phone: phoneNumber ? phoneNumber.slice(0, 6) + '***' : null });
 
   let response = '';
 

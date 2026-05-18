@@ -10,6 +10,7 @@ const session = require('express-session');
 const RedisStore = require('connect-redis').default;
 
 const redisClient = require('./redis');
+const db = require('./db');
 const logger = require('./logger');
 const errorHandler = require('./middleware/errorHandler');
 const { generalLimiter } = require('./middleware/rateLimit');
